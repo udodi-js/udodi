@@ -2,9 +2,8 @@
 import { createSignal, effect } from "../reactivity/index.js";
 import { extractAllDirectives, DIRECTIVE_ATTRIBUTES } from "./directive.js";
 import {
-	mountedRoots,
-	cleanupFunctions,
-	unmountFunctions,
+ registerRoot,
+ unregisterRoot,
 	runScopeCleanup,
 } from "./lifecycle.js";
 import {
@@ -361,6 +360,8 @@ function processForDirective(nodes, context, scope) {
 				if (record.el.isConnected) {
 					record.el.remove();
 				}
+
+     unregisterRoot(record.el);
 			};
 
 			const dispose = effect(() => {
@@ -418,9 +419,7 @@ function processForDirective(nodes, context, scope) {
 						queueBinding(el, itemContext, itemScope);
 
 						const cleanup = () => cleanupRecord(record);
-						cleanupFunctions.set(el, cleanup);
-						unmountFunctions.set(el, cleanup);
-						mountedRoots.add(el);
+       registerRoot(el,cleanup,cleanup);
 					} else {
 						record.setItem(item);
 						if (indexVar) record.setIndex(index);
