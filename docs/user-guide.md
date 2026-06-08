@@ -9,6 +9,12 @@ This guide reflects the current implementation in `packages/`.
 All code examples in this guide assume you have installed Udodi via `npm install udodi` (or equivalent).  
 If you're working inside the `/playground` folder during development, the import will resolve correctly thanks to the Vite alias.
 
+If you are importing directly from the built files (without package manager), use:
+- **ESM**: `import { createComponent, render } from "./dist/index.js"`
+- **IIFE/Global**: `./dist/index.global.js` (exposes `window.Udodi`)
+
+Import the main functions:
+
 ```javascript
 import { createComponent, render } from "udodi";
 ```
