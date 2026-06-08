@@ -179,7 +179,7 @@ export const Counter = createComponent({
     }
   },
 
-  template: () => `
+  template: () => /*html*/`
     <section class="card">
       <h1>Counter</h1>
 
