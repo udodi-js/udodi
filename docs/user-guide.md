@@ -2,14 +2,14 @@
 
 Udodi is a small reactive component runtime built around declarative HTML directives, path-level reactive state, lifecycle cleanup, and optional shared stores.
 
-This guide reflects the current implementation in `src/`.
+This guide reflects the current implementation in `packages/`.
 
 ## Quick Start
 
 Import from the public entry file:
 
 ```javascript
-import { createComponent, render } from "./src/index.js";
+import { createComponent, render } from "udodi";
 ```
 
 Create a component:
@@ -39,7 +39,7 @@ export const Counter = createComponent({
 Render the component into a target element:
 
 ```javascript
-import { render } from "./src/index.js";
+import { render } from "udodi";
 
 render(Counter(), document.getElementById("app"));
 ```
@@ -613,7 +613,7 @@ Parent({
 Use `bindProp()` to share reactive state from parent to child. The child's prop becomes a live reference to the parent's state:
 
 ```javascript
-import { createComponent, bindProp } from "./src/index.js";
+import { createComponent, bindProp } from "udodi";
 
 // Parent
 export const Parent = createComponent({
@@ -683,7 +683,7 @@ When the user edits the modal form, changes to `ctx.user.name` in the modal upda
 Render a component placeholder:
 
 ```javascript
-import { render } from "./src/index.js";
+import { render } from "udodi";
 
 render(UserPage(), document.getElementById("app"));
 render(UserCard({ name: "Jane" }), "#profile");
@@ -692,7 +692,7 @@ render(UserCard({ name: "Jane" }), "#profile");
 Unmount a container:
 
 ```javascript
-import { unmount } from "./src/index.js";
+import { unmount } from "udodi";
 
 unmount(document.getElementById("app"));
 ```
@@ -705,7 +705,7 @@ Use the global store for app-level values.
 Store state is reactive, so subscribers and components react automatically when store keys change:
 
 ```javascript
-import { store } from "./src/index.js";
+import { store } from "udodi";
 
 store.set("theme", "dark");
 console.log(store.get("theme"));
@@ -720,7 +720,7 @@ unsubscribe();
 Batch store updates:
 
 ```javascript
-import { batch, store } from "./src/index.js";
+import { batch, store } from "udodi";
 
 batch(() => {
 	store.set("user:name", "Jane");
@@ -743,7 +743,7 @@ await store.dispatch("session:logout");
 Register namespaced modules:
 
 ```javascript
-import { registerStore } from "./src/index.js";
+import { registerStore } from "udodi";
 
 export const counterStore = registerStore("counter", {
 	state: {
@@ -768,7 +768,7 @@ console.log(counterStore.get("count"));
 Access a registered store module:
 
 ```javascript
-import { useStore } from "./src/index.js";
+import { useStore } from "udodi";
 
 const counterStore = useStore("counter");
 console.log(counterStore.get("count"));
@@ -789,7 +789,7 @@ Module actions receive:
 Destroy a module:
 
 ```javascript
-import { destroyStore } from "./src/index.js";
+import { destroyStore } from "udodi";
 
 destroyStore("counter");
 ```
@@ -804,7 +804,7 @@ For data-fetching patterns, use `createQuery()` to create a reusable reactive qu
 ### Creating a query store
 
 ```javascript
-import { createQuery } from "./src/index.js";
+import { createQuery } from "udodi";
 
 export const holdersCountQuery = createQuery(
 	"holdersCount",
@@ -870,7 +870,7 @@ holdersCountQuery.dispatch("reset");
 ### Cleanup and invalidation
 
 ```javascript
-import { cleanupQuery, invalidateQueries } from "./src/index.js";
+import { cleanupQuery, invalidateQueries } from "udodi";
 
 cleanupQuery(holdersCountQuery);
 
@@ -882,7 +882,7 @@ invalidateQueries("holdersCount");
 ### Invalidation dependencies
 
 ```javascript
-import { registerInvalidationDependency, invalidateQueries } from "./src/index.js";
+import { registerInvalidationDependency, invalidateQueries } from "udodi";
 
 registerInvalidationDependency("user:update", ["user:list"]);
 
@@ -910,7 +910,7 @@ fetch({ limit: 10, page: 1 }); // same cache key
 ### Using Query Stores in Components
 
 ```javascript
-import { createComponent } from "./src/index.js";
+import { createComponent } from "udodi";
 import { holdersCountQuery } from "./stores/holdersCount.js";
 
 export const HoldersPage = createComponent({
@@ -979,7 +979,7 @@ export const HoldersPage = createComponent({
 ### Scheduler integration
 
 ```javascript
-import { registerQuerySchedule, triggerQuery } from "./src/index.js";
+import { registerQuerySchedule, triggerQuery } from "udodi";
 
 registerQuerySchedule("notifications", {
 	polling: {
@@ -1019,7 +1019,7 @@ globalThis.__STORE_DEVTOOLS__ = {
 	},
 };
 
-import { store } from "./src/index.js";
+import { store } from "udodi";
 
 store.set("user:name", "Jane");     // Logs: [Store:set] { key: "user:name", prev: undefined, value: "Jane" }
 store.delete("user:name");           // Logs: [Store:delete] { key: "user:name" }
@@ -1186,7 +1186,7 @@ const confirmed = await openModal((close) => `
 ### Component-Based Modal Example
 
 ```javascript
-import { createComponent, openModal } from "./src/index.js";
+import { createComponent, openModal } from "udodi";
 
 const ConfirmDialog = createComponent({
 	handlers: {
@@ -1217,7 +1217,7 @@ const result = await openModal((close) =>
 ### Reactive State with bindProp
 
 ```javascript
-import { createComponent, openModal, bindProp } from "./src/index.js";
+import { createComponent, openModal, bindProp } from "udodi";
 
 const EditUserModal = createComponent({
 	template: (ctx) => `
@@ -1324,7 +1324,7 @@ When a modal closes:
 ## App Refresh Hooks
 
 ```javascript
-import { onAppRefresh, refreshApp } from "./src/index.js";
+import { onAppRefresh, refreshApp } from "udodi";
 
 const unsubscribe = onAppRefresh(() => {
 	console.log("refresh requested");
@@ -1341,7 +1341,7 @@ unsubscribe();
 `reactive()` is the proxy primitive used by `createComponent()`:
 
 ```javascript
-import { reactive, computed, effect } from "./src/index.js";
+import { reactive, computed, effect } from "udodi";
 
 const state = reactive({
 	count: 0,
@@ -1362,7 +1362,7 @@ dispose();
 `createSignal()` is still exported as a low-level primitive for internals and advanced use:
 
 ```javascript
-import { createSignal } from "./src/index.js";
+import { createSignal } from "udodi";
 
 const [count, setCount] = createSignal(0);
 
@@ -1402,7 +1402,7 @@ Most component code should use component `state`, `computed`, and directives ins
 ## Complete Example
 
 ```javascript
-import { createComponent, render } from "./src/index.js";
+import { createComponent, render } from "udodi";
 
 const TodoList = createComponent({
 	name: "todo-list",
