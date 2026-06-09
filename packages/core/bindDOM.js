@@ -1302,8 +1302,25 @@ function processValidateDirective(nodes, context, scope) {
 
 				if (typeof resolverFn === "function") {
 					const args = resolverInfo.args.map((arg) => resolveToken(context, arg));
-					error = resolverFn(value, ...args) ? "" : "Validation failed";
+					
+					try {
+						const result = resolverFn(value, ...args);
+
+						if (result === true) {
+							error = "";                   // Valid
+						} else if (typeof result === "string" && result.trim() !== "") {
+							error = result.trim();        // Custom error message
+						} else {
+							error = "Validation failed";  // Fallback for false/null/undefined/""
+						}
+
+					} catch (err) {
+						console.warn(`[@validate] Error in custom validator:`, err);
+						error = "Validation error";
+					}
+
 				} else {
+					// Built-in rules
 					for (const rule of rules) {
 						const result = executeRule(rule, value);
 						if (result !== true) {
