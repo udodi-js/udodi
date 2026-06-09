@@ -331,7 +331,7 @@ Use `className:path` to toggle a class:
 Use a bare expression for a class list path or a quoted literal class list:
 
 ```html
-<div @class="'panel successClass'"></div>
+<div @class="'panel' successClass"></div>
 ```
 
 If `successClass` is a path that resolves to a string such as `"is-valid highlight"` or an array of class names, those classes are applied. Unquoted bare expressions are treated as path lookups, not as static class names, so unknown values will not be applied.
