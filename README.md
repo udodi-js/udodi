@@ -367,6 +367,22 @@ These constraints are deliberate architectural decisions, not missing features.
 
 ---
 
+## Roadmap
+
+Curious about what's coming next? Check out our **[Roadmap](./ROADMAP.md)** to see the planned features and long-term vision for Udodi.js.
+
+Key upcoming improvements include:
+
+- Compiler-based directive pipeline (Lexer → Compiler → VM)
+- Directive pipelines (`@text="value | filter | transform"`)
+- Native scoped component styles using CSS `@scope`
+- Multi-threaded Query Pool for heavy computations
+- Significant runtime performance optimizations
+
+We're committed to keeping Udodi.js **lightweight**, **fast**, and **simple**.
+
+---
+
 ## Contributing
 
 Contributions, discussions, and experimentation are welcome.
