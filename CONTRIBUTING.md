@@ -109,7 +109,7 @@ git push origin main --tags
 
 This triggers automated npm publish via GitHub Actions.
 
-See [RELEASE_PROCESS.md](./RELEASE_PROCESS.md) for detailed information on how to publishing release.
+See [RELEASE_PROCESS.md](./RELEASE_PROCESS.md) for detailed information on how to publish a release.
 
 ---
 
