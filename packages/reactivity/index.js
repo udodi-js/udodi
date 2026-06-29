@@ -1,254 +1,502 @@
 /**
- * Still writting...
+ * Queue of scheduled reactive jobs.
+ *
+ * A Set is used to automatically deduplicate jobs within
+ * the same microtask flush.
+ *
+ * @type {Set<Function>}
  */
-
 const jobQueue = new Set();
+
+/**
+ * Whether a flush has already been scheduled.
+ *
+ * @type {boolean}
+ */
 let isFlushing = false;
 
+/**
+ * Schedules a reactive job for execution.
+ *
+ * Jobs are batched and executed in a microtask.
+ * Duplicate jobs are ignored automatically.
+ *
+ * @param {Function} job
+ */
 function schedule(job) {
-    if (jobQueue.has(job)) return; // optional but good for performance
+	if (jobQueue.has(job)) return;
 
-    jobQueue.add(job);
+	jobQueue.add(job);
 
-    if (!isFlushing) {
-        isFlushing = true;
-        queueMicrotask(flushJobs);
-    }
+	// Lock it immediately so no other microtasks can be scheduled
+	// during this synchronous execution block
+	if (!isFlushing) {
+		isFlushing = true;
+		queueMicrotask(flushJobs);
+	}
 }
 
+/**
+ * Flushes all queued jobs.
+ *
+ * Handles jobs added during execution by scheduling
+ * another microtask flush when necessary.
+ */
 function flushJobs() {
-    const jobs = Array.from(jobQueue);
-    jobQueue.clear();
-    isFlushing = false;
+	try {
+		while (jobQueue.size > 0) {
+			const jobs = Array.from(jobQueue);
+			jobQueue.clear();
 
-    let i = 0;
-    for (; i < jobs.length; i++) {
-        jobs[i]();
-    }
+			for (let i = 0; i < jobs.length; i++) {
+				jobs[i]();
+			}
+		}
+	} finally {
+		// Unlock it only after ALL cascading jobs have finished running
+		isFlushing = false;
+	}
 }
 
+/**
+ * Stack of currently executing effects.
+ *
+ * Nested effects are supported by restoring the
+ * previous effect when an inner effect finishes.
+ *
+ * @type {Function[]}
+ */
+const effectStack = [];
+
+/**
+ * Currently active effect.
+ *
+ * @type {Function|null}
+ */
 let currentEffect = null;
 
 /**
  * Creates a reactive signal - a primitive reactive value with getter and setter.
- * 
+ *
  * Signals are the foundation of the reactivity system. They track dependencies
  * when read (inside effects or computed) and notify dependents when updated.
  *
  * @param {any} initialValue - The initial value of the signal.
- * @returns {[get: () => any, set: (newValue: any) => void]} 
+ * @returns {[get: () => any, set: (newValue: any) => void]}
  *   A tuple containing:
  *   - `get`: Function to read the current value (tracks dependencies)
  *   - `set`: Function to update the value and trigger effects
  *
  * @example
  * const [count, setCount] = createSignal(0);
- * 
+ *
  * effect(() => {
  *   console.log('Count is:', count());
  * });
- * 
+ *
  * setCount(5); // Triggers the effect
  */
 export function createSignal(initialValue) {
-    let value = initialValue;
-    const subscribers = new Set();
+	let value = initialValue;
+	const subscribers = new Set();
 
-    const get = () => {
-        if (currentEffect) {
-            subscribers.add(currentEffect);
-            currentEffect.deps.add(subscribers);
-        }
-        return value;
-    };
+	const get = () => {
+		if (currentEffect) {
+			subscribers.add(currentEffect);
+			currentEffect.deps.add(subscribers);
+		}
+		return value;
+	};
 
-    const set = (nextValue) => {
-        if (Object.is(value, nextValue)) return;
+	const set = (nextValue) => {
+		if (Object.is(value, nextValue)) return;
 
-        value = nextValue;
+		value = nextValue;
 
-        if (subscribers.size === 0) return;
+		if (subscribers.size === 0) return;
 
-        for (const effect of subscribers) {
-            schedule(effect);
-        }
-    };
+		for (const effect of subscribers) {
+			schedule(effect);
+		}
+	};
 
-    return [get, set];
+	return [get, set];
 }
 
 /**
- * Runs side effect and tracks dependencies
+ * Creates and runs a reactive effect.
+ *
+ * Any signals accessed during execution are tracked
+ * automatically and will re-run the effect when changed.
+ *
+ * @param {Function} fn
+ * @param {{ effects: Function[] }=} scope
+ * @returns {Function} Cleanup function.
  */
 export function effect(fn, scope) {
-    let deps = new Set();
+	const deps = new Set();
 
-    const effectFn = () => {
-        // Cleanup old dependencies
-        // This prevents memory leaks and stale subscriptions
-        for (const dep of deps) {
-            dep.delete(effectFn);
-        }
-        deps.clear();
+	const effectFn = () => {
+		for (const dep of deps) {
+			dep.delete(effectFn);
+		}
 
-        // Track new dependencies
-        currentEffect = effectFn;
-        try {
-            fn();
-        } finally {
-            currentEffect = null;
-        }
-    };
+		deps.clear();
 
-    effectFn.deps = deps;
+		effectStack.push(effectFn);
+		currentEffect = effectFn;
 
-    if (scope) {
-        scope.effects.push(() => cleanup(effectFn));
-    }
+		try {
+			fn();
+		} finally {
+			effectStack.pop();
+			currentEffect = effectStack[effectStack.length - 1] || null;
+		}
+	};
 
-    effectFn(); // initial run
-    return () => cleanup(effectFn);
-}
+	effectFn.deps = deps;
 
-function cleanup(effectFn) {
-    const deps = effectFn.deps;
+	if (scope) {
+		scope.effects.push(() => cleanup(effectFn));
+	}
 
-    if (!deps) return;
+	effectFn();
 
-    for (const dep of deps) {
-        dep.delete(effectFn);
-    }
-
-    deps.clear();
+	return () => cleanup(effectFn);
 }
 
 /**
- * Computed value with caching
- */
-export function computed(fn) {
-    let cachedValue;
-    let dirty = true;
-
-    const [getSignal, setSignal] = createSignal();
-
-    effect(() => {
-        const newValue = fn();
-
-        if (!Object.is(newValue, cachedValue)) {
-            cachedValue = newValue;
-            setSignal(newValue);
-        }
-
-        dirty = false;
-    });
-
-    return () => {
-        if (dirty) {
-            cachedValue = fn();
-            dirty = false;
-        }
-
-        return getSignal();
-    };
-}
-
-/**
- * Creates a shallow reactive object backed by per-key signals.
+ * Cleans up an effect by removing it from all its dependency sets.
  *
- * Reading `state.key` tracks the current effect. Writing `state.key = value`
- * updates the signal for that key. Nested objects are not deeply proxied.
+ * This prevents memory leaks and stops the effect from being
+ * triggered after disposal.
+ *
+ * @param {Function} effectFn - The effect function to clean up.
+ */
+function cleanup(effectFn) {
+	const deps = effectFn.deps;
+
+	if (!deps) return;
+
+	for (const dep of deps) {
+		dep.delete(effectFn);
+	}
+
+	deps.clear();
+}
+
+/**
+ * Creates a lazily-initialized computed reactive value.
+ *
+ * The computation automatically tracks any reactive dependencies
+ * accessed during execution and recomputes whenever one of those
+ * dependencies change.
+ *
+ * Computed values are evaluated only when first accessed.
+ *
+ * The returned getter can be consumed inside effects, templates,
+ * event handlers, methods, and other computed values.
+ *
+ * @param {Function} fn - Computation function that returns the derived value.
+ * @param {{ effects: Function[] }=} [scope] - Optional reactive scope used
+ *   to automatically dispose the computed when the scope is cleaned up.
+ *
+ * @returns {() => any} Reactive getter returning the latest computed value.
+ *
+ * @example
+ * const fullName = computed(() => {
+ *   return `${state.firstName} ${state.lastName}`;
+ * });
+ *
+ * effect(() => {
+ *   console.log(fullName());
+ * });
+ *
+ * @example
+ * const scope = {
+ *   effects: []
+ * };
+ *
+ * const total = computed(() => {
+ *   return state.price * state.quantity;
+ * }, scope);
+ */
+export function computed(fn, scope) {
+	let cachedValue;
+	let initialized = false;
+	let dispose = null;
+	let version = 0;
+
+	const [track, trigger] = createSignal(0);
+
+	const recompute = () => {
+		const nextValue = fn();
+
+		// Initial evaluation
+		if (!initialized) {
+			cachedValue = nextValue;
+			initialized = true;
+			return;
+		}
+
+		// Notify dependents only when the value changes
+		if (!Object.is(cachedValue, nextValue)) {
+			cachedValue = nextValue;
+			trigger(++version);
+		}
+	};
+
+	const cleanupComputed = () => {
+		if (!dispose) {
+			return;
+		}
+
+		dispose();
+		dispose = null;
+
+		initialized = false;
+		cachedValue = undefined;
+	};
+
+	if (scope) {
+		scope.effects.push(cleanupComputed);
+	}
+
+	return function computedGetter() {
+		if (!dispose) {
+			// No scope forwarding here.
+			// We manage cleanup ourselves so the computed can be recreated.
+			dispose = effect(recompute);
+		}
+
+		// Track consumers of this computed.
+		track();
+
+		return cachedValue;
+	};
+}
+
+// Tuple indexes for readability + minification friendliness
+const SIGNAL_GET = 0;
+const SIGNAL_SET = 1;
+
+/**
+ * Applies an interceptor (if any) and commits the value.
+ *
+ * @param {PropertyKey} prop
+ * @param {*} value
+ * @param {[Function, Function]} signal
+ * @param {Object} target
+ * @param {Object|null} interceptors
+ * @returns {boolean}
+ */
+function commit(prop, value, signal, target, interceptors) {
+	let nextValue = value;
+
+	if (interceptors !== null) {
+		const interceptor = interceptors[prop];
+
+		if (typeof interceptor === "function") {
+			const intercepted = interceptor(value);
+
+			// Returning undefined cancels the update.
+			if (intercepted === undefined) {
+				return true;
+			}
+
+			nextValue = intercepted;
+		}
+	}
+
+	// Update the reactive signal.
+	signal[SIGNAL_SET](nextValue);
+
+	// Keep the backing object synchronized.
+	target[prop] = nextValue;
+
+	return true;
+}
+
+/**
+ * Creates a shallow reactive object backed by per-property signals.
+ *
+ * Reading a property tracks the currently active effect.
+ * Writing a property updates its signal and notifies subscribers.
+ *
+ * Nested objects are not made reactive automatically.
+ *
+ * @param {Object} [initialState={}] Initial reactive state.
+ * @param {Object} [options={}]
+ * @param {Object<string, Function>} [options.interceptors={}]
+ * Optional property interceptors. An interceptor receives the
+ * incoming value and may:
+ * - Return a transformed value.
+ * - Return `undefined` to cancel the update.
+ *
+ * @returns {Object} Reactive proxy.
+ *
+ * @example
+ * const state = reactive({
+ *   count: 0,
+ *   name: "John"
+ * });
+ *
+ * effect(() => {
+ *   console.log(state.count);
+ * });
+ *
+ * state.count++;
+ *
+ * @example
+ * const state = reactive(
+ *   { age: 18 },
+ *   {
+ *     interceptors: {
+ *       age(value) {
+ *         return Math.max(0, value);
+ *       }
+ *     }
+ *   }
+ * );
  */
 export function reactive(initialState = {}, options = {}) {
-    const { interceptors = {} } = options;
-    const signals = new Map();
-    const target = {};
+	const interceptors = options.interceptors || null;
 
-    for (const [key, value] of Object.entries(initialState)) {
-        const [getter, setter] = createSignal(value);
-        signals.set(key, { getter, setter });
-    }
+	/**
+	 * Property signal registry.
+	 *
+	 * @type {Map<PropertyKey, { getter: Function, setter: Function }>}
+	 */
+	const signals = new Map();
 
-    const commit = (prop, value) => {
-        let nextValue = value;
-        const interceptor = interceptors[prop];
+	/**
+	 * Underlying target object used by the Proxy.
+	 *
+	 * Non-reactive properties are stored directly here.
+	 *
+	 * @type {Object}
+	 */
+	const target = {};
 
-        if (typeof interceptor === "function") {
-            const intercepted = interceptor(value);
-            if (intercepted === undefined) return true;
-            nextValue = intercepted;
-        }
+	// Initialize signals.
+	const keys = Object.keys(initialState);
 
-        signals.get(prop).setter(nextValue);
-        return true;
-    };
+	for (let i = 0; i < keys.length; i++) {
+		const key = keys[i];
+		const value = initialState[key];
 
-    return new Proxy(target, {
-        get(target, prop, receiver) {
-            if (signals.has(prop)) {
-                return signals.get(prop).getter();
-            }
+		signals.set(key, createSignal(value));
+		target[key] = value;
+	}
 
-            return Reflect.get(target, prop, receiver);
-        },
+	return new Proxy(target, {
+		get(target, prop) {
+			const signal = signals.get(prop);
 
-        set(target, prop, value, receiver) {
-            if (signals.has(prop)) {
-                return commit(prop, value);
-            }
+			return signal !== undefined
+				? signal[SIGNAL_GET]()
+				: target[prop];
+		},
 
-            return Reflect.set(target, prop, value, receiver);
-        },
+		set(target, prop, value) {
+			const signal = signals.get(prop);
 
-        has(target, prop) {
-            return signals.has(prop) || Reflect.has(target, prop);
-        },
+			if (signal !== undefined) {
+				return commit(
+					prop,
+					value,
+					signal,
+					target,
+					interceptors
+				);
+			}
 
-        ownKeys(target) {
-            return Array.from(new Set([...Reflect.ownKeys(target), ...signals.keys()]));
-        },
+			// Non-reactive property.
+			target[prop] = value;
+			return true;
+		},
 
-        getOwnPropertyDescriptor(target, prop) {
-            if (signals.has(prop)) {
-                return {
-                    enumerable: true,
-                    configurable: true,
-                };
-            }
+		has(target, prop) {
+			return prop in target || signals.has(prop);
+		},
 
-            return Reflect.getOwnPropertyDescriptor(target, prop);
-        },
-    });
+		ownKeys(target) {
+			const keys = new Set(Reflect.ownKeys(target));
+
+			for (const key of signals.keys()) {
+				keys.add(key);
+			}
+
+			return Array.from(keys);
+		},
+
+		getOwnPropertyDescriptor(target, prop) {
+			if (signals.has(prop)) {
+				return {
+					enumerable: true,
+					configurable: true,
+					writable: true,
+				};
+			}
+
+			return Reflect.getOwnPropertyDescriptor(target, prop);
+		},
+	});
+}
+
+const REACTIVE_BINDING = Symbol("REACTIVE_BINDING");
+
+/**
+ * Creates a reactive data tunnel for prop passing.
+ * Maps a target object property to a lazy evaluation wrapper.
+ *
+ * @param {Function} getterFn - An arrow function returning the target proxy property.
+ * @returns {Object} A marked reactive binding descriptor object.
+ *
+ * @example
+ * // 1. Passing a LIVE, reactive property connection
+ * // Changes in the parent state will automatically reflect inside the child component.
+ * ${ChildComponent({
+ *     count: bindProp(() => ctx.count)
+ * })}
+ *
+ * @example
+ * // 2. Passing a STATIC primitive snapshot (By Value)
+ * // The child receives a static snapshot copy locked at whatever value ctx.count was during this render pass.
+ * ${ChildComponent({
+ *     count: ctx.count
+ * })}
+ */
+export function bindProp(getterFn) {
+	return {
+		[REACTIVE_BINDING]: true,
+		// This getter executes the arrow function later, tunneling directly
+		// into the parent proxy's active tracking signal upon access.
+		get value() {
+			return getterFn();
+		},
+	};
 }
 
 /**
- * Marks a value as a reactive binding for prop passing.
- * 
- * Use this when passing reactive state to a child component to maintain
- * the reactive connection. Without this, props are plain value snapshots.
- * 
- * @param {any} value - The value to bind reactively (usually a reactive Proxy)
- * @returns {Object} A marked binding object
- * 
- * @example
- * const Child = createComponent({...});
- * 
- * // Parent component
- * Parent({
- *     template: (ctx) => `${Child({ data: bindProp(ctx.data) })}`
- * });
- * 
- * // In Child, ctx.data is now reactively linked to Parent's ctx.data
+ * Evaluates whether an incoming component prop is a reactive tunnel.
+ *
+ * @param {any} prop
+ * @returns {boolean}
  */
-const REACTIVE_BINDING = Symbol('REACTIVE_BINDING');
-
-export function bindProp(value) {
-    return { [REACTIVE_BINDING]: true, value };
-}
-
 export function isReactiveProp(prop) {
-    return prop && typeof prop === 'object' && prop[REACTIVE_BINDING] === true;
+	return (
+		prop !== null && typeof prop === "object" && prop[REACTIVE_BINDING] === true
+	);
 }
 
+/**
+ * Safely extracts the active value from a prop gateway.
+ * If the prop is static, it passes it through untouched.
+ *
+ * @param {any} prop
+ * @returns {any}
+ */
 export function unwrapReactiveProp(prop) {
-    return isReactiveProp(prop) ? prop.value : prop;
+	return isReactiveProp(prop) ? prop.value : prop;
 }

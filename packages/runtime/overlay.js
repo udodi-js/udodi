@@ -302,6 +302,6 @@ export function openModal(render, options = {}) {
 			},
 		});
 
-		modal.instance = mount(ModalRoot, root);
+		modal.instance = mount(ModalRoot(), root);
 	});
 }

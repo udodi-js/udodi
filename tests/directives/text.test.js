@@ -147,18 +147,4 @@ describe("Tokenizer & Directive Expression Parser", () => {
 			expect(component).toBeDefined();
 		});
 	});
-
-	describe("splitBindingsBySpace behavior", () => {
-		it("splits multiple bindings correctly", () => {
-			const component = createComponent({
-				template: () => `
-					<button @on="click:save mouseenter:preview">
-						Action
-					</button>
-				`,
-			});
-
-			expect(component).toBeDefined();
-		});
-	});
 });

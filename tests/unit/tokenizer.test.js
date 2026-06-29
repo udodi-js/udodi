@@ -20,7 +20,7 @@ import {
 	scanQuoted,
 	SCAN_DELIMITER,
 	SCAN_WHITESPACE,
-} from "../../packages/core/tokenizer.js";
+} from "../../packages/utils/tokenizer.js";
 
 describe("Tokenizer", () => {
 	describe("isQuote", () => {

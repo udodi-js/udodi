@@ -4,6 +4,8 @@ const DIRECTIVES = {
     '@on': 'on',
     '@for': 'for',
     '@if': 'if',
+    '@elseif': 'elseif',
+    '@else': 'else',
     '@show': 'show',
     '@class': 'class',
     '@style': 'style',
@@ -20,11 +22,15 @@ export const DIRECTIVE_ATTRIBUTES = [
 ];
 
 /**
+ * @import { DirectiveGroups } from '../types/directives.js'
+ */
+
+/**
  * Extracts all directives from the DOM tree in a single traversal.
  * This function performs a single traversal of the DOM to collect nodes for all directive types.
  * 
  * @param {HTMLElement} root - The root element to start the traversal from.
- * @returns {Object} An object containing arrays of nodes for each directive type.
+ * @returns {DirectiveGroups} An object containing arrays of nodes for each directive type.
  */
 export function extractAllDirectives(root) {
     const directives = {
@@ -33,6 +39,8 @@ export function extractAllDirectives(root) {
         on: [],
         for: [],
         if: [],
+        elseif: [],
+        else: [],
         show: [],
         class: [],
         style: [],
