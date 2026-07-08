@@ -127,6 +127,17 @@ export const Counter = createComponent({
 		shuffleUsers() {
 			this.users = [...this.users].sort(() => Math.random() - 0.5);
 		},
+
+		changeColor(event) {
+			this.btnColor = "secondcolor";
+			this.toogle = !this.toogle;
+		},
+
+
+	},
+
+	onMount(root, ctx) {
+		console.log(ctx.refs.counter);
 	},
 
 	onMount(root, ctx) {

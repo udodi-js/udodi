@@ -1,0 +1,49 @@
+name: Release to npm
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    # This block grants the necessary OIDC permissions
+    permissions:
+      contents: read     # Required to checkout code
+      id-token: write    # Required to fetch the OIDC token from GitHub for npm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npmjs.org
+          cache: npm
+
+      # Crucial step: npm provenance requires your package to be publicly accessible
+      # if you are using a scoped organization package (e.g., @my-org/my-package)
+      - name: Install dependencies
+        run: npm ci
+
+      # (Optional but recommended) Ensure package.json matches your tag
+      - name: Verify tag matches package.json version
+        run: |
+          TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "❌ Tag version (${{ github.ref_name }}) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "✅ Version match: v$PKG_VERSION"
+
+      # The '--provenance' flag creates a cryptographic link back to this specific runner run
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

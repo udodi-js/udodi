@@ -1,0 +1,28 @@
+name: PR Labeler
+
+on:
+  pull_request:
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Label based on branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+
+            let labels = [];
+
+            if (branch.startsWith("feature/")) labels.push("enhancement");
+            if (branch.startsWith("fix/")) labels.push("bug");
+            if (branch.startsWith("refactor/")) labels.push("refactor");
+
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels
+            });

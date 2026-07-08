@@ -1,0 +1,17 @@
+name: PR Size Check
+
+on:
+  pull_request:
+
+jobs:
+  size:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check PR size
+        run: |
+          echo "Checking diff size..."
+          git fetch origin ${{ github.base_ref }}
+          git diff --stat origin/${{ github.base_ref }}

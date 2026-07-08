@@ -1,4 +1,4 @@
-﻿import {
+import {
 	createSignal, 
 	effect, 
 	touch
@@ -3103,7 +3103,7 @@ export function bindDOM(
 
 	processIfDirective(directives.if, vm, context, scope);
 	processElseIfDirective(directives.elseif);
-    processElseDirective(directives.else);
+  processElseDirective(directives.else);
 
 	processTeleportDirective(directives.teleport, scope);
 }

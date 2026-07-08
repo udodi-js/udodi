@@ -141,7 +141,7 @@ export function createSignal(initialValue) {
             return;
         }
 
-        value = nextValue;
+		    value = nextValue;
 
         trigger();
     };

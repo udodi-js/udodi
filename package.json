@@ -2,6 +2,7 @@
     "name": "udodi",
     "version": "1.0.0",
     "description": "A lightweight UI/component framework",
+    "private": false,
     "type": "module",
     "main": "./dist/index.js",
     "module": "./dist/index.js",
@@ -18,7 +19,7 @@
         "dev": "tsup --watch",
         "build": "tsup",
         "clean": "rm -rf dist",
-        "prepublishOnly": "npm run build",
+        "prepublishOnly": "echo 'Use git tag release flow only' && exit 1",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:ui": "vitest --ui"
@@ -29,8 +30,12 @@
         "components",
         "udodi"
     ],
-    "author": "",
+    "author": "Attamah Celestine .C",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cocest/udodi.git"
+    },
     "devDependencies": {
         "@vitest/ui": "^4.1.8",
         "happy-dom": "^20.10.2",
