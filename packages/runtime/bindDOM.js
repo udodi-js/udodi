@@ -1,4 +1,4 @@
-﻿import {
+import {
 	createSignal, 
 	effect, 
 	touch

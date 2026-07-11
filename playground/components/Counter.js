@@ -230,6 +230,10 @@ export const Counter = createComponent({
 		console.log(ctx.refs.counter);
 	},
 
+	onMount(root, ctx) {
+		console.log(ctx.refs.counter);
+	},
+
 	template: () => html`
 		<div>
 			<div @text="message|uppercase"></div>
@@ -258,6 +262,10 @@ export const Counter = createComponent({
 			<div @show="isVisible">
 				Udodi.js is awesome!
 			</div>
+
+			<hr>
+
+			<h3>@if Tests</h3>
 
 			<hr>
 
