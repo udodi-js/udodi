@@ -1,6 +1,7 @@
 import { getComponent, removeComponent } from "./componentRegistry.js";
 import { extractAllDirectives } from "./directive.js";
 import { bindDOM } from "./bindDOM.js";
+
 import {
 	getCleanupObserver,
 	registerRoot,
@@ -25,9 +26,10 @@ import {
  *
  * @param {Element} root - The scoped DOM subtree root element to search within.
  * @param {Object} vm - The virtual machine instance to pass to the mount engine.
+ * @param {?number} [parentBoundary] - The scope identifier of the parent component.
  * @returns {void}
  */
-function resolveComponents(root, vm) {
+function resolveComponents(root, vm, parentBoundary) {
 	const customElements = root.getElementsByTagName('udodi-component');
 
 	// Keep running as long as a <udodi-component> exists
@@ -48,7 +50,7 @@ function resolveComponents(root, vm) {
 		const { Component, props } = componentDef;
 
 		// Mount component into placeholder.
-		mount(Component(props), elem, vm);
+		mount(Component(props), elem, vm, parentBoundary);
 
 		// Grab the actual component root.
 		const realRoot = elem.firstElementChild;
@@ -67,14 +69,42 @@ function resolveComponents(root, vm) {
 }
 
 /**
- * Mounts a component to a DOM container.
+ * Mounts a component instance into a DOM container.
  *
- * @param {Function} component - The component object with a `template` property, etc.
- * @param {HTMLElement} container - The DOM element to mount the component to.
- * @param {Object} vm - The virtual machine instance.
- * @returns {Object} The mounted component instance.
+ * The component's template is converted into a DOM fragment, nested
+ * `<udodi-component>` placeholders are resolved recursively, directives are
+ * bound, lifecycle hooks are registered, and the resulting DOM is appended
+ * to the container.
+ *
+ * If the component defines scoped CSS, `mount()` also establishes the
+ * component's CSS `@scope` boundaries by:
+ *
+ * - Setting `ud-scope-start="<scopeId>"` on the component root.
+ * - Setting `ud-scope-end="<parentBoundary>"` on the root when mounted
+ *   inside another scoped component.
+ * - Appending a trailing boundary element with
+ *   `ud-scope-end="<scopeId>"` to terminate the component's scope.
+ *
+ * The component's scope identifier is then propagated to nested component
+ * mounts so that parent styles do not bleed into child component trees.
+ *
+ * @param {Object} component - The component instance returned by
+ * `Component(props)`. Must contain a `template` property and may contain
+ * `context`, `publicContext`, `scopeId`, `onMount`, and `onUnmount`.
+ * @param {HTMLElement} container - The DOM element into which the component
+ * will be mounted.
+ * @param {Object} vm - The virtual machine instance used for directive
+ * evaluation and execution.
+ * @param {?number} [parentBoundary] - The scope identifier of the
+ * parent component. Used to establish CSS `@scope` end boundaries and
+ * prevent style leakage into nested component trees.
+ * @returns {{
+ *   name: string,
+ *   context: Object,
+ *   unmount: Function
+ * }} The mounted component instance API.
  */
-export function mount(component, container, vm) {
+export function mount(component, container, vm, parentBoundary = null) {
 	const componentName = component.name;
 
 	if (!component.template) {
@@ -123,14 +153,26 @@ export function mount(component, container, vm) {
 		}
 	};
 
+	let ownBoundary = parentBoundary;
+
+	// Set the CSS @scope start and end boundaries
+	if (component.scopeId !== null) {
+		root.setAttribute("ud-scope-start", component.scopeId);
+
+		if (parentBoundary !== null) {
+			root.setAttribute("ud-scope-end", parentBoundary);
+		}
+
+		ownBoundary = component.scopeId;
+	}
+
 	// Resolve nested components (they will replace their own placeholders)
-	resolveComponents(root, vm);
+	resolveComponents(root, vm, ownBoundary);
 
 	const directives = extractAllDirectives(root);
 	const context = component.context || {};
 
 	try {
-		scope._root = root;
 		bindDOM(directives, vm, context, scope);
 
 		registerRoot(root, cleanup, unmount);

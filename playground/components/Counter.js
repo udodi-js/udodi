@@ -1,4 +1,5 @@
 import { html, createComponent, touch } from 'udodi';
+import { ParentScope } from './ParentScope.js';
 
 export const Counter = createComponent({
 	name: "counter",
@@ -610,6 +611,12 @@ export const Counter = createComponent({
 				Email Value:
 				<span @text="emailValue"></span>
 			</div>
+
+			<hr>
+
+			<h3>CSS @scope Tests</h3>
+
+			${ParentScope()}
 		</div>
 	`,
 });

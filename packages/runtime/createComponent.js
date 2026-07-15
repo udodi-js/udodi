@@ -6,6 +6,7 @@ import {
 	unwrapReactiveProp,
 } from "../reactivity/index.js";
 
+import { createScopeId, registerScope } from "./styleScope.js";
 import { readonly } from "./readonly.js";
 import { addComponent } from "../runtime/componentRegistry.js";
 import { runScopeCleanup } from "../runtime/lifecycle.js";
@@ -85,10 +86,10 @@ export function createComponent({
 	interceptors = {},            // for data transformations before state updates
 	methods = {},                 // for event handlers and normal functions (formatters, helpers, etc.)
 	watch = {},                   // for watching reactive state changes
+	style = "",                   // for CSS styles
 	template = "",
 	onMount = null,
 	onUnmount = null,
-	style = "",                   // for CSS styles
 }) {
 	const compName = name || "unknown";
 
@@ -156,6 +157,11 @@ export function createComponent({
 			);
 		}
 	}
+
+	// Generate a unique scope identifier for the component so that each 
+	// instance will re-use the scope identifier.
+	const scopeId = style !== "" ? createScopeId() : null;
+	let styleMounted = false;
 	
 	/**
 	 * Creates a component instance.
@@ -386,12 +392,19 @@ export function createComponent({
 			}, watcherScope);
 		}
 
+		// Register new style for CSS scoping
+		if (!styleMounted && scopeId !== null) {
+			registerScope(scopeId, style);
+			styleMounted = true;
+		}
+
 		const html = typeof template === "function" ? 
 			template(publicContextMembrane) : template;
 
 		return {
 			name: compName,
 			template: html,
+			scopeId,
 			context: internalContext, // Handed over with open VM access
 			publicContext: publicContextMembrane,
 
