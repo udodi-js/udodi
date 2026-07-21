@@ -1,28 +1,44 @@
 name: PR Labeler
-
 on:
   pull_request:
+
+permissions:
+  issues: write
+  pull-requests: write
 
 jobs:
   label:
     runs-on: ubuntu-latest
-
     steps:
       - name: Label based on branch
         uses: actions/github-script@v7
+        continue-on-error: true 
         with:
           script: |
-            const branch = context.payload.pull_request.head.ref;
-
+            const pr = context.payload.pull_request;
+            const branch = pr.head.ref;
             let labels = [];
 
+            // Evaluate your explicit branch prefix rulesets
             if (branch.startsWith("feature/")) labels.push("enhancement");
             if (branch.startsWith("fix/")) labels.push("bug");
             if (branch.startsWith("refactor/")) labels.push("refactor");
+            if (branch.startsWith("docs/")) labels.push("documentation");
+            if (branch.startsWith("chore/")) labels.push("chore");
+            if (branch.startsWith("test/")) labels.push("test");
 
-            github.rest.issues.addLabels({
+            // FALLBACK INJECTION: If no prefixes matched, apply the fallback tag
+            if (labels.length === 0) {
+              console.log(`Branch '${branch}' did not match keywords. Applying fallback 'triage' label.`);
+              labels.push("triage");
+            }
+
+            console.log(`Applying labels [${labels.join(', ')}] to PR #${pr.number}`);
+
+            // Dispatch data payload smoothly to the GitHub REST API
+            await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
-              labels
+              issue_number: pr.number,
+              labels: labels
             });
