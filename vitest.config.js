@@ -6,6 +6,9 @@ export default defineConfig({
 		globals: true,
 		environment: "happy-dom",
 
+		// Automatically polyfill IndexedDB globally for happy-dom
+		setupFiles: ["fake-indexeddb/auto"],
+
 		// Include all test files inside tests/ and subfolders
 		include: ["tests/**/*.{test,spec}.{js,mjs,ts,tsx}"],
 

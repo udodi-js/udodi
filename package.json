@@ -37,6 +37,7 @@
     },
     "devDependencies": {
         "@vitest/ui": "^4.1.8",
+        "fake-indexeddb": "^6.2.5",
         "happy-dom": "^20.10.2",
         "tsup": "^8.5.1",
         "typescript": "^6.0.3",

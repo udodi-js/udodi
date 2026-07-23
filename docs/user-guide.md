@@ -793,33 +793,53 @@ store.defineAction("session:logout", async (payload, store) => {
 });
 
 await store.dispatch("session:logout");
+
+// Warns by default when an action is missing.
+store.dispatch("session:missing");
+
+// Throws instead when strict dispatch is useful.
+store.dispatch("session:missing", undefined, {
+	strict: true,
+});
+```
+
+Create selectors for derived store values:
+
+```javascript
+const fullName = store.select((state) => {
+	return `${state.get("user:firstName")} ${state.get("user:lastName")}`;
+});
+
+console.log(fullName());
 ```
 
 ## Store Modules
 
-Register namespaced modules:
+Define module stores for app features. This is the preferred store API for state
+that belongs to a feature, page, or domain object:
 
 ```javascript
-import { registerStore } from "udodi";
+import { defineStore } from "udodi";
 
-export const counterStore = registerStore("counter", {
+export const counterStore = defineStore("counter", {
 	state: {
 		count: 0,
 	},
 
 	actions: {
-		increment(ctx) {
-			ctx.state.count = ctx.state.count + 1;
+		increment({ state }) {
+			state.count++;
 		},
 
-		add(ctx, amount) {
-			ctx.set("count", ctx.get("count") + amount);
+		add({ state }, amount) {
+			state.count += amount;
 		},
 	},
 });
 
 await counterStore.dispatch("increment");
-console.log(counterStore.get("count"));
+
+console.log(counterStore.state.count);
 ```
 
 Access a registered store module:
@@ -834,6 +854,16 @@ counterStore.set("count", 10);
 await counterStore.dispatch("increment");
 ```
 
+Create module selectors for derived values:
+
+```javascript
+const doubled = counterStore.select((state) => {
+	return state.count * 2;
+});
+
+console.log(doubled());
+```
+
 Module actions receive:
 
 | Property | Purpose |
@@ -842,6 +872,8 @@ Module actions receive:
 | `ctx.get(key)` | Read a module state key. |
 | `ctx.set(key, value)` | Set a module state key. |
 | `ctx.update(key, fn)` | Update from previous value. |
+| `ctx.touch(key)` | Notify after mutating a nested value in place. |
+| `ctx.select(fn)` | Create a computed selector from module state. |
 
 Destroy a module:
 

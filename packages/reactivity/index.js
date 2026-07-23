@@ -310,7 +310,7 @@ import {
 	reactiveArray,
 	reactiveMap,
 	reactiveSet
-} from "./collections";
+} from "./collections.js";
 
 /**
  * Wraps supported collections with reactive wrappers.

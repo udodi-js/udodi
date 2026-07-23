@@ -16,11 +16,18 @@ export {
 } from "./reactivity/index.js";
 
 export { batch, createNamespace, store } from "./store/store.js";
-export { destroyStore, registerStore, useStore } from "./store/registry.js";
+
+export { defineStore, destroyStore, useStore } from "./store/registry.js";
+
 export {
 	createQuery,
 	cleanupQuery,
 	invalidateQueries,
 	registerInvalidationDependency,
 } from "./store/query.js";
-export { registerQuerySchedule, triggerQuery, destroySchedule } from "./store/scheduler.js";
+
+export {
+	registerQuerySchedule,
+	triggerQuery,
+	destroySchedule,
+} from "./store/scheduler.js";

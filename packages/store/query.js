@@ -1,4 +1,4 @@
-import { registerStore } from "./registry.js";
+import { defineStore } from "./registry.js";
 
 // Global layers
 
@@ -196,7 +196,7 @@ export function createQuery(name, fetchFn, options = {}) {
 		onError,
 	} = options;
 
-	const store = registerStore(name, {
+	const store = defineStore(name, {
 		state: {
 			data: null,
 			status: "idle",
