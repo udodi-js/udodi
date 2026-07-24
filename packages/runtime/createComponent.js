@@ -11,6 +11,8 @@ import { readonly } from "./readonly.js";
 import { addComponent } from "../runtime/componentRegistry.js";
 import { runScopeCleanup } from "../runtime/lifecycle.js";
 
+import { stdlib } from "../stdlib/index.js";
+
 // Immutable blacklist of framework keywords that users can NEVER overwrite
 const RESERVED_KEYWORDS = new Set([
 	"name",
@@ -201,6 +203,10 @@ export function createComponent({
 
 		// Build the flat, highly accessible VM Context
 		const internalContext = {
+			// Load framework defaults.
+			// Note that the user should override the functions.
+    		...stdlib,
+
 			refs: Object.create(null), // Reference for HTML element
 		};
 
