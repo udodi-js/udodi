@@ -36,11 +36,11 @@ The result is fine-grained reactivity anchored directly to DOM nodes, delivering
 
 ## Why Udodi?
 
-* **No Virtual DOM**: Directly mutates targeted DOM properties and text nodes, eliminating layout tree diffing costs.
-* **No JSX Needed**: Keeps your structural layout close to native, declarative HTML templates.
-* **Shallow & Path-Based Reactivity**: Bypasses deep runtime proxy overhead to ensure explicit state tracking and optimized browser memory.
-* **No Inline JavaScript**: Directives do not execute arbitrary JavaScript expressions. Instead, they use a minimalistic DSL built around paths, resolver calls, and literals, making templates easier to reason about while keeping compilation fast, predictable, and CSP-friendly.
-* **Built-in Application Systems:** Udodi includes reactive stores, a query store for managing server state, and a complete form system with built-in validation, giving applications essential state and data management capabilities out of the box.
+* **No Virtual DOM**: Directly updates targeted DOM properties and text nodes, avoiding the overhead of virtual DOM tree diffing.
+* **No JSX Needed**: Keeps UI structure close to native, declarative HTML templates.
+* **Fine-Grained, Path-Based Reactivity**: Tracks state at the property and dependency level, enabling targeted updates without relying on deep runtime proxying.
+* **No Inline JavaScript**: Directives do not execute arbitrary JavaScript expressions. Instead, they use a minimal DSL built around paths, resolver calls, and literals, making templates easier to reason about while keeping compilation fast and predictable.
+* **Built-in Application Systems**: Udodi includes reactive state management with **Udodi Store**, asynchronous data management with **Query Pool**, form state and validation, and a runtime **Overlay** system for modal and dialog experiences.
 
 ## Installation
 
