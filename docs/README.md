@@ -6,15 +6,15 @@ It is designed for developers who want the simplicity of a small JavaScript libr
 
 Udodi brings together the core building blocks needed to build reactive applications:
 
-- Fine-grained reactivity
-- Declarative HTML templates
-- Component-based architecture
-- Reactive state management
-- Component-scoped styling
-- Persistent stores
-- Asynchronous query management
-- Form state and validation
-- Application overlays and modals
+* Fine-grained reactivity
+* Declarative HTML templates
+* Component-based architecture
+* Reactive state management
+* Component-scoped styling
+* Persistent stores
+* Asynchronous query management
+* Form state and validation
+* Application overlays and modals
 
 The goal is simple: give you the primitives to build reactive interfaces and applications without forcing your application into a large framework architecture.
 
@@ -24,12 +24,12 @@ The goal is simple: give you the primitives to build reactive interfaces and app
 
 If you are new to Udodi, start here.
 
-| Guide                                            | Description                                                                                                                            |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **[Installation](./installation.md)**            | Install Udodi and learn the available distribution formats.                                                                            |
-| **[Quick Start](./quick-start.md)**              | Build your first reactive Udodi application.                                                                                           |
-| **[Your First Component](./first-component.md)** | Learn the basic structure of a Udodi component and how state, methods, computed values, templates, and component styles work together. |
-| **[Project Structure](./project-structure.md)**  | Learn how to organize Udodi application as it grows.                                                                                   |
+| Guide                                            | Description                                                                                                                                                    |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Installation](./installation.md)**            | Install Udodi and learn the available distribution formats.                                                                                                    |
+| **[Quick Start](./quick-start.md)**              | Build your first reactive Udodi application.                                                                                                                   |
+| **[Your First Component](./first-component.md)** | Learn the basic structure of Udodi component and how state, methods, computed values, watchers, interceptors, templates, and component styles work together. |
+| **[Project Structure](./project-structure.md)**  | Learn how to organize Udodi application as it grows.                                                                                                         |
 
 ---
 
@@ -37,16 +37,18 @@ If you are new to Udodi, start here.
 
 ### Fundamentals
 
-Understand the building blocks that make up a Udodi application.
+Understand the building blocks that make up Udodi application.
 
-- **[Components](./fundamentals/components.md)** — Define reusable UI and application logic.
-- **[State](./fundamentals/state.md)** — Manage reactive component state.
-- **[Methods](./fundamentals/methods.md)** — Encapsulate application behavior.
-- **[Computed Values](./fundamentals/computed.md)** — Derive reactive values from state.
-- **[Lifecycle](./fundamentals/lifecycle.md)** — Work with component creation, mounting, and cleanup.
-- **[Props](./fundamentals/props.md)** — Pass reactive data between components.
-- **[Context](./fundamentals/context.md)** — Understand the context available to components and directives.
-- **[Component Styles](./fundamentals/styles.md)** — Define styles through a component's `style` property with CSS scoping.
+* **[Components](./fundamentals/components.md)** — Define reusable UI and application logic.
+* **[State](./fundamentals/state.md)** — Manage reactive component state.
+* **[Methods](./fundamentals/methods.md)** — Encapsulate application behavior.
+* **[Computed Values](./fundamentals/computed.md)** — Derive reactive values from state.
+* **[Watchers](./fundamentals/watch.md)** — Observe reactive dependencies and respond to changes.
+* **[Interceptors](./fundamentals/interceptors.md)** — Intercept component behavior and runtime operations.
+* **[Lifecycle](./fundamentals/lifecycle.md)** — Work with component creation, mounting, and cleanup.
+* **[Props](./fundamentals/props.md)** — Pass reactive data between components.
+* **[Context](./fundamentals/context.md)** — Understand the context available to components and directives.
+* **[Component Styles](./fundamentals/styles.md)** — Define styles through a component's `style` property with CSS scoping.
 
 **Start here → [Fundamentals](./fundamentals/)**
 
@@ -60,14 +62,14 @@ Learn how Udodi's reactive primitives work together, including signals, effects,
 
 **Guides**
 
-- [Reactivity Overview](./reactivity/overview.md)
-- [Signals](./reactivity/signals.md)
-- [Effects](./reactivity/effects.md)
-- [Reactive State](./reactivity/state.md)
-- [Reactive Collections](./reactivity/collections.md)
-- [Reactive Arrays](./reactivity/arrays.md)
-- [Using `touch()`](./reactivity/touch.md)
-- [Read-only State](./reactivity/readonly.md)
+* [Reactivity Overview](./reactivity/overview.md)
+* [Signals](./reactivity/signals.md)
+* [Effects](./reactivity/effects.md)
+* [Reactive State](./reactivity/state.md)
+* [Reactive Collections](./reactivity/collections.md)
+* [Reactive Arrays](./reactivity/arrays.md)
+* [Using `touch()`](./reactivity/touch.md)
+* [Read-only State](./reactivity/readonly.md)
 
 **Start here → [Reactivity](./reactivity/)**
 
@@ -81,18 +83,18 @@ Learn how to express UI structure, bind reactive data, respond to events, condit
 
 **Guides**
 
-- [Template Overview](./templates/overview.md)
-- [Template DSL](./templates/dsl.md)
-- [`@text`](./templates/text.md)
-- [`@bind`](./templates/bind.md)
-- [`@on`](./templates/on.md)
-- [`@if`](./templates/if.md)
-- [`@show`](./templates/show.md)
-- [`@for`](./templates/for.md)
-- [`@class`](./templates/class.md)
-- [`@style`](./templates/style.md)
-- [`@attr`](./templates/attr.md)
-- [`@teleport`](./templates/teleport.md)
+* [Template Overview](./templates/overview.md)
+* [Template DSL](./templates/dsl.md)
+* [`@text`](./templates/text.md)
+* [`@bind`](./templates/bind.md)
+* [`@on`](./templates/on.md)
+* [`@if`](./templates/if.md)
+* [`@show`](./templates/show.md)
+* [`@for`](./templates/for.md)
+* [`@class`](./templates/class.md)
+* [`@style`](./templates/style.md)
+* [`@attr`](./templates/attr.md)
+* [`@teleport`](./templates/teleport.md)
 
 **Start here → [Templates](./templates/)**
 
@@ -106,14 +108,14 @@ The form system supports both synchronous and asynchronous validation, with flex
 
 **Guides**
 
-- [Forms Overview](./forms/overview.md)
-- [Creating a Form](./forms/creating.md)
-- [Working with Fields](./forms/fields.md)
-- [Validation](./forms/validation.md)
-- [Sequential and Parallel Validation](./forms/sequential-parallel.md)
-- [Form Submission](./forms/submission.md)
-- [Form Controllers](./forms/controllers.md)
-- [Async Validation](./forms/async.md)
+* [Forms Overview](./forms/overview.md)
+* [Creating a Form](./forms/creating.md)
+* [Working with Fields](./forms/fields.md)
+* [Validation](./forms/validation.md)
+* [Sequential and Parallel Validation](./forms/sequential-parallel.md)
+* [Form Submission](./forms/submission.md)
+* [Form Controllers](./forms/controllers.md)
+* [Async Validation](./forms/async.md)
 
 **Start here → [Forms](./forms/)**
 
@@ -127,16 +129,16 @@ Stores can be registered and shared across an application, allowing state to be 
 
 The Store system covers three core areas:
 
-- **Store** — Create and manage reactive application state.
-- **Registry** — Register and access shared stores across an application.
-- **Persistence** — Persist store state when needed.
+* **Store** — Create and manage reactive application state.
+* **Registry** — Register and access shared stores across an application.
+* **Persistence** — Persist store state when needed.
 
 **Guides**
 
-- [Store Overview](./store/overview.md)
-- [Creating Stores](./store/creating.md)
-- [Store Registry](./store/registry.md)
-- [Persistent Stores](./store/persistence.md)
+* [Store Overview](./store/overview.md)
+* [Creating Stores](./store/creating.md)
+* [Store Registry](./store/registry.md)
+* [Persistent Stores](./store/persistence.md)
 
 **Start here → [Udodi Store](./store/)**
 
@@ -154,13 +156,13 @@ The Query Pool separates query invalidation from query execution, allowing appli
 
 **Guides**
 
-- [Query Pool Overview](./query-pool/overview.md)
-- [Queries](./query-pool/queries.md)
-- [Query Dependencies](./query-pool/dependencies.md)
-- [Caching](./query-pool/caching.md)
-- [Invalidation](./query-pool/invalidation.md)
-- [Query Scheduling](./query-pool/scheduling.md)
-- [Query Pool and Workers](./query-pool/workers.md)
+* [Query Pool Overview](./query-pool/overview.md)
+* [Queries](./query-pool/queries.md)
+* [Query Dependencies](./query-pool/dependencies.md)
+* [Caching](./query-pool/caching.md)
+* [Invalidation](./query-pool/invalidation.md)
+* [Query Scheduling](./query-pool/scheduling.md)
+* [Query Pool and Workers](./query-pool/workers.md)
 
 **Start here → [Query Pool](./query-pool/)**
 
@@ -176,12 +178,12 @@ Overlays can return a result when closed, allowing application code to await an 
 
 **Guides**
 
-- [Overlay Overview](./overlay/overview.md)
-- [Opening Overlays](./overlay/opening.md)
-- [Closing Overlays](./overlay/closing.md)
-- [Overlay Options](./overlay/options.md)
-- [Overlay Stacking](./overlay/stacking.md)
-- [Accessibility](./overlay/accessibility.md)
+* [Overlay Overview](./overlay/overview.md)
+* [Opening Overlays](./overlay/opening.md)
+* [Closing Overlays](./overlay/closing.md)
+* [Overlay Options](./overlay/options.md)
+* [Overlay Stacking](./overlay/stacking.md)
+* [Accessibility](./overlay/accessibility.md)
 
 **Start here → [Overlay](./overlay/)**
 
@@ -191,11 +193,11 @@ Overlays can return a result when closed, allowing application code to await an 
 
 Once you are comfortable with the fundamentals, explore the internals and advanced capabilities of Udodi.
 
-- [Architecture](./advanced/architecture.md)
-- [Performance](./advanced/performance.md)
-- [CSS Scoping](./advanced/css-scoping.md)
-- [DOM Rendering](./advanced/dom-rendering.md)
-- [Server Integration](./advanced/server-integration.md)
+* [Architecture](./advanced/architecture.md)
+* [Performance](./advanced/performance.md)
+* [CSS Scoping](./advanced/css-scoping.md)
+* [DOM Rendering](./advanced/dom-rendering.md)
+* [Server Integration](./advanced/server-integration.md)
 
 These guides explain not only how to use Udodi, but also why it behaves the way it does.
 
@@ -205,14 +207,14 @@ These guides explain not only how to use Udodi, but also why it behaves the way 
 
 Use the API reference when you already know what you need and want precise details about a specific API.
 
-- [API Reference Overview](./api/overview.md)
-- [Component API](./api/component.md)
-- [Reactivity API](./api/reactivity.md)
-- [Form API](./api/form.md)
-- [Store API](./api/store.md)
-- [Query Pool API](./api/query-pool.md)
-- [Overlay API](./api/overlay.md)
-- [Utilities](./api/utilities.md)
+* [API Reference Overview](./api/overview.md)
+* [Component API](./api/component.md)
+* [Reactivity API](./api/reactivity.md)
+* [Form API](./api/form.md)
+* [Store API](./api/store.md)
+* [Query Pool API](./api/query-pool.md)
+* [Overlay API](./api/overlay.md)
+* [Utilities](./api/utilities.md)
 
 The API reference should be treated as the authoritative reference for function signatures, options, return values, and behavior.
 
@@ -224,10 +226,10 @@ Udodi is open source, and contributions are welcome.
 
 If you want to contribute to the framework itself, start with:
 
-- [Development Setup](./contributing/setup.md)
-- [Architecture](./advanced/architecture.md)
-- [Testing](./contributing/testing.md)
-- [Contributing Guide](../CONTRIBUTING.md)
+* [Development Setup](./contributing/setup.md)
+* [Architecture](./advanced/architecture.md)
+* [Testing](./contributing/testing.md)
+* [Contributing Guide](../CONTRIBUTING.md)
 
 You can also visit the [Udodi GitHub repository](https://github.com/udodi-js/udodi) to browse the source code, report issues, and contribute improvements.
 
@@ -235,19 +237,19 @@ You can also visit the [Udodi GitHub repository](https://github.com/udodi-js/udo
 
 ## Documentation Map
 
-| Section             | Purpose                                                                            |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| **Getting Started** | Install Udodi and build your first application                                     |
-| **Fundamentals**    | Learn components, state, methods, computed values, lifecycle, and component styles |
-| **Reactivity**      | Understand Udodi's fine-grained reactive system                                    |
-| **Templates**       | Learn the declarative template DSL                                                 |
-| **Forms**           | Manage forms, validation, and submission                                           |
-| **Udodi Store**     | Manage shared, reactive, and persistent application state                          |
-| **Query Pool**      | Manage asynchronous queries and their dependencies                                 |
-| **Overlay**         | Build modal and dialog experiences with managed overlay lifecycles                 |
-| **Advanced**        | Explore architecture, CSS scoping, performance, and advanced behavior              |
-| **API Reference**   | Find precise API documentation                                                     |
-| **Contributing**    | Develop and contribute to Udodi itself                                             |
+| Section             | Purpose                                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Getting Started** | Install Udodi and build your first application                                                             |
+| **Fundamentals**    | Learn components, state, methods, computed values, watchers, interceptors, lifecycle, and component styles |
+| **Reactivity**      | Understand Udodi's fine-grained reactive system                                                            |
+| **Templates**       | Learn the declarative template DSL                                                                         |
+| **Forms**           | Manage forms, validation, and submission                                                                   |
+| **Udodi Store**     | Manage shared, reactive, and persistent application state                                                  |
+| **Query Pool**      | Manage asynchronous queries and their dependencies                                                         |
+| **Overlay**         | Build modal and dialog experiences with managed overlay lifecycles                                         |
+| **Advanced**        | Explore architecture, CSS scoping, performance, and advanced behavior                                      |
+| **API Reference**   | Find precise API documentation                                                                             |
+| **Contributing**    | Develop and contribute to Udodi itself                                                                     |
 
 ---
 
