@@ -476,6 +476,13 @@ const Counter = createComponent({
     console.log("Counter component unmounted");
   },
 
+  interceptors: {
+    count(value) {
+      // Keep count non-negative.
+      return Math.max(0, value);
+    },
+  },
+
   style: css`
     .counter {
       max-width: 320px;
