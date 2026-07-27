@@ -107,4 +107,4 @@ Once Udodi is installed, continue with:
 
 * **[Quick Start](./quick-start.md)** — Build your first Udodi application.
 * **[Your First Component](./first-component.md)** — Learn how components, state, methods, computed values, templates, and component styles work together.
-* **[Project Structure](./project-structure.md)** — Learn how to organize a Udodi application as it grows.
+* **[Project Structure](./project-structure.md)** — Learn how to organize Udodi application as it grows.
