@@ -8,6 +8,21 @@ import {
 import { persistStore } from "./persist.js";
 
 /**
+ * Context passed to every store action.
+ *
+ * The same context shape is used by both global actions
+ * and module actions to provide a consistent API.
+ *
+ * @typedef {Object} ActionContext
+ * @property {Object} state Reactive state proxy.
+ * @property {Function} get Read a state value.
+ * @property {Function} set Set a state value.
+ * @property {Function} update Update a state value.
+ * @property {Function} touch Notify subscribers after mutating a value in place.
+ * @property {Function} select Create a computed selector.
+ */
+
+/**
  * @typedef {Object} StoreEntry
  * @property {{ value: any }} state Reactive holder for subscriber tracking.
  * @property {any} value Current raw store value used for non-tracking reads.
@@ -80,6 +95,67 @@ function createEntry(value) {
 		state: holder,
 		value: holder.value,
 	};
+}
+
+/**
+ * Create a proxy that maps property access to the global store.
+ * Used as the `state` field of {@link ActionContext} for global actions.
+ *
+ * @returns {Object}
+ */
+function createGlobalStateProxy() {
+	return new Proxy(
+		{},
+		{
+			get(_, key) {
+				if (typeof key === "symbol") {
+					return undefined;
+				}
+
+				return store.get(key);
+			},
+
+			set(_, key, value) {
+				if (typeof key === "symbol") {
+					return true;
+				}
+
+				store.set(key, value);
+
+				return true;
+			},
+
+			deleteProperty(_, key) {
+				if (typeof key === "symbol") {
+					return true;
+				}
+
+				store.delete(key);
+
+				return true;
+			},
+
+			has(_, key) {
+				return typeof key === "string" && store.has(key);
+			},
+
+			ownKeys() {
+				return store.keys();
+			},
+
+			getOwnPropertyDescriptor(_, key) {
+				if (typeof key === "string" && store.has(key)) {
+					return {
+						enumerable: true,
+						configurable: true,
+						writable: true,
+					};
+				}
+
+				return undefined;
+			},
+		},
+	);
 }
 
 /**
@@ -313,6 +389,16 @@ export const store = {
 		return controller;
 	},
 
+	/**
+	 * Register an action handler.
+	 *
+	 * The handler is always invoked as `fn(ctx, payload)` where
+	 * `ctx` is an {@link ActionContext}. This matches the calling
+	 * convention used by module actions registered via `defineStore`.
+	 *
+	 * @param {string} name
+	 * @param {(ctx: ActionContext, payload: any) => any} fn
+	 */
 	defineAction(name, fn) {
 		actions.set(
 			name,
@@ -323,7 +409,23 @@ export const store = {
 				});
 
 				try {
-					const result = await fn(payload, store);
+					/**
+					 * Global action context.
+					 * Mirrors the shape used by module actions so
+					 * developers can write handlers the same way.
+					 */
+					const ctx = {
+						state: createGlobalStateProxy(),
+						get: (key) => store.get(key),
+						set: (key, value) => store.set(key, value),
+						update: (key, updater) =>
+							store.update(key, updater),
+						touch: (key) => store.touch(key),
+						select: (selector, scope) =>
+							store.select(selector, scope),
+					};
+
+					const result = await fn(ctx, payload);
 
 					emit("action:end", {
 						name,
