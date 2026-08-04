@@ -1,10 +1,16 @@
 import { defineConfig } from "vite";
 import path from "path";
 
+const repoRoot = path.resolve(__dirname, "../");
+
 export default defineConfig({
 	server: {
 		port: 5173,
 		open: true,
+		fs: {
+			// Allow repo root so dist/ + packages/ can be served to workers
+			allow: [repoRoot],
+		},
 	},
 	build: {
 		outDir: "dist",
@@ -12,7 +18,10 @@ export default defineConfig({
 	},
 	resolve: {
 		alias: {
-			udodi: path.resolve(__dirname, "../")
+			udodi: repoRoot
 		},
+	},
+	worker: {
+		format: "es",
 	},
 });

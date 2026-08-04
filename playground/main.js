@@ -1,28 +1,20 @@
-import { render } from 'udodi';
-import { Counter } from './components/Counter.js';
+import { render } from "udodi";
+import { App } from "./components/App.js";
 
-// Render the component
-const root = document.getElementById('root');
+const root = document.getElementById("root");
 
-console.log("Starting render...");
+console.log("Starting playground render...");
 
 performance.mark("render-start");
 
-// Render the component
-render(Counter(), root);
+render(App(), root);
 
 performance.mark("render-end");
 
 const measure = performance.measure(
-    "Udodi Render Time",
-    "render-start",
-    "render-end"
+	"Udodi Playground Render",
+	"render-start",
+	"render-end",
 );
 
-console.log(`Render completed in ${measure.duration.toFixed(2)}ms`);
-
-// Optional: Log to console with more details
-console.group("Performance");
-console.log("Duration:", measure.duration.toFixed(2) + "ms");
-console.log("Start:", measure.startTime.toFixed(2) + "ms");
-console.groupEnd();
+console.log(`Playground render completed in ${measure.duration.toFixed(2)}ms`);
