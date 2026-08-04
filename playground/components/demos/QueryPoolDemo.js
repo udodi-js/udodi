@@ -13,15 +13,15 @@ const pool = createQueryPool({
 
 /** Register fixture modules (paths relative to this file). */
 pool.registerModule("echo", {
-	url: new URL("./modules/echo.query.js", import.meta.url).href,
+	url: new URL("../modules/echo.query.js", import.meta.url).href,
 });
 
 pool.registerModule("stream", {
-	url: new URL("./modules/stream.query.js", import.meta.url).href,
+	url: new URL("../modules/stream.query.js", import.meta.url).href,
 });
 
 pool.registerModule("save", {
-	url: new URL("./modules/save.mutation.js", import.meta.url).href,
+	url: new URL("../modules/save.mutation.js", import.meta.url).href,
 });
 
 /** Local upstream for dependsOn demos */

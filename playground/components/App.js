@@ -24,10 +24,6 @@ export const App = createComponent({
 			this.activeTab = id;
 		},
 
-		isTab(id) {
-			return this.activeTab === id;
-		},
-
 		isBasics() {
 			return this.activeTab === "basics";
 		},
