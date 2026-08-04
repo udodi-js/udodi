@@ -40,7 +40,7 @@ export function createComputePool(options = {}) {
 
 	const workerUrl =
 		options.worker ||
-		new URL("./query-pool-compute.worker.js", import.meta.url);
+		new URL("./compute.worker.js", import.meta.url);
 
 	const workers = [];
 

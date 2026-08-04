@@ -52,7 +52,7 @@ export function createQueryPoolWorkerBridge(options = {}) {
 	const registry = options.registry || createQueryModuleRegistry();
 
 	const worker = new Worker(
-		new URL("./query-pool-main.worker.js", import.meta.url),
+		new URL("./main.worker.js", import.meta.url),
 		{
 			type: "module",
 		},
