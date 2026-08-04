@@ -3,19 +3,24 @@ import { createNamespace, store } from "./store.js";
 const modules = new Map();
 
 /**
- * @typedef {Object} StoreModuleContext
- * @property {Object} state Proxy for reading and writing module state.
- * @property {Function} get Read a module state key.
- * @property {Function} set Set a module state key.
- * @property {Function} update Update a module state key from its previous value.
+ * Context passed to every store action.
+ *
+ * The same context shape is used by both global actions
+ * and module actions to provide a consistent API.
+ *
+ * @typedef {Object} ActionContext
+ * @property {Object} state Reactive state proxy.
+ * @property {Function} get Read a state value.
+ * @property {Function} set Set a state value.
+ * @property {Function} update Update a state value.
  * @property {Function} touch Notify subscribers after mutating a value in place.
- * @property {Function} select Create a computed selector for module state.
+ * @property {Function} select Create a computed selector.
  */
 
 /**
  * @typedef {Object} StoreModuleDefinition
  * @property {Object} [state] Initial state values.
- * @property {Object<string, Function>} [actions] Action handlers.
+ * @property {Object<string, (ctx: ActionContext, payload: any) => any>} [actions] Action handlers.
  * @property {Function} [cleanup] Cleanup hook called when the module is destroyed.
  */
 
@@ -237,13 +242,22 @@ export function defineStore(name, def) {
 
 	/**
 	 * Register actions.
+	 *
+	 * Module actions receive the same (ctx, payload) signature
+	 * as global actions registered via store.defineAction.
+	 * The context is scoped to the module namespace.
 	 */
 	for (const key in def.actions || {}) {
 		const actionName = `${name}:${key}`;
 
+		/**
+		 * Wrap so that defineAction's internal call of fn(ctx, payload)
+		 * is redirected to the module-scoped ActionContext.
+		 * The global ctx injected by defineAction is intentionally ignored.
+		 */
 		store.defineAction(
 			actionName,
-			(payload) => {
+			(_globalCtx, payload) => {
 				const ctx = {
 					state: stateProxy,
 					get: api.get,
