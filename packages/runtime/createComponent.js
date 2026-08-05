@@ -203,6 +203,8 @@ export function createComponent({
 
 		// Build the flat, highly accessible VM Context
 		const internalContext = {
+			name: compName, // Component name for debugging
+
 			// Load framework defaults.
 			// Note that the user should override the functions.
     		...stdlib,
