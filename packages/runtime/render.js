@@ -1,4 +1,4 @@
-import { getComponent, removeComponent } from "./componentRegistry.js";
+import { getComponent, clear } from "./componentRegistry.js";
 import { mount } from "./mount.js";
 import { unmount } from "./unmount.js";
 import { getVM } from "../core/vmInstance.js";
@@ -82,8 +82,8 @@ export function render(placeholder, target) {
 		vm // Pass down to mount
 	);
 
-	// Remove from registry after successful mount
-	removeComponent(placeholderId);
+	// Clear the registry
+	clear();
 
 	// Renders all registered scoped CSS
 	renderStyles();

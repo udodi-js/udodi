@@ -64,7 +64,6 @@ export function removeComponent(id) {
 
 /**
  * Clears the entire registry and resets capacity.
- * Useful for testing, hot reload, or full app reset.
  */
 export function clear() {
     registry = new Array(INITIAL_CAPACITY);
