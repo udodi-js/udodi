@@ -22,7 +22,7 @@ function injectOverlayStyles() {
 
 	const style = document.createElement("style");
 
-	style.setAttribute("data-udodi-overlay-styles", "");
+	style.setAttribute("udodi-overlay-styles", "");
 
 	style.textContent = `
 		[udodi-overlay-host] {
@@ -40,13 +40,10 @@ function injectOverlayStyles() {
 		[udodi-overlay-layer] {
 			position: absolute;
 			inset: 0;
-
 			display: flex;
 			align-items: center;
 			justify-content: center;
-
 			padding: 24px;
-
 			pointer-events: none;
 		}
 

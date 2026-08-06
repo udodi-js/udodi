@@ -93,7 +93,7 @@ export function createComponent({
 	onMount = null,
 	onUnmount = null,
 }) {
-	const compName = name || "unknown";
+	const compName = name || "Unknown";
 
 	if (typeof state !== "function") {
 		throw new TypeError(
