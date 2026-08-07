@@ -22,7 +22,7 @@ export interface WatchConfig {
 	/** State keys to observe. */
 	deps: string[];
 	/**
-	 * Called after a change is detected.
+	 * Called after a change is detected (not on the initial setup pass).
 	 * `this` is the component context.
 	 */
 	handler: (
@@ -54,8 +54,11 @@ export interface ComponentDefinition<
 	TState extends Record<string, any> = Record<string, any>,
 	TProps extends Record<string, any> = Record<string, any>,
 > {
-	/** Display name used in warnings and debug messages. @default "" (falls back to `"Unknown"`) */
-	name?: string;
+	/**
+   * Display name used in warnings, errors, and debug messages.
+   * When omitted or empty, the runtime uses `"Unknown"`.
+   */
+  name?: string;
 
 	/**
 	 * Factory that returns a **fresh** state object per instance.
@@ -78,7 +81,7 @@ export interface ComponentDefinition<
 
 	/**
 	 * Event handlers and helpers.
-	 * Available as `ctx.methodName` and via `@on` directives.
+	 * Available as `ctx.methodName` and via directives like `@on="click=methodName"`.
 	 * Bound so that `this` is the public component context.
 	 */
 	methods?: Record<
@@ -202,7 +205,7 @@ export function createComponent<
 
 /**
  * HTML tagged template (currently a pass-through of `String.raw`).
- * Use for syntax highlighting and future tooling (sanitization, analysis).
+ * Use for syntax highlighting and future tooling.
  *
  * @example
  * template: () => html`<div ⁣@text="title"></div>`
@@ -891,31 +894,243 @@ export interface QueryHandle {
 
 /**
  * Public API of a Query Pool instance.
+ *
+ * Created by {@link createQueryPool}. Manages local and/or worker-backed
+ * queries, mutations, dependency graphs, caching, and optional streaming.
  */
 export interface QueryPool {
-	query(key: string, definition: QueryDefinition): QueryHandle;
-	data(key: string): any;
-	setQueryData(key: string, updater: any | ((previous: any) => any)): boolean;
-	refresh(
-		key: string,
-		opts?: { force?: boolean; dependents?: boolean },
-	): Promise<any>;
-	mutation(key: string, definition: MutationDefinition): MutationHandle;
-	getMutation(key: string): MutationHandle | undefined;
-	hasMutation(key: string): boolean;
-	registerModule(
-		key: string,
-		definition: QueryModuleDefinition,
-	): QueryModuleDescriptor;
-	registerModules(
-		definitions: Record<string, QueryModuleDefinition>,
-	): QueryModuleDescriptor[];
-	getModule(key: string): QueryModuleDescriptor | undefined;
-	removeModule(key: string): boolean;
-	get(key: string): QueryHandle | undefined;
-	has(key: string): boolean;
-	/** Tear down workers and clear all queries / mutations. */
-	terminate(): void;
+  /**
+   * Register a query (or return the existing handle if the key is already registered).
+   *
+   * Builds reverse dependency edges for `dependsOn` and starts an initial
+   * execution plan (dependencies first). Independent dependency branches
+   * run in parallel.
+   *
+   * @param key        - Unique query key
+   * @param definition - Local (`source` / `compute`) or worker (`module`) definition
+   * @returns Query handle with `fetch`, `refresh`, `cancel`, etc.
+   *
+   * @example
+   * pool.query("users", {
+   *   source: async (signal) => {
+   *     const res = await fetch("/api/users", { signal });
+   *     return res.json();
+   *   },
+   *   cache: { ttl: 60_000 }
+   * });
+   *
+   * pool.query("posts", {
+   *   dependsOn: ["users"],
+   *   source: async (signal) => {
+   *     const res = await fetch("/api/posts", { signal });
+   *     return res.json();
+   *   }
+   * });
+   */
+  query(key: string, definition: QueryDefinition): QueryHandle;
+
+  /**
+   * Read the current cached data for a query without triggering a fetch.
+   *
+   * @param key - Query key
+   * @returns Cached data, or `undefined` if the query does not exist / has no data yet
+   *
+   * @example
+   * const users = pool.data("users");
+   */
+  data(key: string): any;
+
+  /**
+   * Write reactive query data without going through `source` / worker module.
+   *
+   * Used by mutation `onMutate` / `onError` for optimistic updates and rollbacks.
+   *
+   * @param key     - Query key
+   * @param updater - Next value, or a function `(previous) => next`
+   * @returns `true` when the query exists and was updated; otherwise `false`
+   *
+   * @example
+   * // Replace
+   * pool.setQueryData("users", [{ id: 1, name: "Ada" }]);
+   *
+   * // Update from previous
+   * pool.setQueryData("users", (prev = []) => [
+   *   ...prev,
+   *   { id: 2, name: "Grace" }
+   * ]);
+   */
+  setQueryData(
+    key: string,
+    updater: any | ((previous: any) => any)
+  ): boolean;
+
+  /**
+   * Refresh a query by key through the dependency execution plan.
+   *
+   * Dependencies execute first. Independent branches run in parallel.
+   *
+   * @param key  - Query key
+   * @param opts.force      - Cancel in-flight work where applicable and re-execute
+   * @param opts.dependents - Also schedule queries that depend on this key after the plan completes
+   * @returns Promise resolving to the root query’s data
+   *
+   * @example
+   * await pool.refresh("users");
+   * await pool.refresh("users", { force: true, dependents: true });
+   */
+  refresh(
+    key: string,
+    opts?: { force?: boolean; dependents?: boolean }
+  ): Promise<any>;
+
+  /**
+   * Register a mutation (or return the existing handle if the key is already registered).
+   *
+   * Mutations can run locally via `execute` or on a worker via `module`,
+   * support optimistic updates (`onMutate`), and invalidate queries on success.
+   *
+   * @param key        - Unique mutation key
+   * @param definition - Mutation definition
+   * @returns Mutation handle with `mutate`, `cancel`, `reset`
+   *
+   * @example
+   * const createUser = pool.mutation("createUser", {
+   *   execute: async (input, { signal }) => {
+   *     const res = await fetch("/api/users", {
+   *       method: "POST",
+   *       body: JSON.stringify(input),
+   *       signal
+   *     });
+   *     return res.json();
+   *   },
+   *   onMutate(input, ctx) {
+   *     const previous = ctx.getQueryData("users");
+   *     ctx.setQueryData("users", (prev = []) => [...prev, input]);
+   *     return { previous };
+   *   },
+   *   onError(_err, _input, ctx) {
+   *     // rollback using context from onMutate if you stored it
+   *   },
+   *   invalidates: ["users"]
+   * });
+   *
+   * await createUser.mutate({ name: "Ada" });
+   */
+  mutation(key: string, definition: MutationDefinition): MutationHandle;
+
+  /**
+   * Get a registered mutation handle by key.
+   *
+   * @param key - Mutation key
+   * @returns Mutation handle, or `undefined` if not registered
+   *
+   * @example
+   * const createUser = pool.getMutation("createUser");
+   * await createUser?.mutate({ name: "Ada" });
+   */
+  getMutation(key: string): MutationHandle | undefined;
+
+  /**
+   * Whether a mutation key is registered.
+   *
+   * @param key - Mutation key
+   *
+   * @example
+   * if (pool.hasMutation("createUser")) { … }
+   */
+  hasMutation(key: string): boolean;
+
+  /**
+   * Register a worker module used by queries/mutations that set `module`.
+   *
+   * @param key        - Module key referenced by `QueryDefinition.module` / `MutationDefinition.module`
+   * @param definition - Module URL and export names
+   * @returns Descriptor for the registered module
+   *
+   * @example
+   * pool.registerModule("analytics", {
+   *   url: new URL("./workers/analytics.js", import.meta.url).href,
+   *   queryExport: "runQuery"
+   * });
+   *
+   * pool.query("report", { module: "analytics", input: { range: "7d" } });
+   */
+  registerModule(
+    key: string,
+    definition: QueryModuleDefinition
+  ): QueryModuleDescriptor;
+
+  /**
+   * Register multiple worker modules at once.
+   *
+   * @param definitions - Map of module key → definition
+   * @returns Array of descriptors
+   *
+   * @example
+   * pool.registerModules({
+   *   analytics: { url: "/workers/analytics.js", queryExport: "runQuery" },
+   *   search:    { url: "/workers/search.js",    queryExport: "search" }
+   * });
+   */
+  registerModules(
+    definitions: Record<string, QueryModuleDefinition>
+  ): QueryModuleDescriptor[];
+
+  /**
+   * Look up a registered worker module descriptor.
+   *
+   * @param key - Module key
+   * @returns Descriptor, or `undefined` if not registered
+   *
+   * @example
+   * const mod = pool.getModule("analytics");
+   */
+  getModule(key: string): QueryModuleDescriptor | undefined;
+
+  /**
+   * Remove a registered worker module.
+   *
+   * @param key - Module key
+   * @returns `true` if a module was removed
+   *
+   * @example
+   * pool.removeModule("analytics");
+   */
+  removeModule(key: string): boolean;
+
+  /**
+   * Get a registered query handle by key.
+   *
+   * @param key - Query key
+   * @returns Query handle, or `undefined` if not registered
+   *
+   * @example
+   * const users = await pool.get("users")?.fetch();
+   */
+  get(key: string): QueryHandle | undefined;
+
+  /**
+   * Whether a query key is registered.
+   *
+   * @param key - Query key
+   *
+   * @example
+   * if (pool.has("users")) {
+   *   await pool.refresh("users");
+   * }
+   */
+  has(key: string): boolean;
+
+  /**
+   * Cancel in-flight mutations, terminate the worker bridge (if any),
+   * and release pool resources.
+   *
+   * Call when the pool is no longer needed (e.g. app teardown).
+   *
+   * @example
+   * pool.terminate();
+   */
+  terminate(): void;
 }
 
 /**
@@ -938,7 +1153,7 @@ export interface QueryPool {
  *   source: async (signal) => { … }
  * });
  *
- * const users = await pool.get("users")!.fetch();
+ * const users = await pool.get("users")?.fetch();
  */
 export function createQueryPool(options?: QueryPoolOptions): QueryPool;
 
