@@ -21,8 +21,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: https://npmjs.org
+          node-version: 24
+          registry-url: https://registry.npmjs.org
           cache: npm
 
       # Crucial step: npm provenance requires your package to be publicly accessible
@@ -32,18 +32,18 @@ jobs:
 
       # (Optional but recommended) Ensure package.json matches your tag
       - name: Verify tag matches package.json version
+        shell: bash
         run: |
-          TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
           PKG_VERSION=$(node -p "require('./package.json').version")
-          
+
           if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "❌ Tag version (${{ github.ref_name }}) does not match package.json version ($PKG_VERSION)"
+            echo "❌ Tag version (${GITHUB_REF_NAME}) does not match package.json version (${PKG_VERSION})"
             exit 1
           fi
-          echo "✅ Version match: v$PKG_VERSION"
+
+          echo "✅ Version match: v${PKG_VERSION}"
 
       # The '--provenance' flag creates a cryptographic link back to this specific runner run
       - name: Publish to npm
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
