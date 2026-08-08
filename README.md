@@ -40,7 +40,7 @@ The result is fine-grained reactivity anchored directly to DOM nodes, delivering
 * **No JSX Needed**: Keeps UI structure close to native, declarative HTML templates.
 * **Fine-Grained, Path-Based Reactivity**: Tracks state at the property and dependency level, enabling targeted updates without relying on deep runtime proxying.
 * **No Inline JavaScript**: Directives do not execute arbitrary JavaScript expressions. Instead, they use a minimal DSL built around paths, resolver calls, and literals, making templates easier to reason about while keeping compilation fast and predictable.
-* **Built-in Application Systems**: Udodi includes reactive state management with **Udodi Store**, asynchronous data management with **Query Pool**, form state and validation, and a runtime **Overlay** system for modal and dialog experiences.
+* **Built-in Runtime Systems**: Udodi provides the essential systems needed to build reactive applications, including **Udodi Store** for state management, **Query Pool** for asynchronous data and mutations, **form state and validation**, and a **runtime Overlay system** for modals and dialogs.
 
 ## Installation
 
@@ -159,9 +159,8 @@ npx vitest tests/unit/tokenizer.test.js   # Target a precise engine file suite
 
 ## Roadmap
 
-Current development focuses on improving runtime performance, query processing, scalability, and documentation.
-
-See the [Roadmap](https://github.com/udodi-js/udodi/blob/main/ROADMAP.md) for details.
+Udodi’s direction and priorities are tracked in the project roadmap.
+See [ROADMAP.md](https://github.com/udodi-js/udodi/blob/main/ROADMAP.md) for shipped work, near-term plans, and non-goals.
 
 ## Contributing
 
