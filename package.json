@@ -1,39 +1,55 @@
 {
     "name": "udodi",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "description": "A lightweight UI/component framework",
     "private": false,
     "type": "module",
     "main": "./dist/index.js",
     "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
+            "types": "./dist/index.d.ts",
             "import": "./dist/index.js",
             "require": "./dist/index.js"
         }
     },
     "files": [
-        "dist"
+        "dist",
+        "README.md",
+        "LICENSE"
     ],
+    "sideEffects": false,
+    "homepage": "https://github.com/udodi-js/udodi",
+    "bugs": {
+        "url": "https://github.com/udodi-js/udodi/issues"
+    },
     "scripts": {
         "dev": "tsup --watch",
-        "build": "tsup",
+        "build": "tsup && node scripts/postbuild.js",
         "clean": "rm -rf dist",
         "test": "vitest run",
         "test:watch": "vitest",
-        "test:ui": "vitest --ui"
+        "test:ui": "vitest --ui",
+        "prepublishOnly": "npm run build"
     },
     "keywords": [
         "ui",
         "framework",
         "components",
-        "udodi"
+        "udodi",
+        "template",
+        "overlay",
+        "modal",
+        "store",
+        "query",
+        "worker"
     ],
     "author": "Attamah Celestine .C",
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/udodi-js/udodi.git"
+        "url": "git+https://github.com/udodi-js/udodi.git"
     },
     "devDependencies": {
         "@vitest/ui": "^4.1.8",
