@@ -1,86 +1,101 @@
 # Installation
 
-Udodi can be installed through npm or loaded directly in the browser using jsDelivr.
+Udodi can be installed with a package manager or loaded directly in the browser from a CDN such as jsDelivr.
 
 Choose the installation method that best fits your project.
 
----
 
 ## Using npm
 
-Install Udodi with npm:
+Install Udodi:
 
 ```bash
 npm install udodi
 ```
 
-You can then import Udodi into your application:
+Other package managers work the same way:
 
-```js
-import { createComponent } from "udodi";
+```bash
+pnpm add udodi
+# or
+yarn add udodi
 ```
 
-The exact APIs you import depend on the features you use. See the [Quick Start](./quick-start.md) guide to build your first Udodi application.
+Import the APIs you need:
+
+```js
+import { createComponent, render } from "udodi";
+```
+
+The exact APIs you import depend on the features you use. See [Quick Start](./quick-start.md) to build your first Udodi application.
+
+### TypeScript
+
+Udodi ships its own type declarations (`index.d.ts`). No `@types/udodi` package is required.
+
+Editors and `tsc` can resolve the declarations directly from the published package.
 
 
-## Using jsDelivr
+## Using jsDelivr (Browser / CDN)
 
-If you want to use Udodi directly in the browser without a build step, you can load the browser distribution from jsDelivr.
-
-Add the Udodi script to your HTML:
+For use without a build step, load the **IIFE / global** build from jsDelivr:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/udodi"></script>
+<script src="https://cdn.jsdelivr.net/npm/udodi@latest/dist/index.global.js"></script>
 ```
 
-The browser distribution exposes Udodi through the global `Udodi` object:
+The IIFE build exposes a global **`Udodi`** object:
 
 ```js
-const { createComponent } = Udodi;
+const { createComponent, render } = Udodi;
 ```
+
+> **Production:** Prefer a pinned version instead of `@latest`. The `@latest` tag always points to the newest published release.
 
 
 ## Choosing an Installation Method
 
-| Method       | Best for                                                        |
-| ------------ | --------------------------------------------------------------- |
-| **npm**      | Applications using a JavaScript build system or package manager |
-| **jsDelivr** | Direct browser usage without a build step                       |
+| Method                | Best for                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| **npm / pnpm / yarn** | Applications using a package manager, ESM imports, TypeScript, or a bundler        |
+| **jsDelivr (CDN)**    | Prototypes, demos, static pages, and applications that do not require a build step |
 
-Both approaches provide access to the Udodi runtime. The main difference is how Udodi is loaded into your application.
+Both methods provide the same Udodi runtime. The difference is how the library is loaded: package-manager installations use module imports, while the CDN IIFE build exposes the global `Udodi` object.
 
 
 ## Browser Usage
 
-When using the browser distribution, include Udodi before your application code:
+Include Udodi **before** your application script:
 
 ```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Udodi App</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Udodi App</title>
 </head>
 <body>
+  <div id="app"></div>
 
-    <div id="app"></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/udodi"></script>
-    <script src="./app.js"></script>
-
+  <!-- Pin a version in production -->
+  <script src="https://cdn.jsdelivr.net/npm/udodi@1.0.3/dist/index.global.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
 ```
 
-Your `app.js` file can then access Udodi through the global `Udodi` object:
+In `app.js`:
 
 ```js
-const { createComponent } = Udodi;
+const { createComponent, render } = Udodi;
 
-const app = createComponent({
-    // ...
+const App = createComponent({
+  name: "App",
+  // ...
 });
+
+render(App(), document.getElementById("app"));
 ```
 
 See [Quick Start](./quick-start.md) for a complete example.
@@ -88,23 +103,39 @@ See [Quick Start](./quick-start.md) for a complete example.
 
 ## Versioning
 
-For production applications, consider pinning Udodi to a specific version rather than loading an unversioned package URL.
+For production applications, **pin Udodi to a specific version** so upgrades are intentional and predictable.
 
-For example:
+### npm
 
-```html
-<script src="https://cdn.jsdelivr.net/npm/udodi@VERSION"></script>
+You can specify an exact version in `package.json`:
+
+```json
+{
+  "dependencies": {
+    "udodi": "1.0.3"
+  }
+}
 ```
 
-Replace `VERSION` with the Udodi version you want to use.
+Commit your lockfile as well to ensure reproducible installations.
 
-Pinning a version helps ensure that your application continues to use the same Udodi release until you explicitly upgrade it.
+### CDN
+
+Pin the CDN URL to a specific version:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/udodi@1.0.3/dist/index.global.js"></script>
+```
+
+Replace `1.0.3` with the version you want to use. See [npm](https://www.npmjs.com/package/udodi) for published releases.
+
+Avoid unversioned or `@latest` CDN URLs in production because they automatically change when new versions are published.
 
 
 ## Next Steps
 
 Once Udodi is installed, continue with:
 
-* **[Quick Start](./quick-start.md)** — Build your first Udodi application.
-* **[Your First Component](./first-component.md)** — Learn how components, state, methods, computed values, templates, and component styles work together.
-* **[Project Structure](./project-structure.md)** — Learn how to organize Udodi application as it grows.
+* **[Quick Start](./quick-start.md)** — Build your first Udodi application
+* **[Your First Component](./first-component.md)** — Learn about state, methods, computed values, templates, and styles
+* **[Project Structure](./project-structure.md)** — Organize an application as it grows

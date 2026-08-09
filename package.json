@@ -1,6 +1,6 @@
 {
     "name": "udodi",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "A lightweight UI/component framework",
     "private": false,
     "type": "module",
@@ -37,7 +37,13 @@
         "ui",
         "framework",
         "components",
-        "udodi"
+        "udodi",
+        "template",
+        "overlay",
+        "modal",
+        "store",
+        "query",
+        "worker"
     ],
     "author": "Attamah Celestine .C",
     "license": "MIT",

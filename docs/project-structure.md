@@ -1,587 +1,489 @@
 # Project Structure
 
-As a Udodi application grows, organizing components, templates, styles, state, and application systems into a predictable structure makes the codebase easier to navigate and maintain.
+Udodi does **not** prescribe a fixed directory structure or application scaffold. Organize your codebase around ownership, cohesion, and clarity rather than adopting a framework-specific project taxonomy.
 
-Udodi does not require a specific project structure or directory layout. You are free to organize your application according to its size and requirements.
+This guide presents practical structures that can start small and evolve as an application grows. The examples reflect Udodi's lightweight runtime model and its optional application systems, including **Store**, **Query Pool**, **Forms**, and **Overlay**.
 
-This guide presents practical structures that work well for small applications and can evolve as the application grows.
+The layouts below describe a **browser (client) Udodi application**. They are not a Node.js server skeleton. For APIs and full-stack repos, see [Client vs server](#client-vs-server).
 
 ---
 
-## A Small Udodi Application
+## Principles
 
-For a small application, you can keep the structure simple:
+A maintainable Udodi application generally follows these principles:
 
-```text
-my-app/
-├── index.html
-├── app.js
-├── styles.css
-└── package.json
-```
+1. **Start minimal** — A single entry file and a small number of components are sufficient for a small application.
+2. **Introduce structure as needed** — Add directories when the application develops a genuine organizational need.
+3. **Keep state close to its owner** — Prefer component state for local concerns. Introduce Store or Query Pool when state becomes shared or requires asynchronous lifecycle management.
+4. **Prefer feature-based organization at scale** — Technical directories work well for smaller applications; feature boundaries become more useful as applications grow.
+5. **Keep the core conceptually lean** — Routing and other application-level concerns should remain outside the core runtime unless they are explicitly provided by a companion package.
 
-The application entry point can define and mount your components:
+---
 
-```js
-// app.js
+## A Small Application
 
-import { createComponent, html, render } from "udodi";
-
-export const App = createComponent({
-	state() {
-		return {
-			message: "Hello, Udodi!",
-		};
-	},
-
-	template: () => html`
-		<main>
-			<h1 @text="message"></h1>
-		</main>
-	`,
-});
-
-render(App(), "#app");
-```
-
-This is enough for a small application or prototype.
-
-As the application grows, keeping everything in one file becomes difficult to maintain. At that point, move components and application systems into separate modules.
-
-
-## A Growing Application
-
-A typical application might look like this:
+A small application can begin with only an HTML entry point, a package manifest, and an application module:
 
 ```text
 my-app/
 ├── index.html
 ├── package.json
-│
-├── src/
-│   ├── app.js
-│   │
-│   ├── components/
-│   │   ├── App.js
-│   │   ├── Header.js
-│   │   ├── Navigation.js
-│   │   └── UserProfile.js
-│   │
-│   ├── pages/
-│   │   ├── Home.js
-│   │   ├── Login.js
-│   │   └── Settings.js
-│   │
-│   ├── store/
-│   │   ├── auth.js
-│   │   └── settings.js
-│   │
-│   ├── query/
-│   │   ├── auth.js
-│   │   └── users.js
-│   │
-│   ├── forms/
-│   │   ├── login.js
-│   │   └── profile.js
-│   │
-│   ├── overlays/
-│   │   ├── ConfirmDialog.js
-│   │   └── UserDialog.js
-│   │
-│   ├── services/
-│   │   ├── api.js
-│   │   └── auth.js
-│   │
-│   ├── utils/
-│   │   └── format.js
-│   │
-│   └── styles/
-│       └── global.css
-│
-└── public/
-    └── assets/
+└── src/
+    └── app.js
 ```
-
-This is only an example. You do not need to create every directory from the beginning.
-
-Create directories when your application actually needs them.
-
-
-## Application Entry Point
-
-The application entry point is responsible for starting the application.
-
-A common entry point is:
-
-```text
-src/app.js
-```
-
-It can import the root component and mount it:
-
-```js
-// app.js
-
-import { render } from "udodi";
-
-import { App } from "./components/App.js";
-
-render(App(), "#app");
-```
-
-Your HTML provides the mount point:
 
 ```html
+<!-- index.html -->
 <div id="app"></div>
+<script type="module" src="./src/app.js"></script>
 ```
 
-The entry point should generally contain application startup logic rather than the implementation of every component.
+```js
+// src/app.js
+import { createComponent, html, render } from "udodi";
 
-A useful mental model is:
+const App = createComponent({
+  name: "App",
+
+  state() {
+    return {
+      message: "Hello, Udodi!",
+    };
+  },
+
+  template: () => html`
+    <main>
+      <h1 @text="message"></h1>
+    </main>
+  `,
+});
+
+render(App(), document.getElementById("app"));
+// Alternatively: render(App(), "#app");
+```
+
+This structure is sufficient for a prototype or small application. Introduce additional modules and directories when a file becomes difficult to maintain or when responsibilities naturally separate.
+
+---
+
+## A Growing Application
+
+For a small-to-medium application, a technical organization can provide a straightforward starting point:
+
+```text
+my-app/
+├── index.html                 # Application shell
+├── package.json
+│
+├── public/
+│   └── assets/
+│
+└── src/
+    ├── app.js                 # Application bootstrap and root mounting
+    │
+    ├── components/            # Reusable UI components
+    │   ├── App.js
+    │   ├── Header.js
+    │   └── UserCard.js
+    │
+    ├── pages/                 # Optional view-level components
+    │   ├── Home.js
+    │   └── Settings.js
+    │
+    ├── store/                 # Shared client-side state
+    │   ├── auth.js
+    │   └── settings.js
+    │
+    ├── query/                 # Query Pool definitions
+    │   ├── pool.js
+    │   ├── users.js
+    │   └── posts.js
+    │
+    ├── forms/                 # Form definitions and helpers
+    │   └── login.js
+    │
+    ├── overlays/              # Overlay content components
+    │   └── ConfirmDialog.js
+    │
+    ├── services/              # External I/O and API helpers
+    │   └── api.js
+    │
+    ├── utils/                 # Reusable pure utilities
+    │   └── format.js
+    │
+    └── styles/
+        └── global.css
+```
+
+These directories are optional. Do not create `query/`, `store/`, `forms/`, or `overlays/` until the application actually uses those systems.
+
+---
+
+## Application Entry
+
+The application entry point should be responsible primarily for **bootstrapping the application**.
+
+A typical `src/app.js` imports the root component, initializes any application-level systems that must exist before mounting, and renders the application:
+
+```js
+// src/app.js
+import { render } from "udodi";
+import { App } from "./components/App.js";
+
+// Optional application-level initialization.
+// import "./store/auth.js";
+// import { pool } from "./query/pool.js";
+
+render(App(), document.getElementById("app"));
+```
+
+The general flow is:
 
 ```text
 index.html
-    ↓
-app.js
-    ↓
-App component
-    ↓
-Application components
+    │
+    ▼
+  app.js                Application bootstrap
+    │
+    ▼
+   App                  Root component
+    │
+    ├── pages
+    └── components
 ```
 
+Keep feature-specific implementation out of the entry module whenever possible. Its primary responsibility should remain application initialization and mounting.
+
+---
 
 ## Components
 
-Reusable UI components can live under:
-
-```text
-src/components/
-```
-
-For example:
+Reusable components can initially live in a shared `components/` directory:
 
 ```text
 src/components/
 ├── App.js
 ├── Header.js
-├── Navigation.js
-├── UserProfile.js
-└── UserList.js
+└── UserCard.js
 ```
-
-A component should generally represent a meaningful piece of UI or behavior.
 
 For example:
 
 ```js
-// components/UserProfile.js
+// src/components/UserCard.js
+import { createComponent, css, html } from "udodi";
 
-import { createComponent, html } from "udodi";
+export const UserCard = createComponent({
+  name: "UserCard",
 
-export const UserProfile = createComponent({
-	name: "UserProfile",
+  state() {
+    return {
+      name: "Ada",
+    };
+  },
 
-	state() {
-		return {
-			name: "John Doe",
-		};
-	},
+  style: css`
+    :scope {
+      display: block;
+      padding: 1rem;
+    }
+  `,
 
-	template: () => html`
-		<section class="profile">
-			<h2 @text="name"></h2>
-		</section>
-	`,
+  template: () => html`
+    <article class="card">
+      <h2 @text="name"></h2>
+    </article>
+  `,
 });
 ```
 
-The component can then be imported by another component or by the application entry point:
+Recommended practices:
 
-```js
-import { UserProfile } from "./components/UserProfile.js";
-```
+* Prefer one primary component export per module when practical.
+* Keep component-specific styles with the component.
+* Extract unrelated functionality when a component module becomes difficult to navigate.
+* Move genuinely shared components into an appropriate shared location as the application grows.
 
-Keep components focused. If a component becomes responsible for unrelated UI and application logic, consider splitting it into smaller components.
-
+---
 
 ## Pages
 
-Larger applications often distinguish between reusable components and application-level pages:
-
-```text
-src/
-├── components/
-│   ├── Header.js
-│   └── UserCard.js
-│
-└── pages/
-    ├── Home.js
-    ├── Login.js
-    └── Settings.js
-```
-
-A **component** is generally reusable across multiple parts of the application.
-
-A **page** usually represents a complete application view or route.
+A **page** is a component that represents a complete application view or screen. `pages/` is an organizational convention, not a built-in Udodi feature.
 
 For example:
 
 ```text
-pages/Home.js
-    ├── Header
-    ├── Navigation
-    ├── UserList
-    └── Footer
+src/pages/
+├── Home.js
+└── Settings.js
 ```
 
-This distinction is optional. For small applications, pages can simply be components.
-
-
-## State Management
-
-Udodi provides reactive state at multiple levels.
-
-### Component State
-
-State that belongs only to one component should generally remain inside that component:
-
-```js
-state() {
-  return {
-    isOpen: false,
-  };
-},
-```
-
-For example, whether a dropdown is open is usually component-local state.
+A page can compose reusable components:
 
 ```text
-UserMenu
-└── isOpen
-```
-
-There is no need to move such state into a global store.
-
-### Shared Application State
-
-When multiple unrelated components need access to the same state, use [Udodi Store](./store/).
-
-A project might organize stores like this:
-
-```text
-src/store/
-├── auth.js
-├── settings.js
-└── cart.js
-```
-
-For example:
-
-```text
-App
+Home
 ├── Header
-│   └── auth store
-├── UserProfile
-│   └── auth store
-└── Settings
-    └── settings store
+├── UserList
+└── Footer
 ```
 
-Use component state for local concerns and stores for shared application state.
+You do not need a router to use a `pages/` directory. Until routing is introduced, views can be selected through application state, navigation helpers, or application-specific logic.
 
+Routing itself is an application-level concern and may be provided by a future or separate Udodi companion package.
 
-## Udodi Store
+---
 
-A store provides reactive state outside an individual component.
+## Where State Lives
 
-A store module might be organized like:
+Choose the smallest state-management mechanism that matches the scope and lifecycle of the data.
 
-```text
-src/store/
-├── auth.js
-├── cart.js
-└── settings.js
-```
-
-For example:
-
-```js
-// store/auth.js
-
-import { createStore } from "udodi";
-
-export const authStore = createStore({
-	user: null,
-	authenticated: false,
-});
-```
-
-The exact store API depends on how you configure and register your stores.
-
-For details, see the [Udodi Store](./store/) documentation.
+| Data or state                       | Preferred location      |
+| ----------------------------------- | ----------------------- |
+| UI state belonging to one component | **Component `state()`** |
+| Shared client-side state            | **Udodi Store**         |
+| Asynchronous or server-backed state | **Query Pool**          |
 
 A useful rule is:
 
 ```text
-Component state
-    → State used by one component
+Local UI state
+    → component state()
 
-Store
-    → State shared across multiple parts of the application
-```
+Shared client-side application state
+    → Store
 
-Avoid putting all application state into a single global store. Keep state close to where it is consumed whenever possible.
-
-
-## Query Pool
-
-The Query Pool is intended for asynchronous query lifecycles and server-related data.
-
-You may organize query definitions separately:
-
-```text
-src/query/
-├── auth.js
-├── users.js
-├── posts.js
-└── comments.js
+Remote or asynchronous data
+    → Query Pool
 ```
 
 For example:
 
+* A dialog's local open state can remain in its component.
+* Authentication state shared by multiple areas of an application can use Store.
+* User data loaded from an API, including caching and invalidation, belongs in Query Pool.
+
+Avoid placing all application state in Store simply for consistency. Keeping local state local reduces unnecessary coupling.
+
+---
+
+## Udodi Store Modules
+
+Use Udodi's public Store APIs, such as `defineStore`, to organize shared client-side state.
+
 ```text
-src/query/
+src/store/
 ├── auth.js
-│
-├── users.js
-│   └── depends on auth
-│
-└── posts.js
-    └── depends on users
+└── settings.js
 ```
 
-This makes relationships between asynchronous data sources easier to understand.
+Example:
 
-The Query Pool can manage concerns such as:
+```js
+// src/store/auth.js
+import { defineStore } from "udodi";
 
-- Asynchronous query execution
-- Reactive query state
-- In-flight execution deduplication
-- Caching
-- Cancellation
-- Query reset
-- Query dependencies
-- Dependency-aware invalidation
-- Scheduled refresh
+export const auth = defineStore("auth", {
+  state: {
+    user: null,
+    token: null,
+  },
 
-For details, see the [Query Pool](./query-pool/) documentation.
+  actions: {
+    setUser(ctx, user) {
+      ctx.set("user", user);
+    },
 
+    logout(ctx) {
+      ctx.set("user", null);
+      ctx.set("token", null);
+    },
+  },
+});
+```
 
-## Forms
+Initialize or register Store modules from the application entry point or from a dedicated Store initialization module when appropriate.
 
-Forms can be organized by feature or by form type.
+See [Udodi Store](./store/) for the complete Store API and organization patterns.
 
-For a smaller application:
+---
+
+## Query Pool modules
+
+Applications using Query Pool can maintain a shared pool instance and organize queries and mutations by responsibility or feature.
 
 ```text
-src/forms/
-├── login.js
-├── registration.js
-└── profile.js
+src/
+└── query/
+    ├── pool.js      # shared createQueryPool() instance
+    ├── users.js     # users queries and mutations
+    └── posts.js     # posts queries and mutations
 ```
 
-For a larger application, forms can live alongside the feature that owns them:
+```js
+// query/pool.js
+import { createQueryPool } from "udodi";
+
+export const pool = createQueryPool();
+```
+
+Feature modules can define the queries and mutations that belong to them:
+
+```js
+// query/users.js
+import { pool } from "./pool.js";
+
+export const usersQuery = pool.query("users", {
+  source: async (signal) => {
+    const res = await fetch("/api/users", { signal });
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch users");
+    }
+
+    return res.json();
+  },
+});
+```
+
+Use **one shared pool per application** unless a deliberate isolation boundary requires otherwise. Ensure modules that register queries or mutations are loaded before those definitions are used.
+
+As an application grows, colocate Query Pool definitions with their features:
+
+```text
+src/
+└── features/
+    ├── users/
+    │   ├── query/
+    │   │   ├── users.js
+    │   │   └── mutations.js
+    │   ├── components/
+    │   └── overlays/
+    │
+    └── posts/
+        ├── query/
+        │   └── posts.js
+        └── components/
+```
+
+Keep the Query Pool layer responsible for **asynchronous application data**, while component state remains local and the Store handles shared client-side state.
+
+```text
+Local UI state?
+  → component state()
+
+Shared client-side state?
+  → Udodi Store
+
+Remote / asynchronous data?
+  → Query Pool
+```
+
+Reusable HTTP or external I/O helpers can live in `services/` and be consumed by query `source` functions or mutation `execute` functions. If an operation is used only once, keeping it with the query or mutation is usually simpler.
+
+For queries, mutations, caching, dependencies, workers, and lifecycle APIs, see [Query Pool](./query-pool/).
+
+---
+
+## Forms and Overlays
+
+Forms and overlays can initially have dedicated directories:
+
+```text
+src/
+├── forms/
+│   └── login.js
+│
+└── overlays/
+    └── ConfirmDialog.js
+```
+
+As the application grows, these concerns can instead be colocated with their owning feature:
 
 ```text
 src/features/
 ├── auth/
-│   ├── components/
-│   ├── forms/
-│   │   ├── login.js
-│   │   └── registration.js
-│   └── store/
+│   └── forms/
+│       └── login.js
 │
-└── profile/
-    ├── components/
-    └── forms/
-        └── profile.js
-```
-
-Udodi's form system manages form and field state, validation, and submission.
-
-See the [Forms](./forms/) documentation for details.
-
-
-## Overlays
-
-Application overlays such as dialogs and modal interfaces can be organized under:
-
-```text
-src/overlays/
-├── ConfirmDialog.js
-├── UserDialog.js
-└── DeleteDialog.js
-```
-
-For larger applications, overlays can also be colocated with their feature:
-
-```text
-src/features/
-├── users/
-│   ├── components/
-│   └── overlays/
-│       ├── UserDialog.js
-│       └── DeleteUserDialog.js
-│
-└── orders/
-    ├── components/
+└── users/
     └── overlays/
-        └── CancelOrderDialog.js
+        └── UserDialog.js
 ```
 
-Use the [Overlay](./overlay/) documentation to learn how to manage modal and dialog lifecycles.
+Overlay content is typically implemented as a normal Udodi component. Overlay lifecycle is managed through the Overlay API, including `openModal`, `closeModal`, and `closeTopModal`.
 
+The directory name does not have any special meaning to Udodi.
 
-## Component Styles
+See [Forms](./forms/) and [Overlay](./overlay/) for details.
 
-Udodi components can define their styles through the component's `style` property:
+---
 
-```js
-import { createComponent, css, html } from "udodi";
+## Component Styles and Global CSS
 
-export const UserCard = createComponent({
-	style: css`
-		.card {
-			padding: 1rem;
-		}
-	`,
-
-	template: () => html`
-		<article class="card">
-			<h2>Profile</h2>
-		</article>
-	`,
-});
-```
-
-This keeps component-specific presentation close to the markup it belongs to.
-
-A component can therefore contain:
+Component-specific styles can remain with the component:
 
 ```text
 UserCard.js
-├── state
-├── methods
-├── template
-└── style
+    → style: css`...`
 ```
 
-You can use global styles for application-wide concerns:
+Application-wide styles can live in a global stylesheet:
 
 ```text
-src/styles/
+styles/
 └── global.css
 ```
 
-A useful separation is:
+A common separation is:
 
 ```text
-Component style
-    → Component-specific CSS
+Component styles
+    → layout and presentation specific to that component
 
 Global CSS
-    → Application-wide styles
+    → resets, typography, design tokens, and application-wide rules
 ```
+
+Keeping component-specific styles close to their component improves ownership and reduces unnecessary coupling.
 
 See [Component Styles](./fundamentals/styles.md) and [CSS Scoping](./advanced/css-scoping.md).
 
+---
 
-## Services
+## Services and Utilities
 
-Services are useful for code that communicates with external systems or encapsulates application-level operations.
+### `services/`
 
-For example:
+Use `services/` for external I/O and integration logic, such as:
 
-```text
-src/services/
-├── api.js
-├── auth.js
-└── storage.js
-```
+* HTTP requests
+* API clients
+* Authentication endpoints
+* Browser or platform integrations
+* Other external systems
 
-A service might encapsulate HTTP communication:
+For asynchronous application data, service functions can be consumed by Query Pool sources or mutations.
 
-```js
-// services/api.js
+### `utils/`
 
-export async function fetchUsers() {
-	const response = await fetch("/api/users");
-
-	if (!response.ok) {
-		throw new Error("Failed to fetch users");
-	}
-
-	return response.json();
-}
-```
-
-The Query Pool can then use the service as a query source:
-
-```js
-const users = pool.query("users", {
-	source: fetchUsers,
-});
-```
-
-This separation keeps network communication separate from component presentation.
-
-
-## Utilities
-
-Generic reusable functions can live under:
+Use `utils/` for reusable, preferably pure helper functions:
 
 ```text
-src/utils/
+utils/
+├── formatCurrency.js
+├── dates.js
+└── validation.js
 ```
 
-For example:
+If a function is used only by one component or feature, keep it close to that owner until reuse justifies extraction.
 
-```text
-src/utils/
-├── format.js
-├── validation.js
-└── dates.js
-```
-
-Utilities should generally be independent of component-specific state.
-
-For example:
-
-```js
-export function formatCurrency(value) {
-	return new Intl.NumberFormat().format(value);
-}
-```
-
-If a function only exists to support one component, it may be better to keep it close to that component rather than placing it in a global utilities directory.
-
+---
 
 ## Feature-Based Organization
 
-As an application becomes large, organizing everything by technical type can become difficult.
+As an application grows, technical directories can become difficult to navigate because related code is distributed across multiple top-level folders.
 
-Instead of:
-
-```text
-src/
-├── components/
-├── forms/
-├── store/
-├── query/
-└── overlays/
-```
-
-you can organize the application around features:
+At that point, organize code around application features:
 
 ```text
 src/
@@ -590,28 +492,14 @@ src/
 ├── features/
 │   ├── auth/
 │   │   ├── components/
-│   │   │   ├── LoginForm.js
-│   │   │   └── UserMenu.js
 │   │   ├── forms/
-│   │   │   └── login.js
 │   │   ├── store/
-│   │   │   └── auth.js
-│   │   └── queries/
-│   │       └── auth.js
+│   │   └── query/
 │   │
-│   ├── users/
-│   │   ├── components/
-│   │   │   ├── UserList.js
-│   │   │   └── UserProfile.js
-│   │   ├── queries/
-│   │   │   └── users.js
-│   │   └── overlays/
-│   │       └── UserDialog.js
-│   │
-│   └── settings/
+│   └── users/
 │       ├── components/
-│       ├── forms/
-│       └── store/
+│       ├── query/
+│       └── overlays/
 │
 ├── shared/
 │   ├── components/
@@ -622,290 +510,209 @@ src/
     └── global.css
 ```
 
-This structure keeps related functionality together.
-
-For example, everything related to users can be found under:
+Feature-specific state, queries, forms, and UI remain together:
 
 ```text
 features/users/
-```
-
-This can be particularly useful for larger applications with multiple development teams.
-
-
-## Choosing Between Technical and Feature-Based Structure
-
-Both approaches are valid.
-
-### Technical Structure
-
-```text
-src/
 ├── components/
-├── forms/
-├── store/
 ├── query/
 └── overlays/
 ```
 
-Works well when:
+Cross-feature primitives belong under `shared/`.
 
-- The application is small or medium-sized.
-- The number of features is limited.
-- Developers frequently work across the entire application.
+This structure is particularly useful when multiple developers or teams work on different application domains.
 
-### Feature-Based Structure
+---
+
+## Technical vs. Feature Organization
+
+Neither organizational model is required by Udodi. Choose based on application size, domain boundaries, and team structure.
+
+| Approach                                                | Best suited for                                                            |
+| ------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Technical** (`components/`, `store/`, `query/`)       | Small-to-medium applications with relatively few features                  |
+| **Feature-based** (`features/auth/`, `features/users/`) | Larger applications with clear domain boundaries                           |
+| **Hybrid**                                              | Applications that combine feature-specific code with shared infrastructure |
+
+A technical structure can evolve into a feature-based structure without requiring a change to Udodi itself.
+
+The appropriate time to reorganize is when finding and maintaining related code becomes more difficult than the cost of moving it.
+
+---
+
+## Client vs server
+
+The directory layouts in this guide target a **client-side Udodi app** (HTML shell, components, `render`, Store, Query Pool talking to HTTP APIs). They are **not** a Node.js server project structure.
+
+| Concern | Where it lives |
+| -------- | -------------- |
+| UI, directives, overlays, component state | **Client** (this guide) |
+| Shared client session / UI shell state | **Store** on the client |
+| Fetch, cache, invalidate, mutate remote data | **Query Pool** on the client |
+| HTTP routes, databases, auth issuance, business rules | **Server** (separate tree or service) |
+
+### SPA only
+
+Node may only build or serve static assets. The Udodi tree above is enough; the API can be any external backend.
+
+### Full-stack repository
+
+Keep the Udodi app and the API in separate trees so responsibilities stay clear:
 
 ```text
-src/
-└── features/
-    ├── auth/
-    ├── users/
-    └── settings/
-```
-
-Works well when:
-
-- The application is large.
-- Features have independent state and queries.
-- Multiple teams work on different areas.
-- You want to keep related code together.
-
-You can also combine both approaches.
-
-For example:
-
-```text
-src/
-├── features/
-│   ├── auth/
-│   └── users/
+my-app/
+├── package.json                 # optional workspaces
+├── apps/
+│   ├── web/                     # Udodi client (structure from this guide)
+│   │   ├── public/
+│   │   │   └── index.html
+│   │   └── src/
+│   │       ├── app.js
+│   │       ├── components/
+│   │       ├── query/
+│   │       └── ...
+│   │
+│   └── api/                     # Node server (Express, Fastify, etc.)
+│       └── src/
+│           ├── index.js
+│           ├── routes/
+│           └── services/
 │
-└── shared/
-    ├── components/
-    ├── services/
-    └── utils/
+└── packages/                    # optional shared types or pure utils
 ```
 
-This hybrid approach is often a good choice for larger applications.
+A simpler split is also fine:
 
+```text
+my-app/
+├── client/    # Udodi — follow this guide
+└── server/    # Node API
+```
 
-## A Recommended Starting Structure
+Client `services/` or Query Pool `source` functions call **your** API routes (`/api/users`, …). The server owns those routes; the client owns registration of queries and mutations.
 
-For most applications, start with something simple:
+### What not to do
+
+* Treat `src/query/` or Store modules as the server data layer  
+* Run `render`, templates, or overlays inside a Node HTTP process  
+* Use this guide as the only layout for an API-only service  
+
+Server layout should follow your chosen backend framework (routes, controllers, handlers, etc.), independent of Udodi’s client conventions.
+
+---
+
+## Recommended Starting Point
+
+For a new application, keep the initial structure small:
 
 ```text
 src/
 ├── app.js
-│
 ├── components/
-├── store/
-├── query/
-├── forms/
-├── overlays/
-│
 ├── services/
 ├── utils/
-│
 └── styles/
     └── global.css
 ```
 
-As the application grows, move toward feature-based organization when the existing structure becomes difficult to navigate.
-
-Do not create directories simply because a framework recommends them. The goal of project structure is to make the application easier to understand, not to increase the number of folders.
-
-
-## Keep State Close to Where It Is Used
-
-One of the most useful principles when organizing Udodi application is to keep state as close as possible to the code that owns it.
-
-For example, if a modal only needs to know whether it is open:
-
-```js
-state() {
-  return {
-    open: false,
-  };
-},
-```
-
-Keep that state in the component.
-
-If authentication state is consumed by many unrelated parts of the application:
+Add additional directories only when their corresponding concerns appear:
 
 ```text
-Header
-Profile
-Settings
-Protected Pages
+store/       → shared client-side state
+query/       → asynchronous data and mutations
+forms/       → reusable form definitions and helpers
+overlays/    → overlay content and related organization
 ```
 
-a shared store is more appropriate.
+This keeps the project structure proportional to the application's actual complexity.
 
-If the data comes from an asynchronous source:
+---
 
-```text
-Users API
-Posts API
-Authentication API
-```
+## State and Data Decision Guide
 
-the Query Pool may be the appropriate system for managing the query lifecycle.
-
-A simple decision model is:
+Use the following decision process when deciding where a piece of state or data belongs:
 
 ```text
-Is the state local to one component?
-        │
-        ├── Yes → Component state
-        │
-        └── No
-             │
-             ▼
-Is it shared application state?
-        │
-        ├── Yes → Udodi Store
-        │
-        └── No
-             │
-             ▼
-Does it represent asynchronous query data?
-        │
-        ├── Yes → Query Pool
-        │
-        └── No → Choose the simplest appropriate module
-```
-
-This keeps each Udodi system focused on the problem it is designed to solve.
-
-
-## Example Application Architecture
-
-A larger Udodi application might eventually look like:
-
-```text
-my-app/
-├── index.html
-├── package.json
-│
-├── public/
-│   └── assets/
-│
-└── src/
-    ├── app.js
+Used only inside one component?
     │
-    ├── components/
-    │   ├── App.js
-    │   ├── Header.js
-    │   └── Navigation.js
+    └── Yes → component state()
+
+Shared across multiple areas of the application?
     │
-    ├── features/
-    │   ├── auth/
-    │   │   ├── components/
-    │   │   ├── forms/
-    │   │   ├── queries/
-    │   │   └── store/
-    │   │
-    │   ├── users/
-    │   │   ├── components/
-    │   │   ├── queries/
-    │   │   └── overlays/
-    │   │
-    │   └── settings/
-    │       ├── components/
-    │       ├── forms/
-    │       └── store/
+    └── Yes → Store
+
+Loaded or written asynchronously?
     │
-    ├── shared/
-    │   ├── components/
-    │   ├── services/
-    │   └── utils/
+    └── Yes → Query Pool
+
+Requires caching, invalidation, dependencies, or
+worker-based execution?
     │
-    └── styles/
-        └── global.css
+    └── Yes → Query Pool
+
+Is it purely derived or transient UI state?
+    │
+    └── Keep it close to the component or feature that owns it
 ```
 
-The resulting architecture separates responsibilities:
+For overlays specifically:
 
 ```text
-Application
-│
-├── Components
-│   └── UI and component behavior
-│
-├── Features
-│   └── Feature-specific application logic
-│
-├── Udodi Store
-│   └── Shared reactive state
-│
-├── Query Pool
-│   └── Asynchronous query lifecycles
-│
-├── Forms
-│   └── Form state and validation
-│
-├── Overlays
-│   └── Modal and dialog experiences
-│
-├── Services
-│   └── External communication
-│
-├── Utilities
-│   └── Generic reusable functions
-│
-└── Styles
-    └── Global application styles
+Local state for an overlay's content
+    → component state()
+
+Opening and coordinating an overlay
+    → openModal() / closeModal() / closeTopModal()
 ```
 
-This is not a required Udodi architecture. It is simply one way to organize a larger application using the capabilities provided by Udodi.
+Do not introduce global state simply because a value is used by more than one component. Consider whether the value represents **shared application state** or **asynchronous resource state** before choosing Store or Query Pool.
 
+---
+
+## What to Avoid
+
+Udodi does not require any particular framework-style project taxonomy. Avoid introducing structure that does not correspond to an actual application need.
+
+In particular:
+
+* Do not reproduce another framework's directory structure without a reason.
+* Do not create empty `store/`, `query/`, `pages/`, or `forms/` directories in a new project.
+* Do not place server-backed resource state in Store when Query Pool is a better fit.
+* Do not create application-wide globals as a substitute for the Store or Query Pool.
+* Do not introduce abstractions solely to make a project appear more structured.
+* Do not treat `pages/`, `services/`, or similar directories as Udodi-specific runtime concepts.
+* Keep routing at the application level or use a dedicated companion package rather than treating it as part of the core `udodi` runtime.
+
+The objective is not to maximize the number of directories. The objective is to make ownership and dependencies clear.
+
+---
 
 ## Summary
 
-Udodi does not impose a project structure.
+| Layer          | Primary responsibility                                                            |
+| -------------- | --------------------------------------------------------------------------------- |
+| **Components** | UI, local state, templates, and component styles                                  |
+| **Store**      | Shared reactive client-side state                                                 |
+| **Query Pool** | Asynchronous queries, mutations, caching, dependencies, invalidation, and workers |
+| **Forms**      | Form state, validation, and submission                                            |
+| **Overlays**   | Modal and dialog content and overlay lifecycle                                    |
+| **Services**   | Network requests and external integrations                                        |
+| **Utils**      | Reusable pure helper functions                                                    |
 
-Start small:
+Start with the smallest structure that keeps the application understandable. Introduce Store, Query Pool, Forms, Overlays, or feature boundaries when the application's requirements justify them.
 
-```text
-app.js
-components/
-```
+Udodi provides the runtime systems; **the application determines the directory structure**.
 
-Add application systems as needed:
-
-```text
-store/
-query/
-forms/
-overlays/
-```
-
-Then introduce feature-based organization when the application becomes large enough to benefit from it.
-
-The most important principle is to organize code around **ownership and responsibility**:
-
-- Keep local state in components.
-- Use Udodi Store for shared reactive state.
-- Use Query Pool for asynchronous query lifecycles.
-- Keep forms close to the features that own them.
-- Keep overlays reusable or colocated with their features.
-- Keep external communication in services.
-- Keep generic logic in utilities.
-- Use component `style` for component-specific CSS.
-- Use global styles only for application-wide concerns.
-
-A good project structure should evolve with the application rather than becoming a constraint that the application has to work around.
-
+---
 
 ## Where to Go Next
 
-- [Your First Component](./first-component.md) — Learn the anatomy of Udodi component.
-- [Fundamentals](./fundamentals/) — Explore the core component model.
-- [Reactivity](./reactivity/) — Understand Udodi's reactive system.
-- [Udodi Store](./store/) — Manage shared and persistent application state.
-- [Query Pool](./query-pool/) — Manage asynchronous query lifecycles.
-- [Forms](./forms/) — Build forms with validation and submission handling.
-- [Overlay](./overlay/) — Build modal and dialog experiences.
-- [Advanced Topics](./advanced/) — Explore Udodi's architecture and advanced behavior.
+* [Your First Component](./first-component.md) — Learn the anatomy of a Udodi component
+* [Fundamentals](./fundamentals/) — Explore the component model and core concepts
+* [Reactivity](./reactivity/) — Learn about signals, effects, computed values, and fine-grained updates
+* [Udodi Store](./store/) — Manage shared and persistent application state
+* [Query Pool](./query-pool/) — Manage asynchronous queries, mutations, caching, dependencies, and workers
+* [Forms](./forms/) — Build forms and manage validation and submission
+* [Overlay](./overlay/) — Build modals, dialogs, and layered UI
+* [Advanced Topics](./advanced/) — Explore architecture, rendering, performance, and deeper runtime behavior
