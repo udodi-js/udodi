@@ -109,7 +109,7 @@ render(Counter(), document.getElementById("app"));
 
 For comprehensive guidance on building with Udodi, explore the master guides in this repository for an in-depth look at the framework, from everyday development to advanced runtime usage.
 
-[Explore the Comprehensive Documentation Suite](https://github.com/udodi-js/udodi/tree/main/docs)
+[Explore the Comprehensive Documentation Suite](https://github.com/udodi-js/udodi/tree/main/docs/README.md)
 
 ## Development
 
@@ -159,7 +159,7 @@ npx vitest tests/unit/tokenizer.test.js   # Target a precise engine file suite
 
 ## Roadmap
 
-Udodi’s direction and priorities are tracked in the project roadmap.
+Udodi's direction and priorities are tracked in the project roadmap.
 See [ROADMAP.md](https://github.com/udodi-js/udodi/blob/main/ROADMAP.md) for shipped work, near-term plans, and non-goals.
 
 ## Contributing

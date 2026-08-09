@@ -340,7 +340,7 @@ New capabilities should not unnecessarily enlarge the core runtime.
 
 ### Prefer evidence over feature parity
 
-A feature should be driven by real application requirements, measurable technical benefits, or repeated developer demand—not simply because another framework provides it.
+A feature should be driven by real application requirements, measurable technical benefits, or repeated developer demand; not simply because another framework provides it.
 
 ### Keep optional concerns optional
 
