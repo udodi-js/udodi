@@ -169,15 +169,7 @@ export function createComponent({
 	 * Creates a component instance.
 	 *
 	 * @param {Object<string, any>} [props={}] Component props.
-	 * @returns {{
-	 *   name: string,
-	 *   template: string,
-	 *   context: Object,
-	 *   watcherScope: { effects: Function[], cleanups: Function[] },
-	 *   _membrane: Object,
-	 *   onMount(root: HTMLElement): void,
-	 *   onUnmount(root: HTMLElement): void
-	 * }}
+	 * @returns {import("../types/context.d.js").ComponentInstance}
 	 */
 	function Component(props = {}) {
 		const propKeySet = new Set();
