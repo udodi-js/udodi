@@ -28,8 +28,8 @@ If you are new to Udodi, start here.
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **[Installation](./installation.md)** | Install Udodi and learn the available distribution formats. |
 | **[Quick Start](./quick-start.md)** | Build your first reactive Udodi application. |
-| **[Your First Component](./first-component.md)** | Learn the basic structure of a Udodi component and how state, methods, computed values, watchers, interceptors, templates, and component styles work together. |
-| **[Project Structure](./project-structure.md)** | Learn how to organize a Udodi application as it grows. |
+| **[Your First Component](./first-component.md)** | Learn the basic structure of an Udodi component and how state, methods, computed values, watchers, interceptors, templates, and component styles work together. |
+| **[Project Structure](./project-structure.md)** | Learn how to organize an Udodi application as it grows. |
 
 ---
 
@@ -37,7 +37,7 @@ If you are new to Udodi, start here.
 
 ### Fundamentals
 
-Understand the building blocks that make up a Udodi application.
+Understand the building blocks that make up an Udodi application.
 
 * **[Components](./fundamentals/components.md)** — Define reusable UI and application logic.
 * **[State](./fundamentals/state.md)** — Manage reactive component state.
@@ -152,24 +152,6 @@ The Store system covers three core areas:
 Udodi's **Query Pool** provides a reactive runtime for asynchronous data and mutations. It coordinates **queries, mutations, dependencies, caching, invalidation, cancellation, and optional worker execution** while keeping query state synchronized with the UI.
 
 Queries expose reactive state such as **`data`**, **`loading`**, **`error`**, and **`status`**, allowing components to react directly to asynchronous execution without manually coordinating request state.
-
-The Query Pool also provides dependency-aware scheduling, so queries can declare relationships through **`dependsOn`** and execute according to the resulting dependency graph. Independent branches can execute concurrently when possible.
-
-**What it covers**
-
-* **Queries** — Local `source` / `compute` execution or worker `module` execution, with `fetch`, `refresh`, `cancel`, `reset`, and `invalidate` controls
-* **Reactive State** — Query handles expose reactive `data`, `loading`, `error`, `status`, and related execution state
-* **Dependencies** — Dependency-aware execution plans based on `dependsOn`, with independent branches able to execute in parallel
-* **Caching** — Configurable TTL-based caching with controlled refresh and cache-aware execution
-* **Mutations** — Write operations through `mutate`, with optimistic updates using `onMutate` / `setQueryData` and post-success invalidation through `invalidates`
-* **Workers** — Optional compute-worker execution, module registration through `registerModule` / `registerModules`, and streaming where supported
-* **Cancellation** — Abort in-flight query and mutation execution when work is no longer required
-* **Invalidation** — Explicitly mark related queries stale so applications can control when affected data should be refreshed
-* **Lifecycle** — Pool-level `refresh`, lookup helpers such as `get`, `has`, and `data`, and `terminate` for cleanup
-
-**Invalidation is separate from execution.** Marking a query as stale does not implicitly determine when or how it should execute again. Applications retain control over refresh behavior and execution timing.
-
-The Query Pool is designed to keep asynchronous application state **reactive, coordinated, and predictable**, while allowing execution to remain local or move into workers when appropriate.
 
 **Guides**
 
