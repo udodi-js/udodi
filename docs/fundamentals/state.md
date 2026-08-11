@@ -131,11 +131,11 @@ Directives read state by path:
 
 ```html
 <span @text="count"></span>
-<span @text="user.label"></span>
+<span @text="user.name"></span>
 <input @bind="count" />
 ```
 
-Nested paths such as `user.label` are valid for **reading**. Writing through nested paths is handled by the binding system (for example `@bind`) or by your methods.
+Nested paths such as `user.name` are valid for **reading**. Writing through nested paths is handled by the binding system (for example `@bind`) or by your methods.
 
 ---
 
@@ -148,7 +148,7 @@ state() {
   return {
     count: 0,
     user: {
-      label: "Ada",
+      name: "Ada",
     },
   };
 }
@@ -157,8 +157,8 @@ state() {
 | Update | Notifies dependents? |
 | ------ | -------------------- |
 | `this.count++` | Yes |
-| `this.user = { label: "Grace" }` | Yes |
-| `this.user.label = "Grace"` | No (until you notify) |
+| `this.user = { name: "Grace" }` | Yes |
+| `this.user.name = "Grace"` | No (until you notify) |
 
 Assigning a new value to a top-level key notifies computed values, watchers, and DOM bindings that depend on that key.
 
@@ -179,21 +179,21 @@ const Profile = createComponent({
   state() {
     return {
       user: {
-        label: "Ada",
+        name: "Ada",
         role: "admin",
       },
     };
   },
 
   methods: {
-    rename(nextLabel) {
-      this.user.label = nextLabel;
+    rename(nextName) {
+      this.user.name = nextName;
       touch(this, "user");
     },
   },
 
   template: () => html`
-    <p @text="user.label"></p>
+    <p @text="user.name"></p>
   `,
 });
 ```
@@ -212,10 +212,10 @@ Replacing the top-level property notifies automatically:
 
 ```js
 methods: {
-  rename(nextLabel) {
+  rename(nextName) {
     this.user = {
       ...this.user,
-      label: nextLabel,
+      name: nextName,
     };
   },
 },
@@ -375,15 +375,15 @@ Templates read state through directives:
 
 ```html
 <span @text="count"></span>
-<span @text="user.label"></span>
+<span @text="user.name"></span>
 <input @bind="count" />
-<input @bind="user.label" />
+<input @bind="user.name" />
 ```
 
 - `@text`, `@show`, `@if`, `@class`, `@style`, and `@attr` read reactive values and update when dependencies change.
-- `@bind` provides two-way binding. For nested paths such as `user.label`, the binding system updates state in a way that participates in reactivity (root replacement under the hood where needed).
+- `@bind` provides two-way binding. For nested paths such as `user.name`, the binding system updates the nested value and uses touch() to ensure the change participates in reactivity.
 
-Directive expressions use Udodi’s template DSL (paths, resolvers, literals) rather than arbitrary JavaScript.
+Directive expressions use Udodi's template DSL (paths, resolvers, literals) rather than arbitrary JavaScript.
 
 See [Templates](../templates/).
 

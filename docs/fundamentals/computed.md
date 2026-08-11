@@ -1,12 +1,8 @@
 # Computed Values
 
-Computed values are derived data that update automatically when the reactive state they depend on changes.
+Computed values are **derived reactive values**. They let a component expose values calculated from its reactive state without manually keeping those values in sync.
 
-In Udodi, you declare them under the `computed` option of `createComponent()`. Each entry is a function that receives the public component context and returns a value. The runtime turns that function into a lazy, cached computed property on the context.
-
----
-
-## Defining Computed Values
+Declare computed values with the `computed` option of `createComponent()`. Each computed property is a function that receives the component's public context and returns the derived value.
 
 ```js
 import { createComponent, html, render } from "udodi";
@@ -49,87 +45,235 @@ const Counter = createComponent({
 render(Counter(), "#app");
 ```
 
-When `count` changes, `doubled` and `displayValue` recalculate and any DOM bindings that use them update.
+When `count` changes, the computed values that depend on it are invalidated. Reading those values produces their current result, and bindings that consume them update reactively.
 
 ---
 
-## How Computed Works
+## Defining Computed Values
 
-Each computed entry is registered like this (simplified from the runtime):
-
-```js
-internalContext[computedName] = computed(
-  () => computeFn(publicContextMembrane),
-  computedScope
-);
-```
-
-- The function is wrapped with Udodi’s `computed()` primitive.
-- Dependencies are tracked automatically when the function reads reactive state (or other computeds) through the public context.
-- The result is cached and only recomputed when a tracked dependency changes.
-- On the public context membrane, reading a computed key **calls** the computed getter and returns the current value (you do not call it yourself in templates).
-
-Cleanup for computed effects is tied to the component’s computed scope and runs on unmount.
-
----
-
-## Access Patterns
-
-### In templates
-
-Use the computed name as a path. The membrane evaluates it for you:
-
-```html
-<span @text="doubled"></span>
-<span @text="displayValue"></span>
-```
-
-### In methods or lifecycle hooks
-
-Read it as a property (the membrane invokes the underlying computed):
-
-```js
-methods: {
-  logDoubled() {
-    console.log(this.doubled);
-  },
-},
-```
-
-Avoid calling it as a function in user code when going through the public context; treat it like a reactive property.
-
----
-
-## Dependency Tracking
-
-Computed tracking is fine-grained and based on what the function actually reads:
+A computed definition is a function whose argument is the component's **public context**:
 
 ```js
 computed: {
-  // Tracks only `count`
-  doubled(ctx) {
-    return ctx.count * 2;
+  fullName(ctx) {
+    return `${ctx.firstName} ${ctx.lastName}`;
   },
 
-  // Tracks `count` and `doubled` (and thus transitively `count`)
-  displayValue(ctx) {
-    return `${ctx.count} × 2 = ${ctx.doubled}`;
-  },
-
-  // Tracks only `price` and `quantity`
   total(ctx) {
     return ctx.price * ctx.quantity;
   },
 },
 ```
 
-If a dependency is a nested object and you mutate it in place, you must `touch()` the parent key (or replace it) for the computed to see the change.
+The context gives the computed function access to the component's reactive state and other exposed component values.
+
+Computed functions should normally be **pure**: derive and return a value rather than performing side effects.
+
+For operations that perform actions, mutate state, respond to events, or perform asynchronous work, use a method instead.
 
 ---
 
-## Nested State and Computed Values
+## Reading Computed Values
 
-Because reactivity is shallow, nested objects need an explicit signal when mutated in place:
+Computed properties behave like reactive properties on the public component context.
+
+### In templates
+
+Reference the computed name directly:
+
+```html
+<p @text="doubled"></p>
+<p @text="displayValue"></p>
+```
+
+You do not call the computed function from a template.
+
+### In methods
+
+Computed values can also be read through `this`:
+
+```js
+methods: {
+  logTotal() {
+    console.log(this.total);
+  },
+},
+```
+
+Treat computed properties as **read-only values**, not functions to invoke.
+
+---
+
+## Dependency Tracking
+
+Udodi's computed values use the reactive dependency-tracking system.
+
+A computed tracks the reactive values that are actually read while it evaluates:
+
+```js
+computed: {
+  doubled(ctx) {
+    return ctx.count * 2;
+  },
+
+  total(ctx) {
+    return ctx.price * ctx.quantity;
+  },
+},
+```
+
+`doubled` depends on `count`, while `total` depends on both `price` and `quantity`.
+
+Dependencies are not declared manually. Udodi's reactivity system records them while the computed function executes.
+
+This also means that conditional reads can produce conditional dependencies:
+
+```js
+computed: {
+  display(ctx) {
+    return ctx.enabled
+      ? ctx.value
+      : "Disabled";
+  },
+},
+```
+
+Here, `enabled` is always read. `value` is tracked when the enabled branch is evaluated.
+
+---
+
+## Computed Values Can Depend on Other Computed Values
+
+A computed can read another computed through the context:
+
+```js
+computed: {
+  subtotal(ctx) {
+    return ctx.price * ctx.quantity;
+  },
+
+  tax(ctx) {
+    return ctx.subtotal * ctx.taxRate;
+  },
+
+  total(ctx) {
+    return ctx.subtotal + ctx.tax;
+  },
+},
+```
+
+The dependency chain is tracked automatically:
+
+```text
+price ─────┐
+           ├─> subtotal ──┐
+quantity ──┘              │
+                          ├─> total
+taxRate ─────> tax ───────┘
+```
+
+Changing `price` or `quantity` invalidates `subtotal`, which in turn invalidates values that depend on it.
+
+There is no need to manually recompute dependent values.
+
+---
+
+## Lazy Evaluation and Caching
+
+Computed values are **lazy and cached**.
+
+A computed function does not need to execute immediately when the component is created. Its value is evaluated when it is first read.
+
+After evaluation, the result is retained until one of its tracked dependencies changes.
+
+Conceptually:
+
+```text
+first read
+    │
+    ▼
+evaluate ──> cache result
+    │
+    ▼
+subsequent reads
+    │
+    └──> return cached result
+
+dependency changes
+    │
+    ▼
+invalidate cached result
+    │
+    ▼
+next read evaluates again
+```
+
+This makes computed values useful for derived calculations that may be consumed by multiple parts of a component without repeatedly executing the same calculation.
+
+Lazy evaluation also means that an unused computed does not incur the cost of evaluating its function merely because it was declared.
+
+---
+
+## Reactive Updates
+
+Computed values participate in Udodi's normal reactive update cycle.
+
+For example:
+
+```js
+const Cart = createComponent({
+  name: "Cart",
+
+  state() {
+    return {
+      price: 20,
+      quantity: 2,
+    };
+  },
+
+  computed: {
+    total(ctx) {
+      return ctx.price * ctx.quantity;
+    },
+  },
+
+  methods: {
+    increase() {
+      this.quantity++;
+    },
+  },
+
+  template: () => html`
+    <p>Total: $<span @text="total"></span></p>
+    <button @on="click=increase">+</button>
+  `,
+});
+```
+
+When `quantity` changes:
+
+```text
+quantity changes
+      │
+      ▼
+total is invalidated
+      │
+      ▼
+the bound value is re-evaluated
+      │
+      ▼
+the DOM receives the new value
+```
+
+You do not need to manually assign the computed result back into state.
+
+---
+
+## Nested State
+
+Udodi's root state reactivity and nested-object reactivity should be distinguished when working with computed values.
+
+Consider:
 
 ```js
 state() {
@@ -146,57 +290,162 @@ computed: {
     return ctx.pricing.base + ctx.pricing.tax;
   },
 },
+```
 
+If `pricing` is replaced through the component context, the root state change is reactive:
+
+```js
+this.pricing = {
+  base: 20,
+  tax: 4,
+};
+```
+
+For an in-place nested mutation, use `touch()` when the nested object is not itself providing the notification required by the dependency:
+
+```js
 methods: {
   setTax(tax) {
-    // In-place mutation — must touch the root key
     this.pricing.tax = tax;
     touch(this, "pricing");
   },
+},
+```
 
-  setPricing(base, tax) {
-    // Full replacement — notifies automatically
-    this.pricing = { base, tax };
+`touch()` signals that the root `pricing` value should be considered changed without replacing the object itself.
+
+See [Using `touch()`](../reactivity/touch.md) for the complete API.
+
+---
+
+## Computed Values Are Read-Only
+
+Computed properties represent derived data. They are not writable state.
+
+Given:
+
+```js
+computed: {
+  total(ctx) {
+    return ctx.price * ctx.quantity;
   },
 },
 ```
+
+`total` should be read:
+
+```js
+console.log(this.total);
+```
+
+rather than assigned:
+
+```js
+this.total = 100; // invalid
+```
+
+To change the result of a computed value, change the state or other reactive values from which it is derived:
+
+```js
+this.price = 50;
+this.quantity = 2;
+```
+
+The computed value then reflects the new inputs automatically.
 
 ---
 
 ## Root-Level Uniqueness
 
-Computed keys are registered in the same collision registry as state and methods:
+Computed properties occupy the component's root namespace.
+
+A computed property therefore cannot use a name already claimed by another root-level component member.
+
+Computed names must not conflict with:
+
+* state keys
+* method names
+* other computed names
+* reserved component/context names
+
+For example, this is invalid:
 
 ```js
-const stateKeys = Object.keys(lastStateInstance);
-const computedKeys = Object.keys(computedProps);
-const methodKeys = Object.keys(methods);
-// ...
-// Each key is passed through registerAndVerifyKey(...)
+createComponent({
+  name: "Counter",
+
+  state() {
+    return {
+      total: 0,
+    };
+  },
+
+  computed: {
+    total(ctx) {
+      return ctx.price * ctx.quantity;
+    },
+  },
+});
 ```
 
-A computed name that matches a state key or method name will throw a namespace collision error at component creation time.
+The component cannot expose two different root-level meanings for `total`.
 
-Computed names also cannot be reserved keywords (`name`, `state`, `ud`, etc.).
-
----
-
-## Lazy Evaluation and Caching
-
-Each computed is wrapped with Udodi’s `computed()` primitive:
-
-- Evaluation is lazy (runs on first read).
-- The result is cached.
-- Recomputation happens only when a tracked dependency changes.
-- On the public context membrane, reading a computed key evaluates the getter and returns the current value (you do not call it as a function in templates).
-
-Cleanup for computed effects is tied to the component’s computed scope and runs on unmount.
+Namespace validation happens when the component is created, so invalid definitions fail early rather than producing ambiguous runtime behavior.
 
 ---
 
-## Example: Formatting and Combining Values
+## Component Lifetime and Cleanup
+
+Computed values are associated with the component's reactive scope.
+
+When the component is destroyed, the reactive resources associated with its computed values are cleaned up with that scope.
+
+This means computed definitions do not require manual teardown from component code.
+
+---
+
+## Computed vs Methods
+
+|              | Computed                                | Methods                               |
+| ------------ | --------------------------------------- | ------------------------------------- |
+| Purpose      | Derived reactive values                 | Actions and imperative logic          |
+| Invocation   | Read as a property                      | Called explicitly                     |
+| Evaluation   | Lazy and cached                         | Runs when called                      |
+| Dependencies | Tracked automatically                   | Not tracked as computed dependencies  |
+| Side effects | Should generally be avoided             | Appropriate when performing actions   |
+| Typical use  | Totals, labels, flags, formatted values | Event handlers, mutations, async work |
+
+A useful rule is:
+
+> **If something describes a value, use a computed. If something performs an action, use a method.**
+
+For example:
 
 ```js
+computed: {
+  fullName(ctx) {
+    return `${ctx.firstName} ${ctx.lastName}`;
+  },
+},
+
+methods: {
+  save() {
+    // perform an action
+  },
+},
+```
+
+See [Methods](./methods.md).
+
+---
+
+## Complete Example
+
+The following example combines state, computed dependencies, methods, and template bindings:
+
+```js
+import { createComponent, html, render } from "udodi";
+
 const OrderSummary = createComponent({
   name: "OrderSummary",
 
@@ -227,8 +476,8 @@ const OrderSummary = createComponent({
   },
 
   methods: {
-    setQuantity(q) {
-      this.quantity = q;
+    setQuantity(quantity) {
+      this.quantity = quantity;
     },
   },
 
@@ -238,44 +487,47 @@ const OrderSummary = createComponent({
     </div>
   `,
 });
+
+render(OrderSummary(), "#app");
 ```
 
-Changing `quantity` or `price` flows through `subtotal` → `tax` → `total` → `displayTotal` and updates the bound DOM.
+The dependency chain is:
+
+```text
+price ────────┐
+              ▼
+           subtotal ─────┐
+quantity ─────┘          │
+                         ▼
+taxRate ────────> tax ──> total ──> displayTotal
+```
+
+Changing `price`, `quantity`, or `taxRate` propagates through the relevant computed values and ultimately updates the `displayTotal` binding.
 
 ---
 
-## Constraints Specific to State Keys
+## Constraints
 
-State keys:
-
-- Must not collide with computed or method names
-- Must not be reserved keywords
-- Are the only keys that are writable through the public context membrane (along with the special `_injectCleanupHook` path used by the runtime)
-
-Attempting to set a non-state root key on the public context throws a mutation error.
-
----
-
-## Summary
-
-- Define state with `state()` returning a fresh object per instance.
-- Only top-level keys are reactive.
-- For nested changes, prefer `touch(this, "rootKey")` after in-place mutation; replacement of the root key also works.
-- Keep state keys unique across state, computed, methods, and props.
-- Never use reserved keywords as state keys.
-- Interceptors can transform or block root writes.
+| Constraint             | Behavior                                                                                 |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| Root-level namespace   | Computed names must be unique within the component context                               |
+| Read-only              | Computed values cannot be assigned through the public context                            |
+| Lazy                   | A computed is evaluated when its value is first needed                                   |
+| Cached                 | The last computed result is reused while its dependencies remain valid                   |
+| Automatic dependencies | Reactive reads are tracked during evaluation                                             |
+| Nested mutations       | Use `touch()` when an in-place nested mutation needs an explicit root-level notification |
+| Cleanup                | Computed reactive resources are cleaned up with the component scope                      |
+| Side effects           | Computed functions should normally remain pure                                           |
 
 ---
 
 ## Next Steps
 
-* [Components](./components.md)  
-* [Computed Values](./computed.md)  
-* [Methods](./methods.md)  
-* [Watchers](./watch.md)  
-* [Interceptors](./interceptors.md)  
-* [Lifecycle](./lifecycle.md)  
-* [Props](./props.md)  
-* [Context](./context.md)  
-* [Component Styles](./styles.md)  
-* [Reactivity](../reactivity/)  
+* [Components](./components.md) — component structure and root-level namespace rules
+* [State](./state.md) — reactive state used by computed values
+* [Methods](./methods.md) — actions and imperative logic
+* [Watchers](./watch.md) — reacting to changes for side effects
+* [Interceptors](./interceptors.md) — transforming root state writes
+* [Context](./context.md) — the public component context
+* [Using `touch()`](../reactivity/touch.md) — notifying the reactive system after nested mutations
+* [Reactivity Overview](../reactivity/overview.md) — Udodi's reactive primitives

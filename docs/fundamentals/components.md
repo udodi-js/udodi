@@ -1,6 +1,6 @@
 # Components
 
-Components are the primary building blocks of a Udodi application.
+Components are the primary building blocks of an Udodi application.
 
 A component combines **state, derived values, behavior, templates, styles, and lifecycle** into a reusable unit. Components can be composed into larger interfaces and can receive data through props.
 
@@ -74,11 +74,11 @@ A component definition describes the data, behavior, presentation, and lifecycle
 | `onMount`      | Runs after the component is mounted.                   |
 | `onUnmount`    | Runs when the component is being unmounted.            |
 
-All options are optional. A component only needs to define the capabilities it requires.
+The component's `template` option must be provided, and other options are optional.
 
 ---
 
-## Component Definition and Instance
+## Component Definition, Placeholder, and Instance
 
 `createComponent()` creates a **component factory**. It does not immediately create a component instance or DOM element.
 
@@ -88,17 +88,15 @@ const Counter = createComponent({
 });
 ```
 
-Calling the factory creates a component instance:
+The returned factory is used to create a **component placeholder**:
 
 ```js
-const instance = Counter();
+const placeholder = Counter();
 ```
 
-The instance can then be rendered:
+The placeholder represents the component in the render tree. It is not the component instance itself.
 
-```js
-render(instance, "#app");
-```
+When the placeholder is resolved during rendering, Udodi invokes the component factory internally to create the actual **component instance**. The instance contains the component's context, template, styles, lifecycle hooks, and other runtime state.
 
 Conceptually:
 
@@ -110,14 +108,17 @@ Component factory
         │
         │ Counter(props)
         ▼
+Component placeholder
+        │
+        │ render / resolve
+        ▼
 Component instance
         │
-        │ render()
         ▼
 Mounted DOM
 ```
 
-Every call to the factory creates a separate instance.
+For example:
 
 ```js
 const first = Counter();
@@ -127,9 +128,11 @@ render(first, "#first");
 render(second, "#second");
 ```
 
-Each instance has its own state and lifecycle.
+`first` and `second` are component placeholders. When they are rendered, Udodi creates separate component instances for them.
 
-See [State](./state.md) and [Lifecycle](./lifecycle.md).
+Each resulting instance receives its own component state, context, reactive effects, and lifecycle.
+
+This separation between **component definition**, **placeholder**, and **instance** allows components to participate in the render tree before their runtime instances are created.
 
 ---
 
@@ -377,46 +380,93 @@ See [Props](./props.md) for the complete prop model.
 
 ## Static and Reactive Props
 
-Props are ordinary values by default:
+Props are passed directly to the child component by default.
+
+For primitive values, this follows JavaScript's normal value semantics:
 
 ```js
-User({
-  userName: ctx.userName,
+Child({
+  count: 10,
+  username: "Ada",
+  active: true,
 });
 ```
 
-The child receives the value as a snapshot. Changes to the parent's state do not automatically update the child prop.
+For objects, arrays, and functions, the reference is passed directly:
 
-When a child needs a live connection to parent state, use `bindProp()`:
+```js
+const user = {
+  name: "Ada",
+};
+
+Child({
+  user,
+});
+```
+
+The child receives the same `user` object reference. Udodi does not clone the object when passing the prop.
+
+```text
+Parent                         Child
+
+user ────────────────────────► user
+       same object reference
+```
+
+Therefore, reference identity is preserved:
+
+```js
+const user = {
+  name: "Ada",
+};
+
+const child = Child({ user });
+
+// The child receives the same object.
+child.user === user;
+```
+
+However, **passing a value by reference is not the same as creating a reactive prop binding**.
+
+A normal prop does not establish a reactive dependency between the parent expression and the child prop.
+
+### Reactive props
+
+When the child needs a live reactive connection to a parent expression, use `bindProp()`:
 
 ```js
 import { bindProp } from "udodi";
 
-User({
+Child({
   user: bindProp(() => ctx.user),
 });
 ```
 
-The distinction is intentional:
+With `bindProp()`, Udodi creates a reactive prop binding rather than storing the supplied value directly.
 
 ```text
 Regular prop
 
-Parent state ───── value ─────► Child prop
-                                  │
-                               snapshot
+Parent expression ───── value/reference ─────► Child prop
 
 
 Reactive prop
 
-Parent state ─── bindProp() ───► Child prop
-       │                            │
-       └──── reactive updates ──────┘
+Parent expression ── bindProp() ──► Child prop
+       │                                 │
+       └────── reactive updates ─────────┘
 ```
 
-Use a regular prop when the child needs a value snapshot. Use `bindProp()` when the child should remain connected to the parent's reactive value.
+The distinction is:
 
-Udodi's component runtime explicitly treats regular props as value snapshots and `bindProp()` props as live reactive connections.
+* **Regular prop:** passes the supplied value directly. Objects retain their reference identity, but no reactive parent-to-child binding is created.
+* **Reactive prop:** `bindProp()` explicitly connects the child prop to a reactive parent expression.
+
+This distinction is particularly important for objects. An object can be shared by reference between parent and child without the child prop itself being a reactive binding.
+
+Udodi's reactive state system is also shallow: top-level reactive properties are tracked, while nested objects are not automatically made independently reactive.
+
+See [Props](./props.md) for the complete prop model.
 
 ---
 
@@ -612,7 +662,7 @@ Component state is **shallow-reactive**. Udodi tracks top-level state keys; nest
 state() {
   return {
     user: {
-      label: "Ada",
+      name: "Ada",
     },
   };
 }
@@ -621,7 +671,7 @@ state() {
 Updating a nested property in place does not automatically notify dependents:
 
 ```js
-this.user.label = "Grace"; // no notification yet
+this.user.name = "Grace"; // no notification yet
 ```
 
 Prefer `touch()` to notify after an in-place nested mutation. Pass the component context (or the reactive state proxy) and the root key that was mutated:
@@ -629,7 +679,7 @@ Prefer `touch()` to notify after an in-place nested mutation. Pass the component
 ```js
 import { touch } from "udodi";
 
-this.user.label = "Grace";
+this.user.name = "Grace";
 touch(this, "user");
 ```
 
@@ -640,7 +690,7 @@ You can still replace the parent value when that is clearer:
 ```js
 this.user = {
   ...this.user,
-  label: "Grace",
+  name: "Grace",
 };
 ```
 
