@@ -4,7 +4,7 @@ Component state is the reactive data owned by a single component instance.
 
 Udodi's state reactivity is **shallow at the root-property level**. Each top-level state key participates in the reactive system. Ordinary nested objects are not automatically made deeply reactive.
 
-Supported collections — **arrays, `Map`, and `Set`** — receive reactive wrappers when stored as state. Their structural mutation methods automatically notify the owning root state key, while objects contained inside those collections remain non-reactive unless they are replaced or the root key is explicitly notified with `touch()`.
+Supported collections such as **arrays, `Map`, and `Set`** receive reactive wrappers when stored as state. Their structural mutation methods automatically notify the owning root state key, while objects contained inside those collections remain non-reactive unless they are replaced or the root key is explicitly notified with `touch()`.
 
 State is defined with the `state` option of `createComponent()`, exposed on the public component context, and updated from methods, interceptors, lifecycle hooks, and two-way bindings such as `@bind`.
 

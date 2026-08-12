@@ -4,7 +4,7 @@ Udodi is a lightweight, dependency-free JavaScript UI framework built around fin
 
 It is designed for developers who want the simplicity of a small JavaScript library without giving up the capabilities needed to build real applications.
 
-Udodi brings together the core building blocks needed to build reactive applications:
+Udodi brings together the core building blocks needed to build modern web applications:
 
 * Fine-grained reactivity
 * Declarative HTML templates
@@ -51,27 +51,6 @@ Understand the building blocks that make up an Udodi application.
 * **[Component Styles](./fundamentals/styles.md)** — Define styles through a component's `style` property with CSS scoping.
 
 **Start here → [Fundamentals](./fundamentals/)**
-
----
-
-### Reactivity
-
-Udodi uses fine-grained reactivity to update only the parts of the interface that depend on changed data.
-
-Learn how Udodi's reactive primitives work together, including signals, effects, computed values, reactive objects, collections, and explicit dependency notification.
-
-**Guides**
-
-* [Reactivity Overview](./reactivity/overview.md)
-* [Signals](./reactivity/signals.md)
-* [Effects](./reactivity/effects.md)
-* [Reactive State](./reactivity/state.md)
-* [Reactive Collections](./reactivity/collections.md)
-* [Reactive Arrays](./reactivity/arrays.md)
-* [Using `touch()`](./reactivity/touch.md)
-* [Read-only State](./reactivity/readonly.md)
-
-**Start here → [Reactivity](./reactivity/)**
 
 ---
 
@@ -197,6 +176,28 @@ The Overlay system is part of Udodi's core runtime and is designed to handle com
 
 **Start here → [Overlay](./overlay/)**
 
+---
+
+### Reactivity
+
+Udodi's component, template, store, and query systems are built on a fine-grained
+reactivity system.
+
+Most application code can use Udodi's higher-level APIs without interacting
+directly with the underlying reactive primitives. The Reactivity guides explain
+those primitives when you need finer control, want to build reusable extensions
+or libraries, or want to understand how Udodi's reactive system works internally.
+
+**Guides**
+
+- [Reactivity Overview](./reactivity/overview.md)
+- [Signals](./reactivity/signals.md)
+- [Effects](./reactivity/effects.md)
+- [Reactive State](./reactivity/state.md)
+- [Reactive Collections](./reactivity/collections.md)
+- [Using `touch()`](./reactivity/touch.md)
+
+**Start here → [Reactivity](./reactivity/)**
 
 ---
 
