@@ -2,9 +2,11 @@
 
 Component state is the reactive data owned by a single component instance.
 
-Udodi tracks state at the **top level only** (shallow reactivity). Top-level keys participate in the reactive system; nested objects and arrays are not automatically deeply proxied.
+Udodi's state reactivity is **shallow at the root-property level**. Each top-level state key participates in the reactive system. Ordinary nested objects are not automatically made deeply reactive.
 
-State is defined with the `state` option on `createComponent()`, exposed on the public component context, and updated from methods, interceptors, lifecycle hooks, and two-way bindings such as `@bind`.
+Supported collections — **arrays, `Map`, and `Set`** — receive reactive wrappers when stored as state. Their structural mutation methods automatically notify the owning root state key, while objects contained inside those collections remain non-reactive unless they are replaced or the root key is explicitly notified with `touch()`.
+
+State is defined with the `state` option of `createComponent()`, exposed on the public component context, and updated from methods, interceptors, lifecycle hooks, and two-way bindings such as `@bind`.
 
 ---
 
@@ -42,7 +44,7 @@ const Counter = createComponent({
 render(Counter(), "#app");
 ```
 
-The function is called once per instance so each component receives its own state object.
+The function is called for each component instance, so each instance receives its own state object.
 
 ### Invalid definitions
 
@@ -135,13 +137,13 @@ Directives read state by path:
 <input @bind="count" />
 ```
 
-Nested paths such as `user.name` are valid for **reading**. Writing through nested paths is handled by the binding system (for example `@bind`) or by your methods.
+Nested paths such as `user.name` are valid for reading. Writing through nested paths is handled by the binding system (for example, `@bind`) or by your methods.
 
 ---
 
 ## Shallow Reactivity
 
-Only **top-level** state keys are reactive.
+Udodi tracks **top-level state keys**.
 
 ```js
 state() {
@@ -162,13 +164,15 @@ state() {
 
 Assigning a new value to a top-level key notifies computed values, watchers, and DOM bindings that depend on that key.
 
-Mutating a nested field in place does **not** notify by itself.
+Mutating a nested field in an ordinary object in place does **not** notify by itself.
+
+Collections are the important exception: arrays, `Map`, and `Set` have reactive structural mutation methods described below.
 
 ---
 
 ## Nested Updates and `touch()`
 
-When you mutate nested data in place, call `touch()` to notify dependents of the root key:
+When you mutate nested data in an ordinary object in place, call `touch()` to notify dependents of the root key:
 
 ```js
 import { createComponent, touch, html } from "udodi";
@@ -200,9 +204,9 @@ const Profile = createComponent({
 
 `touch(proxy, key)`:
 
-- Accepts the component context (`this` / `ctx`) or the underlying reactive proxy
-- Takes the **root** property name that was mutated
-- Returns `true` if a trigger was found and fired
+- accepts the component context (`this` / `ctx`) or the underlying reactive proxy;
+- takes the **root** property name that was mutated;
+- returns `true` if a trigger was found and fired.
 
 Prefer `touch()` when you want to keep the same object reference and only signal that nested data changed.
 
@@ -224,6 +228,371 @@ methods: {
 Use replacement when creating a new object is clearer or when you need a new reference. Use `touch()` when in-place mutation is preferable.
 
 See [Using `touch()`](../reactivity/touch.md).
+
+---
+
+## Reactive Collections
+
+Udodi provides reactive wrappers for **arrays, `Map`, and `Set`** used as state values.
+
+These collections are still shallow with respect to the values they contain, but their supported structural mutation methods automatically notify dependents of the owning root state key.
+
+You do **not** need to call `touch()` after one of these supported collection mutations.
+
+---
+
+### Reactive Arrays
+
+Arrays stored in state are automatically wrapped. Structural mutation methods notify dependents of the root state key.
+
+```js
+state() {
+  return {
+    items: [],
+  };
+},
+
+methods: {
+  addItem(item) {
+    this.items.push(item);
+  },
+
+  removeLastItem() {
+    this.items.pop();
+  },
+
+  replaceItem(index, item) {
+    this.items.splice(index, 1, item);
+  },
+},
+```
+
+The following array mutation methods are reactive:
+
+- `push()`
+- `pop()`
+- `shift()`
+- `unshift()`
+- `splice()`
+- `sort()`
+- `reverse()`
+- `fill()`
+- `copyWithin()`
+
+For example:
+
+```js
+this.items.push("Apple");
+```
+
+automatically notifies dependents of `items`.
+
+Do not add an unnecessary `touch()`:
+
+```js
+this.items.push("Apple");
+touch(this, "items"); // unnecessary
+```
+
+The collection wrapper already triggers the root state signal.
+
+#### Array contents are not deeply reactive
+
+Objects stored inside an array are not recursively proxied:
+
+```js
+state() {
+  return {
+    users: [
+      { name: "Ada" },
+    ],
+  };
+},
+```
+
+This does not automatically notify dependents:
+
+```js
+this.users[0].name = "Grace";
+```
+
+Notify the root key explicitly:
+
+```js
+this.users[0].name = "Grace";
+touch(this, "users");
+```
+
+Or replace the item through a reactive array mutation:
+
+```js
+this.users.splice(0, 1, {
+  ...this.users[0],
+  name: "Grace",
+});
+```
+
+The second approach automatically notifies because `splice()` is a reactive array mutation.
+
+---
+
+### Reactive `Map`
+
+`Map` values stored in state are automatically wrapped.
+
+```js
+state() {
+  return {
+    users: new Map(),
+  };
+},
+
+methods: {
+  addUser(id, user) {
+    this.users.set(id, user);
+  },
+
+  removeUser(id) {
+    this.users.delete(id);
+  },
+
+  clearUsers() {
+    this.users.clear();
+  },
+},
+```
+
+The following `Map` mutation methods are reactive:
+
+- `set()`
+- `delete()`
+- `clear()`
+
+For example:
+
+```js
+this.users.set(1, {
+  name: "Ada",
+});
+```
+
+automatically notifies dependents of `users`.
+
+A `Map` can be consumed by computed values like any other reactive state value:
+
+```js
+computed: {
+  userCount(ctx) {
+    return ctx.users.size;
+  },
+},
+```
+
+When the `Map` is structurally mutated, consumers that depend on the root `users` state key can update.
+
+#### Objects stored in a `Map` are not deeply reactive
+
+The contents of a `Map` are not recursively proxied:
+
+```js
+this.users.get(1).name = "Grace";
+```
+
+This does not automatically notify dependents because the `Map` itself was not structurally changed.
+
+Use `touch()` when mutating the stored object in place:
+
+```js
+this.users.get(1).name = "Grace";
+touch(this, "users");
+```
+
+Or replace the value with `Map.prototype.set()`:
+
+```js
+this.users.set(1, {
+  ...this.users.get(1),
+  name: "Grace",
+});
+```
+
+The latter automatically notifies because `set()` is a reactive `Map` mutation.
+
+---
+
+### Reactive `Set`
+
+`Set` values stored in state are automatically wrapped.
+
+```js
+state() {
+  return {
+    selectedIds: new Set(),
+  };
+},
+
+methods: {
+  select(id) {
+    this.selectedIds.add(id);
+  },
+
+  deselect(id) {
+    this.selectedIds.delete(id);
+  },
+
+  clearSelection() {
+    this.selectedIds.clear();
+  },
+},
+```
+
+The following `Set` mutation methods are reactive:
+
+- `add()`
+- `delete()`
+- `clear()`
+
+For example:
+
+```js
+this.selectedIds.add(42);
+```
+
+automatically notifies dependents of `selectedIds`.
+
+A computed value can consume the collection normally:
+
+```js
+computed: {
+  selectionCount(ctx) {
+    return ctx.selectedIds.size;
+  },
+},
+```
+
+When the `Set` is structurally mutated, consumers that depend on the root `selectedIds` state key can update.
+
+#### Objects stored in a `Set` are not deeply reactive
+
+Objects contained in a `Set` are not recursively proxied:
+
+```js
+state() {
+  return {
+    users: new Set([
+      { name: "Ada" },
+    ]),
+  };
+},
+```
+
+Mutating an object contained in the set does not automatically notify:
+
+```js
+for (const user of this.users) {
+  user.name = "Grace";
+}
+```
+
+Notify the root state key after the in-place mutation:
+
+```js
+for (const user of this.users) {
+  user.name = "Grace";
+}
+
+touch(this, "users");
+```
+
+---
+
+## Collection Reactivity at a Glance
+
+| Collection | Reactive structural mutations | Nested object mutations |
+| ---------- | ----------------------------- | ------------------------ |
+| Array | `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, `reverse`, `fill`, `copyWithin` | Require `touch()` |
+| `Map` | `set`, `delete`, `clear` | Require `touch()` |
+| `Set` | `add`, `delete`, `clear` | Require `touch()` |
+
+The important distinction is:
+
+```text
+Root assignment
+    │
+    ├── this.user = next
+    │       └── reactive write → notify
+    │
+    ├── this.items.push(value)
+    │       └── reactive collection mutation → notify
+    │
+    └── this.user.name = next
+            └── ordinary nested mutation → no notification
+                    │
+                    └── touch(this, "user")
+```
+
+Collection mutation is therefore different from ordinary nested object mutation: the collection wrapper performs the root-level notification for supported structural operations.
+
+---
+
+## Collections and Root Replacement
+
+Collections can also be replaced like any other root state value:
+
+```js
+this.items = [];
+this.users = new Map();
+this.selectedIds = new Set();
+```
+
+Root replacement is reactive because the state property itself is assigned through the reactive store.
+
+For example:
+
+```js
+methods: {
+  resetUsers() {
+    this.users = new Map();
+  },
+},
+```
+
+The assignment notifies dependents of `users`.
+
+---
+
+## Collections and Interceptors
+
+Collection mutation methods do **not** perform a root state assignment, so they do not invoke a state interceptor.
+
+For example:
+
+```js
+interceptors: {
+  users(value) {
+    // Runs when this.users is assigned.
+    return value;
+  },
+},
+
+methods: {
+  addUser(id, user) {
+    this.users.set(id, user); // interceptor does not run
+  },
+
+  replaceUsers(users) {
+    this.users = users; // interceptor runs
+  },
+},
+```
+
+The distinction is:
+
+- **Root assignment** → interceptor → commit → notification.
+- **Collection mutation** → collection wrapper → root notification.
+- **Ordinary nested object mutation** → no notification unless `touch()` or root replacement is used.
+
+See [Interceptors](./interceptors.md).
 
 ---
 
@@ -260,7 +629,9 @@ const Form = createComponent({
 });
 ```
 
-Interceptors apply only to **root** assignments (`this.count = …`). Nested in-place mutations do not go through interceptors unless you assign a new root value.
+Interceptors apply only to **root** assignments such as `this.count = ...`. Nested in-place mutations do not go through interceptors unless you assign a new root value.
+
+Collection mutation methods likewise do not invoke the interceptor for the owning root key.
 
 See [Interceptors](./interceptors.md).
 
@@ -280,7 +651,9 @@ computed: {
 },
 ```
 
-If a computed reads a nested field, it still depends on the **root** key for notification. After a nested mutation, call `touch(this, "user")` (or replace `user`) so the computed updates.
+If a computed reads a nested field, it still depends on the **root** key for notification. After an ordinary nested mutation, call `touch(this, "user")` or replace `user` so the computed updates.
+
+Collection mutations are different: supported array, `Map`, and `Set` mutations automatically notify their owning root key.
 
 See [Computed Values](./computed.md).
 
@@ -299,73 +672,34 @@ watch: {
 },
 ```
 
-Only first-level keys listed in `deps` are tracked. Nested mutations notify a watcher only after the corresponding root key is updated or touched.
+Only first-level keys listed in `deps` are tracked. Ordinary nested mutations notify a watcher only after the corresponding root key is updated or touched.
 
-See [Watchers](./watch.md).
-
----
-
-## Root-Level Names
-
-State keys share a single root namespace with `computed`, `methods`, and `props`.
-
-Every root-level name must be unique:
+A supported collection mutation automatically notifies the collection's root key, so a watcher depending on that key can react:
 
 ```js
-// ❌ "title" is declared in both state and computed
-const Example = createComponent({
-  state() {
-    return {
-      title: "Hello",
-    };
-  },
+state() {
+  return {
+    items: [],
+  };
+},
 
-  computed: {
-    title(ctx) {
-      return ctx.title;
+watch: {
+  itemsChanged: {
+    deps: ["items"],
+    handler(newValues) {
+      console.log("items changed:", newValues.items);
     },
   },
-});
+},
+
+methods: {
+  addItem(item) {
+    this.items.push(item); // watcher is notified automatically
+  },
+},
 ```
 
-State keys also cannot use reserved keywords:
-
-```text
-name
-state
-computed
-interceptors
-methods
-watch
-template
-onMount
-onUnmount
-refs
-style
-ud
-```
-
-```js
-// ❌ "name" is reserved
-state() {
-  return {
-    name: "Ada",
-  };
-}
-```
-
-```js
-// ✅ Use a non-reserved key
-state() {
-  return {
-    label: "Ada",
-  };
-}
-```
-
-Udodi validates component-defined keys when the component is created. Collisions throw an error that identifies the component, key, and namespace.
-
-See [Components](./components.md) for the full namespace model.
+See [Watchers](./watch.md).
 
 ---
 
@@ -381,9 +715,31 @@ Templates read state through directives:
 ```
 
 - `@text`, `@show`, `@if`, `@class`, `@style`, and `@attr` read reactive values and update when dependencies change.
-- `@bind` provides two-way binding. For nested paths such as `user.name`, the binding system updates the nested value and uses touch() to ensure the change participates in reactivity.
+- `@bind` provides two-way binding. For nested paths such as `user.name`, the binding system updates the nested value and uses `touch()` to ensure the change participates in reactivity.
+- Collection values can be read through the same public context and consumed by computed values or other reactive consumers.
+- Directive expressions use Udodi's template DSL (paths, resolvers, literals) rather than arbitrary JavaScript.
 
-Directive expressions use Udodi's template DSL (paths, resolvers, literals) rather than arbitrary JavaScript.
+For example:
+
+```js
+computed: {
+  itemCount(ctx) {
+    return ctx.items.length;
+  },
+},
+```
+
+```html
+<p>Items: <span @text="itemCount"></span></p>
+```
+
+Calling:
+
+```js
+this.items.push("Apple");
+```
+
+automatically notifies the `items` root key, allowing `itemCount` and its DOM binding to update.
 
 See [Templates](../templates/).
 
@@ -420,8 +776,14 @@ Shared application state belongs in [Udodi Store](../store/), not in a reused co
 | Fresh object per instance | Reusing the same object warns |
 | Unique root keys | Cannot collide with `computed`, `methods`, or `props` |
 | No reserved keywords | Reserved names cannot be state keys |
-| Shallow reactivity | Only top-level keys are tracked automatically |
-| Nested in-place mutation | Call `touch(ctx, key)` or replace the root value to notify |
+| Shallow object reactivity | Ordinary nested objects are not deeply proxied |
+| Nested in-place object mutation | Call `touch(ctx, key)` or replace the root value to notify |
+| Reactive arrays | Supported structural mutations notify automatically |
+| Reactive `Map` | `set`, `delete`, and `clear` notify automatically |
+| Reactive `Set` | `add`, `delete`, and `clear` notify automatically |
+| Collection contents | Objects contained in arrays, `Map`, or `Set` are not deeply reactive |
+| Collection nested mutation | Use `touch(ctx, key)` or replace the contained value |
+| Root replacement | Assigning a new root value notifies automatically |
 
 ---
 
@@ -459,11 +821,11 @@ render(Counter(), "#app");
 
 ## Next Steps
 
-* [Components](./components.md) — the component model and namespace rules  
-* [Computed Values](./computed.md) — values derived from state  
-* [Methods](./methods.md) — updating state from component behavior  
-* [Watchers](./watch.md) — reacting to state changes  
-* [Interceptors](./interceptors.md) — transforming or canceling state writes  
-* [Props](./props.md) — inputs and live bindings from parent state  
-* [Using `touch()`](../reactivity/touch.md) — notifying after nested mutations  
-* [Reactivity Overview](../reactivity/overview.md) — signals, effects, and reactive objects  
+- [Components](./components.md) — the component model and namespace rules
+- [Computed Values](./computed.md) — values derived from state
+- [Methods](./methods.md) — updating state from component behavior
+- [Watchers](./watch.md) — reacting to state changes
+- [Interceptors](./interceptors.md) — transforming or canceling state writes
+- [Props](./props.md) — inputs and live bindings from parent state
+- [Using `touch()`](../reactivity/touch.md) — notifying after nested mutations
+- [Reactivity Overview](../reactivity/overview.md) — signals, effects, and reactive objects
