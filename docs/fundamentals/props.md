@@ -86,14 +86,14 @@ const UserCard = createComponent({
 
   template: () => html`
     <article>
-      <h2 @text="name"></h2>
+      <h2 @text="userName"></h2>
       <p @text="role"></p>
     </article>
   `,
 });
 
 UserCard({
-  name: "Ada",
+  userName: "Attamah",
   role: "admin",
 });
 ```
@@ -101,14 +101,14 @@ UserCard({
 The child reads:
 
 ```js
-this.name;
+this.userName;
 this.role;
 ```
 
 or:
 
 ```js
-ctx.name;
+ctx.userName;
 ctx.role;
 ```
 

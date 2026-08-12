@@ -39,7 +39,7 @@ The public context is the component-facing API.
 When a component is mounted:
 
 ```js
-const instance = mount(Component(), "#app");
+const instance = render(Component(), "#app");
 
 instance.context;
 ```
@@ -75,7 +75,7 @@ It contains the concrete runtime wiring needed by Udodi's VM and DOM binding sys
 
 The internal context is passed to runtime systems such as `bindDOM()`.
 
-Application code should normally use the public context instead.
+The user's application code does not access the internal context.
 
 | Context | Purpose |
 | ------- | ------- |
@@ -156,10 +156,10 @@ All of these component-facing APIs operate on the public context.
 
 ## Mounted Instance Context
 
-`mount()` returns a mounted instance containing:
+`render()` returns a mounted instance containing:
 
 ```js
-const instance = mount(Component(), "#app");
+const instance = render(Component(), "#app");
 
 instance.name;
 instance.context;
@@ -830,7 +830,7 @@ instance.context
 
 is the public context, while the context supplied internally to runtime DOM binding is the internal context.
 
-Application code should not depend on the internal runtime context.
+Application code does not depend on the internal runtime context.
 
 ---
 
@@ -982,7 +982,7 @@ const Counter = createComponent({
   `,
 });
 
-const instance = mount(Counter(), "#app");
+const instance = render(Counter(), "#app");
 
 console.log(instance.name);
 console.log(instance.context.count);

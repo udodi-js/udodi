@@ -315,8 +315,8 @@ For example:
 ```js
 const instance = render(Counter(), "#app");
 
-// Some external code removes the component root:
-instance.root.remove();
+// External code removes the component's DOM.
+document.querySelector("#app").firstElementChild?.remove();
 ```
 
 The root-removal observer allows Udodi to clean up component-scoped resources even when removal happened outside the component API.
