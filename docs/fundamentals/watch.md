@@ -971,9 +971,22 @@ methods: {
 },
 ```
 
-A watcher is a reactive trigger; it does not itself provide request cancellation or stale-result handling.
+For asynchronous data fetching, prefer the [Query Pool](../query-pool/overview.md) instead of managing requests directly inside a watcher.
 
-For asynchronous workflows where several changes can occur before previous work completes, implement the required cancellation or concurrency policy explicitly.
+The Query Pool is designed for reactive queries and mutations and provides capabilities such as:
+
+- Request cancellation
+- Dependency-aware execution
+- Caching
+- Invalidation
+- Deduplication and concurrency control
+- Loading and error state
+- Streaming
+- Local and worker-based execution
+
+A watcher is primarily a reactive side-effect trigger. It does not itself provide request cancellation, caching, stale-result handling, or a concurrency policy.
+
+Use a watcher when a state change needs to trigger a side effect that does not require query lifecycle management. For reactive data fetching or other managed asynchronous workflows, use the [Query Pool](../query-pool/overview.md) instead.
 
 ---
 
@@ -1169,7 +1182,6 @@ or replace the root value.
 | Watcher lifetime       | Watcher effects are scoped to the component instance                    |
 | External resources     | Resources created by handlers require their own cleanup                 |
 | Feedback loops         | Writing watched state can trigger the watcher again                     |
-| Store subscriptions    | `store.subscribe()` uses `(next, prev)`, not watcher-style value maps   |
 
 ---
 

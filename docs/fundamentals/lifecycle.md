@@ -1,6 +1,6 @@
 # Lifecycle
 
-A Udodi component follows a managed lifecycle:
+An Udodi component follows a managed lifecycle:
 
 **create → initialize → mount → active → unmount → cleanup**
 
@@ -67,7 +67,7 @@ const Example = createComponent({
   name: "Example",
 
   onMount(root, ctx) {
-    console.log("mounted", root, ctx.count);
+    console.log("mounted", root, ctx);
   },
 
   template: () => html`
