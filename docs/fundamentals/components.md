@@ -420,10 +420,10 @@ const user = {
   name: "Ada",
 };
 
-const child = Child({ user });
+const child = render(Child({ user }), "#app");
 
 // The child receives the same object.
-child.user === user;
+child.context.user === user;
 ```
 
 However, **passing a value by reference is not the same as creating a reactive prop binding**.
