@@ -21,8 +21,8 @@ The two surfaces are connected by a Proxy membrane:
               │                           ├── refs
               │                           ├── ud
               │                           ├── name
-              │                           └── cleanup
-              │
+              │                           ├── cleanup
+              │                           │
               ▼                           ▼
        Runtime / VM                Component application code
        / bindDOM
