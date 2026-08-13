@@ -149,8 +149,8 @@ The options of a component serve different responsibilities:
         │               │               │
      state           methods         template
      computed        watch           style
-        │            interceptors
-        │               │
+        │            interceptors       │
+        │               │               │
         └───────────────┼───────────────┘
                         │
                     Lifecycle
