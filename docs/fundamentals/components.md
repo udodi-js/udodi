@@ -196,7 +196,7 @@ template: () => html`
 
 A template with multiple top-level elements is not a valid component template.
 
-See [Templates](../templates/).
+See [Templates](../templates/README.md).
 
 ---
 
@@ -915,8 +915,8 @@ The Fundamentals section provides a focused guide for each component capability:
 * [Context](./context.md) — the public component context.
 * [Component Styles](./styles.md) — component-scoped CSS.
 
-For templates and directives, see [Templates](../templates/).
+For templates and directives, see [Templates](../templates/README.md).
 
-For advanced runtime concepts, see [Advanced](../advanced/).
+For advanced runtime concepts, see [Advanced](../advanced/README.md).
 
-For exact API signatures and runtime contracts, see the [API Reference](../api/).
+For exact API signatures and runtime contracts, see the [API Reference](../api/README.md).

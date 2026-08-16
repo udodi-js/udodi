@@ -1034,4 +1034,4 @@ The component context maintains these invariants:
 * [Lifecycle](./lifecycle.md) — mounting, unmounting, and cleanup
 * [Watchers](./watch.md) — state dependency watchers
 * [Using `touch()`](../reactivity/touch.md) — surfacing nested state changes
-* [Udodi Store](../store/) — application-level shared state
+* [Udodi Store](../store/README.md) — application-level shared state

@@ -741,7 +741,7 @@ this.items.push("Apple");
 
 automatically notifies the `items` root key, allowing `itemCount` and its DOM binding to update.
 
-See [Templates](../templates/).
+See [Templates](../templates/README.md).
 
 ---
 
@@ -763,7 +763,7 @@ render(Counter(), "#second");
 
 Updates in one instance do not affect the other. Isolation comes from calling `state()` per instance and returning a fresh object each time.
 
-Shared application state belongs in [Udodi Store](../store/), not in a reused component state object.
+Shared application state belongs in [Udodi Store](../store/README.md), not in a reused component state object.
 
 ---
 
