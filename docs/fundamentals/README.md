@@ -146,7 +146,7 @@ If you are new to Udodi, follow the guides in this order:
 2. [State](./state.md) — learn reactive component state.
 3. [Methods](./methods.md) — add component behavior.
 4. [Computed Values](./computed.md) — derive values from state.
-5. [Templates](../templates/) — build declarative component markup.
+5. [Templates](../templates/README.md) — build declarative component markup.
 6. [Props](./props.md) — compose components and pass data between them.
 7. [Context](./context.md) — understand how component code accesses its capabilities.
 8. [Watchers](./watch.md) — respond to reactive changes.
@@ -162,8 +162,8 @@ You do not need to read every guide before building an application. Start with C
 
 Once you understand the component model, explore the other parts of Udodi:
 
-* [Templates](../templates/) — templates, directives, and declarative DOM behavior.
-* [Store](../store/) — application-level state and persistence.
-* [Query Pool](../query-pool/) — asynchronous queries, mutations, caching, and reactive data.
-* [Advanced](../advanced/) — lower-level runtime and advanced Udodi concepts.
-* [API Reference](../api/) — authoritative API documentation.
+* [Templates](../templates/README.md) — templates, directives, and declarative DOM behavior.
+* [Store](../store/README.md) — application-level state and persistence.
+* [Query Pool](../query-pool/README.md) — asynchronous queries, mutations, caching, and reactive data.
+* [Advanced](../advanced/README.md) — lower-level runtime and advanced Udodi concepts.
+* [API Reference](../api/README.md) — authoritative API documentation.

@@ -906,5 +906,5 @@ The method performs the state transition, while Udodi's reactive state system up
 * [Props](./props.md) — values supplied to component instances
 * [Interceptors](./interceptors.md) — transforming or cancelling root state assignments
 * [Context](./context.md) — the public component context
-* [Templates](../templates/) — directive and method resolution
+* [Templates](../templates/README.md) — directive and method resolution
 * [Using `touch()`](../reactivity/touch.md) — notifying after nested mutations

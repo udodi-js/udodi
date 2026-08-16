@@ -104,8 +104,7 @@ In this example:
 
 - `userName` resolves to the component's state value.
 - `capitalise` is a standard library helper.
-- The `|` pipeline operator passes the value of userName through capitalise.
-@text renders the resulting value as the element's text content.
+- The `|` pipeline operator passes the value of `userName` through capitalise. `@text` renders the resulting value as the element's text content.
 
 The expression:
 
@@ -146,7 +145,7 @@ When `count` changes, the `@text` binding updates the element's text content.
 
 This is part of Udodi's fine-grained reactive model. A reactive binding tracks the values it reads rather than requiring the entire component template to be rendered again.
 
-See [Reactivity](../reactivity/) for the underlying reactive system.
+See [Reactivity](../reactivity/README.md) for the underlying reactive system.
 
 ---
 
@@ -405,7 +404,7 @@ This is useful for UI that needs to escape its normal DOM position, such as laye
 
 See [`@teleport`](./teleport.md).
 
-For higher-level modal and layered UI behavior, see [Overlay](../overlay/).
+For higher-level modal and layered UI behavior, see [Overlay](../overlay/README.md).
 
 ---
 
@@ -577,8 +576,8 @@ See [Template DSL](./dsl.md) for the expression language and directive expressio
 | Teleport content | [`@teleport`](./teleport.md) |
 | Understand component context | [Context](../fundamentals/context.md) |
 | Understand reactivity | [Reactivity Overview](../reactivity/overview.md) |
-| Build forms | [Forms](../forms/) |
-| Build modals and layered UI | [Overlay](../overlay/) |
+| Build forms | [Forms](../forms/README.md) |
+| Build modals and layered UI | [Overlay](../overlay/README.md) |
 
 ---
 
