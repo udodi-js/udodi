@@ -5,7 +5,7 @@ Udodi templates are HTML-first and use a small declarative DSL for connecting ma
 Templates remain close to standard HTML while Udodi directives provide reactive bindings, event handling, conditional rendering, list rendering, DOM references, attribute and style updates, and other UI behavior.
 
 Form-specific directives such as `@form`, `@validate`, and `@submit` are
-documented separately under [Forms](../forms/).
+documented separately under [Forms](../forms/README.md).
 
 ---
 
@@ -106,7 +106,7 @@ normally interacts with the template DSL rather than these runtime layers.
 Reactive directives establish dependencies on the values they read, allowing
 Udodi to update the affected DOM when those values change.
 
-See [Reactivity](../reactivity/) for the underlying reactive system.
+See [Reactivity](../reactivity/README.md) for the underlying reactive system.
 
 ---
 
@@ -116,7 +116,7 @@ See [Reactivity](../reactivity/) for the underlying reactive system.
 - **Fine-grained updates** — bindings subscribe to the values they read, not whole components.
 - **Explicit directives** — text, classes, styles, attributes, and events each have a dedicated directive.
 - **One root element** — a component template must produce exactly one root element at mount time.
-- **Forms elsewhere** — validation and submit flows live under [Forms](../forms/), not in this section.
+- **Forms elsewhere** — validation and submit flows live under [Forms](../forms/README.md), not in this section.
 
 ---
 
@@ -146,4 +146,4 @@ See [Reactivity](../reactivity/) for the underlying reactive system.
 * [Template DSL](./dsl.md) — expression and directive syntax  
 * [Reactivity Overview](../reactivity/overview.md) — how bindings stay in sync  
 * [Components](../fundamentals/components.md) — where `template` lives on a component  
-* [Forms](../forms/) — `@form`, `@validate`, `@submit`  
+* [Forms](../forms/README.md) — `@form`, `@validate`, `@submit`  

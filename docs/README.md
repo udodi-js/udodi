@@ -50,7 +50,7 @@ Understand the building blocks that make up an Udodi application.
 * **[Context](./fundamentals/context.md)** — Understand the context available to components and directives.
 * **[Component Styles](./fundamentals/styles.md)** — Define styles through a component's `style` property with CSS scoping.
 
-**Start here → [Fundamentals](./fundamentals/)**
+**Start here → [Fundamentals](./fundamentals/README.md)**
 
 ---
 
@@ -76,9 +76,9 @@ Learn how to express UI structure, bind reactive data, respond to events, condit
 * [`@attr`](./templates/attr.md)
 * [`@teleport`](./templates/teleport.md)
 
-Form-oriented directives such as `@form`, `@validate`, and `@submit` are covered under [Forms](./forms/).
+Form-oriented directives such as `@form`, `@validate`, and `@submit` are covered under [Forms](./forms/README.md).
 
-**Start here → [Templates](./templates/)**
+**Start here → [Templates](./templates/README.md)**
 
 ---
 
@@ -99,7 +99,7 @@ The form system supports both synchronous and asynchronous validation, with flex
 * [Form Controllers](./forms/controllers.md)
 * [Async Validation](./forms/async.md)
 
-**Start here → [Forms](./forms/)**
+**Start here → [Forms](./forms/README.md)**
 
 ---
 
@@ -122,13 +122,13 @@ The Store system covers three core areas:
 * [Store Registry](./store/registry.md)
 * [Persistent Stores](./store/persistence.md)
 
-**Start here → [Udodi Store](./store/)**
+**Start here → [Udodi Store](./store/README.md)**
 
 ---
 
 ### Query Pool
 
-Udodi's **Query Pool** provides a reactive runtime for asynchronous data and mutations. It coordinates **queries, mutations, dependencies, caching, invalidation, cancellation, and optional worker execution** while keeping query state synchronized with the UI.
+Udodi's **Query Pool** provides a reactive runtime for asynchronous data and mutations. It coordinates **queries, mutations, dependencies, in-flight deduplication, caching, invalidation, cancellation, and optional worker execution** while keeping query state synchronized with the UI.
 
 Queries expose reactive state such as **`data`**, **`loading`**, **`error`**, and **`status`**, allowing components to react directly to asynchronous execution without manually coordinating request state.
 
@@ -143,7 +143,7 @@ Queries expose reactive state such as **`data`**, **`loading`**, **`error`**, an
 * [Query Scheduling](./query-pool/scheduling.md)
 * [Query Pool and Workers](./query-pool/workers.md)
 
-**Start here → [Query Pool](./query-pool/)**
+**Start here → [Query Pool](./query-pool/README.md)**
 
 ---
 
@@ -174,7 +174,7 @@ The Overlay system is part of Udodi's core runtime and is designed to handle com
 * [Overlay Stacking](./overlay/stacking.md)
 * [Accessibility](./overlay/accessibility.md)
 
-**Start here → [Overlay](./overlay/)**
+**Start here → [Overlay](./overlay/README.md)**
 
 ---
 
@@ -197,7 +197,7 @@ or libraries, or want to understand how Udodi's reactive system works internally
 - [Reactive Collections](./reactivity/collections.md)
 - [Using `touch()`](./reactivity/touch.md)
 
-**Start here → [Reactivity](./reactivity/)**
+**Start here → [Reactivity](./reactivity/README.md)**
 
 ---
 
@@ -275,15 +275,15 @@ Use the guide below to jump directly to the part of Udodi that matches what you 
 | -------------------------------------------- | --------------------------------------------------------------------------------------- |
 | **Get started with Udodi**                   | [Quick Start](./quick-start.md)                                                         |
 | **Understand Udodi's reactivity model**      | [Reactivity Overview](./reactivity/overview.md)                                         |
-| **Build a UI with templates and directives** | [Templates and Directives](./templates/)                                                |
+| **Build a UI with templates and directives** | [Templates and Directives](./templates/README.md)                                                |
 | **Reference a DOM element from a component** | [`@ref`](./templates/ref.md)                                                            |
 | **Build and validate forms**                 | [Forms Overview](./forms/overview.md)                                                   |
-| **Manage shared application state**          | [Udodi Store](./store/)                                                                 |
-| **Manage asynchronous data and mutations**   | [Query Pool](./query-pool/)                                                             |
-| **Build modals, dialogs, and layered UI**    | [Overlay](./overlay/)                                                                   |
+| **Manage shared application state**          | [Udodi Store](./store/README.md)                                                                 |
+| **Manage asynchronous data and mutations**   | [Query Pool](./query-pool/README.md)                                                             |
+| **Build modals, dialogs, and layered UI**    | [Overlay](./overlay/README.md)                                                                   |
 | **Style a component**                        | [Component Styles](./fundamentals/styles.md) & [CSS Scoping](./advanced/css-scoping.md) |
 | **Understand Udodi's internal architecture** | [Architecture Guide](./advanced/architecture.md)                                        |
-| **Look up exact API details**                | [API Reference](./api/)                                                                 |
+| **Look up exact API details**                | [API Reference](./api/README.md)                                                                 |
 | **Contribute to Udodi**                      | [Contributing Guide](../CONTRIBUTING.md)                                                |
 
 ---

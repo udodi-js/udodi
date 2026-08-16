@@ -35,7 +35,7 @@ The v1.x phase is now focused on **documentation, developer experience, performa
 | Component runtime              | **Done** | `createComponent`, lifecycle, refs, watchers, overlays/modals                                                             |
 | Overlay system                 | **Done** | Promise-based modal overlays with stacking, backdrop handling, Escape-to-close, scroll locking, focus trapping, focus restoration, and configurable z-index |
 | Udodi Store                    | **Done** | Global + namespaced modules, actions, persistence hooks, and optional devtools bridge via `globalThis.__STORE_DEVTOOLS__` |
-| Query Pool                     | **Done** | Dependencies, caching, mutations, worker modules, and compute-worker execution                                            |
+| Query Pool                     | **Done** | Dependencies, deduplication, caching, mutations, worker modules, and compute-worker execution                                            |
 | Packaging & types              | **Done** | ESM + IIFE, `index.d.ts`, postbuild validation, and npm publishing (~23 kB min+gzip)                                      |
 | npm distribution               | **Done** | `udodi` is published to the npm registry with automated GitHub Trusted Publishing                                         |
 
@@ -136,8 +136,10 @@ Udodi templates live inside JavaScript or TypeScript tagged template literals:
 
 ```js
 template: () => html`
-  <div class="text" @text="count"></div>
-  <button @on="click=increment">Increment</button>
+  <div>
+    <div class="text" @text="count"></div>
+    <button @on="click=increment">Increment</button>
+  </div>
 `
 ```
 
@@ -149,7 +151,7 @@ Without dedicated language support, editors treat the template region primarily 
 | ------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Syntax highlighting | HTML structure inside **html\`...\`** and aligned tags such as **css\`...\`** where practical                             |
 | IntelliSense        | Tag, attribute, directive, and snippet completion appropriate to Udodi templates                                 |
-| Directive awareness | Recognition of directives such as `@text`, `@on`, `@for`, `@if`, `@bind`, and `@ref` with contextual information |
+| Directive awareness | Recognition of directives such as `@text`, `@on`, `@for`, and so on with contextual information |
 | Diagnostics         | Basic structural checks where reliable while avoiding false positives                                            |
 | Language embedding  | Correct language-mode embedding so existing HTML/CSS tooling can work inside template regions                    |
 
