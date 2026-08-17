@@ -57,11 +57,26 @@ export function extractAllDirectives(root) {
             continue;
         }
 
-        // @for is a template boundary.
-        // Register only the @for directive and do not scan any other
-        // directives on this element or its descendants.
+        // Structural directives are template boundaries. Register only the
+        // structural owner here; ordinary directives are collected when the
+        // structural runtime creates an active instance.
         if (node.hasAttribute("@for")) {
             directives.for.push(node);
+            continue;
+        }
+
+        if (node.hasAttribute("@if")) {
+            directives.if.push(node);
+            continue;
+        }
+
+        if (node.hasAttribute("@elseif")) {
+            directives.elseif.push(node);
+            continue;
+        }
+
+        if (node.hasAttribute("@else")) {
+            directives.else.push(node);
             continue;
         }
 

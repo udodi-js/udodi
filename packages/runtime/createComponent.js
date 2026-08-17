@@ -414,7 +414,7 @@ export function createComponent({
 
 			onUnmount(root) {
 				try {
-					runScopeCleanup(watcherScope, "[component]");
+					runScopeCleanup(watcherScope, "[component watcher]");
 					runScopeCleanup(computedScope, "[component computed]");
 					onUnmount?.(root, publicContextMembrane);
 
