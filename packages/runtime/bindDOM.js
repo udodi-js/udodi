@@ -38,6 +38,10 @@ import {
 } from "./context.js";
 
 import { ensureOverlayRoot } from "./overlay.js";
+import {
+	collectComponentDefinitions,
+	resolveComponents,
+} from "./resolveComponents.js";
 
 // Global instruction cache to ensure we parse and compile each directive exactly once.
 // Uses the raw directive string as the cache key.
@@ -480,7 +484,11 @@ function processIfDirective(nodes, vm, context, scope) {
 
 			const parent = root.parentNode;
 
-			/** @type {{node: HTMLElement, instructions?: *, isElse: boolean}[]} */
+			if (!parent) {
+				continue;
+			}
+
+			/** @type {{template: HTMLElement, instructions?: *, isElse: boolean, componentDefinitions: Map<number, Object>}[]} */
 			const branches = [];
 
 			// Structural Discovery Phase
@@ -498,12 +506,20 @@ function processIfDirective(nodes, vm, context, scope) {
 
 				if (node.hasAttribute("@if")) {
 					const expression = node.getAttribute("@if");
+					const template = node.cloneNode(true);
+
+					template.removeAttribute("@if");
+
 					branches.push({
-						node,
+						template,
 						instructions: getOrCompileInstructions(
 							"if=" + normalizeDirective(expression),
 						),
 						isElse: false,
+						componentDefinitions: collectComponentDefinitions(
+							template,
+							scope._componentDefinitions,
+						),
 					});
 					node.removeAttribute("@if");
 
@@ -538,13 +554,21 @@ function processIfDirective(nodes, vm, context, scope) {
 						);
 					}
 
+					const template = node.cloneNode(true);
+					template.removeAttribute("@elseif");
+
 					branches.push({
-						node,
+						template,
 						instructions: getOrCompileInstructions(
 							"elseif=" + normalizeDirective(expression),
 						),
 						isElse: false,
+						componentDefinitions: collectComponentDefinitions(
+							template,
+							scope._componentDefinitions,
+						),
 					});
+
 					node.removeAttribute("@elseif");
 
 				} else if (node.hasAttribute("@else")) {
@@ -557,12 +581,21 @@ function processIfDirective(nodes, vm, context, scope) {
 							),
 						);
 					}
+
 					foundElse = true;
 
+					const template = node.cloneNode(true);
+					template.removeAttribute("@else");
+
 					branches.push({
-						node,
+						template,
 						isElse: true,
+						componentDefinitions: collectComponentDefinitions(
+							template,
+							scope._componentDefinitions,
+						),
 					});
+					
 					node.removeAttribute("@else");
 					break;
 
@@ -578,15 +611,108 @@ function processIfDirective(nodes, vm, context, scope) {
 			const anchor = document.createComment("@if");
 			parent.insertBefore(anchor, root);
 
+			let branchNode = root;
+
 			for (let j = 0; j < branchesLength; j++) {
-				const branchNode = branches[j].node;
+				const nextNode = branchNode.nextElementSibling;
+
 				if (branchNode.parentNode === parent) {
-					parent.removeChild(branchNode);
+					branchNode.remove();
 				}
+
+				branchNode = nextNode;
 			}
 
 			// Track state matching via direct numeric array index pointers
 			let currentActiveIndex = -1;
+			let activeRecord = null;
+
+			/**
+			 * Cleans up an active branch scope without touching nested component
+			 * lifecycle handlers. Component roots remain owned by lifecycle.js.
+			 *
+			 * @param {Object} record
+			 * @returns {void}
+			 */
+			const cleanupRecord = (record) => {
+				if (!record || record.destroyed) {
+					return;
+				}
+
+				record.destroyed = true;
+				runScopeCleanup(record.scope, "[@if]");
+				unregisterRoot(record.el);
+			};
+
+			/**
+			 * Removes an active branch instance from the DOM.
+			 *
+			 * @param {Object} record
+			 * @returns {void}
+			 */
+			const unmountRecord = (record) => {
+				if (!record || record.destroyed) {
+					return;
+				}
+
+				cleanupRecord(record);
+
+				if (record.el.parentNode) {
+					record.el.remove();
+				}
+			};
+
+			/**
+			 * Creates, resolves, and binds a fresh branch instance.
+			 *
+			 * @param {number} branchIndex
+			 * @returns {Object}
+			 */
+			const createRecord = (branchIndex) => {
+				const branch = branches[branchIndex];
+				const el = branch.template.cloneNode(true);
+				const branchScope = {
+					effects: [],
+					cleanups: [],
+					_root: el,
+					_boundary: scope._boundary,
+					_componentDefinitions: branch.componentDefinitions,
+				};
+				const record = {
+					el,
+					scope: branchScope,
+					destroyed: false,
+				};
+
+				try {
+					resolveComponents(el, vm, scope._boundary, {
+						skipStructural: true,
+						definitions: branch.componentDefinitions,
+						removeFromRegistry: false,
+					});
+
+					const directives = extractAllDirectives(el);
+
+					bindDOM(
+						directives,
+						vm,
+						context,
+						branchScope,
+					);
+
+					registerRoot(
+						el,
+						() => cleanupRecord(record),
+						() => unmountRecord(record),
+					);
+
+				} catch (err) {
+					cleanupRecord(record);
+					throw err;
+				}
+
+				return record;
+			};
 
 			// Reactive Evaluation Phase (One isolated runtime effect per chain)
 			const dispose = effect(() => {
@@ -614,17 +740,16 @@ function processIfDirective(nodes, vm, context, scope) {
 						return;
 					}
 
-					// Remove current active branch explicitly via cached parent references
-					if (currentActiveIndex !== -1) {
-						const activeNode = branches[currentActiveIndex].node;
-						if (activeNode.parentNode === parent) {
-							parent.removeChild(activeNode);
-						}
+					// Remove current active branch.
+					if (activeRecord !== null) {
+						unmountRecord(activeRecord);
+						activeRecord = null;
 					}
 
-					// Insert the new active target matching branch node configuration
+					// Insert a fresh active branch instance.
 					if (matchedIndex !== -1) {
-						parent.insertBefore(branches[matchedIndex].node, anchor);
+						activeRecord = createRecord(matchedIndex);
+						parent.insertBefore(activeRecord.el, anchor);
 					}
 
 					currentActiveIndex = matchedIndex;
@@ -645,6 +770,11 @@ function processIfDirective(nodes, vm, context, scope) {
 
 			// Scope context tracking closure cleanup to explicitly free heap pointers
 			cleanups.push(() => {
+				if (activeRecord !== null) {
+					unmountRecord(activeRecord);
+					activeRecord = null;
+				}
+
 				branches.length = 0;
 				if (anchor.parentNode === parent) {
 					parent.removeChild(anchor);
@@ -3564,6 +3694,11 @@ function processForDirective(nodes, vm, context, scope) {
 
 			removeIgnoredDirectives(template, context);
 
+			const componentDefinitions = collectComponentDefinitions(
+				template,
+				scope._componentDefinitions,
+			);
+
 			const anchor = document.createComment("@for");
 
 			container.replaceChild(anchor, templateEl);
@@ -3749,6 +3884,8 @@ function processForDirective(nodes, vm, context, scope) {
 							effects: [],
 							cleanups: [],
 							_root: el,
+							_boundary: scope._boundary,
+							_componentDefinitions: componentDefinitions,
 						};
 
 						const bindingContext = createChildContext(context);
@@ -3779,6 +3916,12 @@ function processForDirective(nodes, vm, context, scope) {
 						//----------------------------------------------------------
 
 						try {
+							resolveComponents(el, vm, scope._boundary, {
+								skipStructural: true,
+								definitions: componentDefinitions,
+								removeFromRegistry: false,
+							});
+
 							// Resolve directives inside the cloned subtree.
 							const directives = extractAllDirectives(el);
 
