@@ -2,7 +2,6 @@ import { getComponent, clear } from "./componentRegistry.js";
 import { mount } from "./mount.js";
 import { unmount } from "./unmount.js";
 import { getVM } from "../core/vmInstance.js";
-import { renderStyles } from "./styleScope.js";
 
 /**
  * Resolves a target into a DOM element.
@@ -84,9 +83,6 @@ export function render(placeholder, target) {
 
 	// Clear the registry
 	clear();
-
-	// Renders all registered scoped CSS
-	renderStyles();
 
 	// Return the mounted instance (it include unmount method, context, etc.)
 	return instance;
