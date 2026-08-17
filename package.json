@@ -1,6 +1,6 @@
 {
     "name": "udodi",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "description": "A lightweight UI/component framework",
     "private": false,
     "type": "module",
