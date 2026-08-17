@@ -78,6 +78,8 @@ An intervening element breaks the chain:
 
 `@elseif` and `@else` must therefore directly follow the branch they belong to.
 
+Whitespace and other non-element nodes do not break the chain; discovery walks `nextElementSibling`.
+
 ---
 
 ## Expressions
@@ -113,12 +115,14 @@ methods: {
 The function can then be used from the template:
 
 ```html
-<div @if="greater:count:0"> // or @if="count | greater:0"
+<div @if="greater:count:0">
   <span @text="count"></span>
 </div>
 ```
 
 Here, `greater:count:0` evaluates to the result of `greater(count, 0)`. When `count` changes from `0` to a positive value, the condition becomes truthy and the element is mounted. When it changes back to `0` or below, the condition becomes falsy and the element is removed.
+
+Quoted string literals are not valid conditions.
 
 See [Template DSL](./dsl.md) for expression syntax and supported expressions.
 
@@ -179,6 +183,28 @@ Only one branch is present at a time.
 
 ---
 
+## How Branch Mounting Works
+
+For each branch in the chain, Udodi keeps a **template clone** of the branch markup (without the conditional attribute).
+
+When a branch becomes active:
+
+1. A fresh instance is cloned from that template.  
+2. Nested components in the instance are resolved.  
+3. Directives on the instance are bound (`bindDOM`) under a **branch scope**.  
+4. The instance is inserted before an internal comment anchor.  
+
+When the active branch changes or becomes inactive:
+
+1. The branch scope is cleaned up (effects, listeners, related cleanups).  
+2. The instance is removed from the DOM.  
+
+If the same branch remains selected, the DOM is left unchanged.
+
+This means each activation of a branch starts from a clean instance: form control state inside the branch, local directive effects, and nested component instances are created for that activation and torn down when the branch leaves.
+
+---
+
 ## `@if` vs `@show`
 
 Both directives respond reactively to a condition, but they have different DOM semantics.
@@ -187,8 +213,8 @@ Both directives respond reactively to a condition, but they have different DOM s
 |--|-------|---------|
 | DOM presence | Mounted conditionally | Always mounted |
 | Visibility | Element exists only when matched | Uses the element's `hidden` state |
-| Subtree lifecycle | Created and removed | Remains mounted |
-| DOM identity | Can change when branch changes | Preserved |
+| Subtree lifecycle | Created and removed per activation | Remains mounted |
+| DOM identity | New instance when the branch mounts | Preserved |
 | Typical use | Conditional content | Temporarily hidden content |
 
 For example:
@@ -228,9 +254,9 @@ The content of an `@if` branch can contain normal template markup and other dire
 </div>
 ```
 
-When the branch is mounted, its contents are bound normally.
+When the branch is mounted, its contents are bound on that branch instance.
 
-When the branch is removed, its DOM and associated directive bindings are cleaned up with the branch.
+When the branch is removed, the branch scope is cleaned up and the instance is detached.
 
 This also applies to nested components:
 
@@ -240,23 +266,21 @@ This also applies to nested components:
 </section>
 ```
 
-The nested component is mounted when the branch becomes active and removed when the branch becomes inactive.
+The nested component is mounted when the branch becomes active and cleaned up when the branch becomes inactive.
 
 ---
 
 ## Refs in Conditional Branches
 
-The `@ref` registers an element when the element is processed by the template runtime. If the element is part of conditionally rendered content, the availability of the ref therefore depends on whether that content has been mounted and processed.
+`@ref` registers an element when that element is processed as part of a mounted branch instance.
 
-For example:
+If the element lives inside conditional content, the ref is available after that branch has been mounted and bound:
 
 ```html
 <div @if="editing">
   <input @ref="nameInput" />
 </div>
 ```
-
-Code that uses the ref should account for the element not being available:
 
 ```js
 methods: {
@@ -266,7 +290,7 @@ methods: {
 },
 ```
 
-When the conditional content is not active, the corresponding element is not available in the DOM. When the content is mounted, its directives are processed and the ref becomes available.
+When the branch is not active, do not assume the ref points at a connected element. Prefer optional chaining, and when necessary check `isConnected` before imperative DOM calls.
 
 See [`@ref`](./ref.md) for more information.
 
@@ -309,7 +333,7 @@ loading = false, error = false
 └───────┘
 ```
 
-Only the branch selected by the current conditions is rendered.
+Only the branch selected by the current conditions is rendered. Switching always unmounts the previous instance before mounting the next.
 
 ---
 
@@ -317,16 +341,16 @@ Only the branch selected by the current conditions is rendered.
 
 `@if`:
 
-- Evaluates its condition reactively.  
-- Renders the element when the condition is truthy.  
-- Removes the element when the condition becomes falsy.  
-- Supports `@elseif` and `@else` branches.  
-- Renders only the first matching branch in a chain.  
-- Updates the rendered branch when its conditions change.  
-- Supports normal directives and nested components inside branches.  
-- Cleans up bindings associated with a removed branch.  
-
-The `@if` attribute itself is a runtime directive and is not retained as normal application markup after binding.
+- Discovers an adjacent `@if` / `@elseif` / `@else` chain  
+- Stores a template clone per branch  
+- Evaluates conditions reactively in order  
+- Mounts a fresh instance of the first matching branch (or `@else`)  
+- Binds directives under a per-activation branch scope  
+- Unmounts and cleans up the previous instance when the selection changes  
+- Leaves the DOM unchanged when the same branch stays selected  
+- Uses a comment anchor as the insertion point  
+- Removes conditional attributes during setup  
+- Disposes the chain effect and anchor when the owning component scope is disposed  
 
 ---
 
@@ -360,7 +384,8 @@ Example:
 | `@else` | Does not take a condition |
 | Adjacency | Chain branches must be adjacent element siblings |
 | Reactivity | Conditions are re-evaluated when their dependencies change |
-| DOM behavior | Inactive branches are removed rather than merely hidden |
+| DOM behavior | Inactive branches are removed; active branches are fresh instances |
+| Quoted conditions | Invalid |
 
 ---
 
@@ -414,3 +439,4 @@ render(Gate(), "#app");
 * [`@bind`](./bind.md) — bind form controls inside conditional branches  
 * [Template DSL](./dsl.md) — template expression syntax  
 * [Template Overview](./overview.md) — understand the template system  
+* [Lifecycle](../fundamentals/lifecycle.md) — component and subtree cleanup  
