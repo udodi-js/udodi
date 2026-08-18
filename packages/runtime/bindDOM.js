@@ -674,7 +674,6 @@ function processIfDirective(nodes, vm, context, scope) {
 				const branchScope = {
 					effects: [],
 					cleanups: [],
-					_root: el,
 					_boundary: scope._boundary,
 					_componentDefinitions: branch.componentDefinitions,
 				};
@@ -3883,7 +3882,6 @@ function processForDirective(nodes, vm, context, scope) {
 						const itemScope = {
 							effects: [],
 							cleanups: [],
-							_root: el,
 							_boundary: scope._boundary,
 							_componentDefinitions: componentDefinitions,
 						};
