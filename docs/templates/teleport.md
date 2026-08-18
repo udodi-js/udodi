@@ -16,7 +16,7 @@ Use `@teleport` for UI that needs to escape its parent's layout, overflow, or st
 
 ## Basic Usage
 
-```html id="c4x7p2"
+```html
 <div @teleport="#modal-root">
   Modal content
 </div>
@@ -44,7 +44,7 @@ The original element is not cloned or recreated.
 
 For example:
 
-```html id="t6v9k3"
+```html
 <div @teleport="#modal-root">
   Modal
 </div>
@@ -62,7 +62,7 @@ For example:
 
 Any valid selector accepted by `document.querySelector()` can be used:
 
-```html id="m8q2s5"
+```html
 <div @teleport="#app-overlay">...</div>
 <div @teleport=".portal-root">...</div>
 ```
@@ -75,7 +75,7 @@ If the selector is invalid or does not match an element, Udodi warns and leaves 
 
 The special value `overlay` uses Udodi's managed overlay root:
 
-```html id="n3w7p4"
+```html
 <div @teleport="overlay">
   Overlay content
 </div>
@@ -89,7 +89,7 @@ This is the recommended target when the application does not need to provide its
 
 ## Example
 
-```js id="v5r8m2"
+```js
 import { createComponent, html, render } from "udodi";
 
 const Dialog = createComponent({
@@ -143,7 +143,7 @@ When `open` becomes truthy, the dialog is mounted and then moved to the overlay 
 
 Conceptually:
 
-```text id="q6k2v8"
+```text
 Component template
        │
        ▼
@@ -164,7 +164,7 @@ Register scope cleanup
 
 The original element is moved with `appendChild()`:
 
-```text id="w4p9c1"
+```text
 Original parent
       │
       ├── comment placeholder
@@ -194,7 +194,7 @@ When that scope is disposed, Udodi:
 
 This means a teleported element does not remain in the document after its owning component or structural branch is destroyed.
 
-```text id="b7m3r5"
+```text
 Component destroyed
        │
        ├── remove teleport placeholder
@@ -212,7 +212,7 @@ This is particularly important when `@teleport` is used inside `@if` or another 
 
 The target is resolved when the directive is processed:
 
-```html id="k3p8w6"
+```html
 <div @teleport="overlay">
   Content
 </div>
@@ -228,7 +228,7 @@ If the application needs different targets, the structural lifecycle should be c
 
 `@if` and `@teleport` solve different problems:
 
-```html id="z8n4c2"
+```html
 <div @if="open">
   <div @teleport="overlay">
     Dialog
@@ -242,7 +242,7 @@ If the application needs different targets, the structural lifecycle should be c
 
 This makes the combination useful for dialogs and other temporary overlays:
 
-```text id="s5x2v7"
+```text
 open = false
     │
     └── dialog does not exist
@@ -267,7 +267,7 @@ When `open` becomes false, the `@if` branch is unmounted and the teleported elem
 
 `@show` controls visibility without mounting or unmounting the element:
 
-```html id="m7q4x1"
+```html
 <div @teleport="overlay" @show="open">
   Menu
 </div>
@@ -291,7 +291,7 @@ Use `@if` when the overlay should only exist while active. Use `@show` when the 
 
 If a selector does not resolve to an element:
 
-```html id="r9c5w3"
+```html
 <div @teleport="#does-not-exist">
   Content
 </div>
@@ -325,7 +325,7 @@ This protects against duplicate lifecycle registrations and duplicate cleanup ha
 
 Teleport moves the element together with its entire subtree:
 
-```html id="f6m8q2"
+```html
 <div @teleport="overlay">
   <h2 @text="title"></h2>
 
@@ -349,7 +349,7 @@ Teleport changes the DOM position of an element but does not change the componen
 
 For example:
 
-```html id="p4x7m9"
+```html
 <div @teleport="overlay">
   <button @on="click=close">
     Close
@@ -413,7 +413,7 @@ Teleport is therefore a **DOM-placement mechanism**, not a context or component-
 
 ## Minimal Example
 
-```js id="x7m4p9"
+```js
 import { createComponent, html, render } from "udodi";
 
 const Toast = createComponent({
