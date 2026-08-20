@@ -155,7 +155,7 @@ The `disabled` attribute is therefore still present and the button remains disab
 For boolean attributes that should only be present when a condition is truthy, use the Template DSL conditional form:
 
 ```html
-<<button @attr="isDisabled=>'disabled'">
+<<button @attr="disabled=isDisabled=>'disabled'">
   Save
 </button>
 ```

@@ -191,7 +191,7 @@ When a branch becomes active:
 
 1. A fresh instance is cloned from that template.  
 2. Nested components in the instance are resolved.  
-3. Directives on the instance are bound (`bindDOM`) under a **branch scope**.  
+3. Directives on the instance are bound under a **branch scope**.  
 4. The instance is inserted before an internal comment anchor.  
 
 When the active branch changes or becomes inactive:
@@ -199,9 +199,7 @@ When the active branch changes or becomes inactive:
 1. The branch scope is cleaned up (effects, listeners, related cleanups).  
 2. The instance is removed from the DOM.  
 
-If the same branch remains selected, the DOM is left unchanged.
-
-This means each activation of a branch starts from a clean instance: form control state inside the branch, local directive effects, and nested component instances are created for that activation and torn down when the branch leaves.
+If the same branch remains selected, the DOM is left unchanged. This means each activation of a branch starts from a clean instance.
 
 ---
 
