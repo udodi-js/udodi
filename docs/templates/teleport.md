@@ -299,7 +299,7 @@ If a selector does not resolve to an element:
 
 Udodi:
 
-* emits an `@teleport` warning;
+* throw an `@teleport` error;
 * leaves the element in its original location;
 * does not create a placeholder;
 * does not register teleport cleanup;
@@ -377,7 +377,7 @@ Teleport is therefore a **DOM-placement mechanism**, not a context or component-
 * Removes the teleported element during scope cleanup if it is still connected.
 * Removes the placeholder during cleanup.
 * Prevents duplicate teleport registration.
-* Warns when the target is missing or invalid.
+* Throws when the target is missing or invalid.
 * Removes `@teleport` after a successful teleport.
 * Does not reactively change the teleport target.
 
@@ -390,8 +390,8 @@ Teleport is therefore a **DOM-placement mechanism**, not a context or component-
 | `@teleport="#modal-root"` | Move to the first `#modal-root` match |
 | `@teleport=".portal"`     | Move to the first `.portal` match     |
 | `@teleport="overlay"`     | Move to Udodi's overlay root          |
-| Missing target            | Warn and leave the element in place   |
-| Invalid selector          | Warn and leave the element in place   |
+| Missing target            | Throw an error and leave the element in place   |
+| Invalid selector          | Throw an error and leave the element in place   |
 
 ---
 
