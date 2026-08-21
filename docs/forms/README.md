@@ -56,6 +56,13 @@ import { createComponent, html, render } from "udodi";
 const LoginForm = createComponent({
   name: "LoginForm",
 
+  state() {
+    return {
+      email: "",
+      password: "",
+    };
+  },
+
   methods: {
     required(value) {
       return value?.trim() ? true : "This field is required";
