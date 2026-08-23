@@ -1,12 +1,12 @@
 # Store Overview
 
-Udodi Store is a **reactive key/value state system for application state that lives outside individual components**.
+Udodi Store is a reactive key/value state system for **application state that lives outside individual components**.
 
 Components should keep state that belongs to a single component local to that component. The Store is for state that has a broader ownership boundary: theme and locale, session information, feature flags, shared UI state, drafts, or other client-side data that multiple parts of an application need to read and update consistently.
 
 The Store uses Udodi's fine-grained reactivity system. A store read can therefore become a dependency of an effect, computed value, or template. A store write invalidates the reactive entry for that key, allowing only the consumers that depend on that key to react.
 
-The Store is deliberately smaller in scope than a server-state system. It owns **application state**; [Query Pool](../query-pool/README.md) owns the lifecycle of asynchronous data.
+The Store is deliberately smaller in scope than a server-state system. It owns application state; Query Pool owns the lifecycle of asynchronous data.
 
 ---
 
@@ -18,10 +18,10 @@ At its core, the Store is a single reactive key/value map:
 ┌──────────────────────────────────────────────┐
 │                  Global Store                │
 │                                              │
-│  "theme"            → "dark"                 │
-│  "auth:user"        → { ... }                │
-│  "cart:items"       → [ ... ]                │
-│  "ui:sidebarOpen"   → true                   │
+│  "theme"            →  "dark"                │
+│  "auth:user"        →  { ... }               │
+│  "cart:items"       →  [ ... ]               │
+│  "ui:sidebarOpen"   →  true                  │
 │                                              │
 └──────────────────────────────────────────────┘
 ```
@@ -30,23 +30,24 @@ Every store key has one current value.
 
 The important operations are:
 
-- **Read** with `get()`.
-- **Replace** with `set()`.
-- **Derive and replace** with `update()`.
-- **Notify after an in-place mutation** with `touch()`.
-- **Remove** with `delete()`.
+* Read with `get()`.
+* Replace with `set()`.
+* Derive and replace with `update()`.
+* Notify after an in-place mutation with `touch()`.
+* Remove with `delete()`.
 
-Namespaces and modules do not create independent reactive stores. They create **scoped views over the same underlying store** by prefixing keys and actions.
+The public Store API exposes the global store and registered modules. Module APIs provide scoped access to the same underlying store by prefixing their keys and actions.
 
 For example:
 
 ```text
 theme
-ui:sidebarOpen
 auth:user
+cart:items
+ui:sidebarOpen
 ```
 
-are all entries in the same global store. The `ui` namespace and `auth` module simply provide structured ways to work with their respective prefixes.
+are all entries in the same global store. A module such as `auth` or `cart` simply provides a structured way to work with its corresponding prefix.
 
 This architecture gives the Store one consistent reactivity model, one batching mechanism, and one persistence mechanism while still allowing applications to organize state by feature.
 
@@ -61,7 +62,6 @@ This architecture gives the Store one consistent reactivity model, one batching 
 | **Selectors** | Lazy computed values derived from store state |
 | **Subscriptions** | Imperative callbacks for changes to a specific key |
 | **Batching** | Defers store notifications until a batch's outermost scope completes |
-| **Namespaces** | Prefix-based isolation without registering a module |
 | **Modules** | Feature-scoped state, actions, selectors, lifecycle, and a reactive `state` proxy |
 | **Persistence** | Optional IndexedDB synchronization for selected keys |
 
@@ -93,7 +93,7 @@ A component-local value does not need to become application state merely because
 
 ### Global Store
 
-Use the global `store` for shared application values:
+Use the global store for shared application values:
 
 ```js
 import { store } from "udodi";
@@ -103,22 +103,6 @@ store.set("locale", "en");
 ```
 
 This is the smallest and most direct Store layer.
-
-### Namespace
-
-Use `createNamespace()` when state belongs to a recognizable area but does not need a registered module:
-
-```js
-const ui = createNamespace("ui");
-
-ui.set("sidebarOpen", true);
-```
-
-The underlying key is:
-
-```text
-ui:sidebarOpen
-```
 
 ### Module
 
@@ -133,7 +117,10 @@ defineStore("cart", {
 
   actions: {
     addItem(ctx, item) {
-      ctx.update("items", (items) => [...items, item]);
+      ctx.update("items", (items) => [
+        ...items,
+        item,
+      ]);
     },
   },
 });
@@ -145,7 +132,7 @@ Modules add registration, retrieval, lifecycle cleanup, initial state, and a mod
 
 ## Global Store
 
-The global `store` is the simplest entry point:
+The global store is the simplest entry point:
 
 ```js
 import { store } from "udodi";
@@ -155,7 +142,7 @@ store.set("theme", "dark");
 const theme = store.get("theme");
 ```
 
-A global store key is not tied to a component, namespace, or module.
+A global store key is not tied to a component or module.
 
 ### Reading
 
@@ -190,7 +177,10 @@ store.set("theme", "light");
 Use `update()` when the next value depends on the current value:
 
 ```js
-store.update("count", (count) => (count ?? 0) + 1);
+store.update(
+  "count",
+  (count) => (count ?? 0) + 1,
+);
 ```
 
 This is preferable to manually reading and then writing when the operation is conceptually a state transition.
@@ -203,7 +193,7 @@ store.delete("draft");
 
 Deleting a key removes its value and also stops persistence associated with that key.
 
-If the distinction between **missing** and **present with `undefined`** matters, use `has()` rather than relying on `get()`:
+If the distinction between missing and present with `undefined` matters, use `has()` rather than relying on `get()`:
 
 ```js
 if (store.has("draft")) {
@@ -217,31 +207,36 @@ if (store.has("draft")) {
 
 Store reactivity follows the same fine-grained dependency model used elsewhere in Udodi.
 
-### `get()` tracks
+### get() tracks
 
 A store read establishes a dependency when it happens inside an effect, computed value, or template evaluation:
 
 ```js
 const total = computed(() => {
-  return store.get("price") * store.get("quantity");
+  return (
+    store.get("price") *
+    store.get("quantity")
+  );
 });
 ```
 
 The computation depends on `price` and `quantity`, not on unrelated store keys.
 
-### `set()` and `update()` notify
+### set() and update() notify
 
 Replacing a value invalidates the key when the new value differs from the previous value according to `Object.is()`:
 
 ```js
 store.set("count", 1);
+
 store.set("count", 1); // unchanged
+
 store.set("count", 2); // changed
 ```
 
-### In-place mutation requires `touch()`
+### In-place mutation requires touch()
 
-The Store tracks changes at the **key/root-value level**. If an object or array stored under a key is mutated in place, the Store does not infer that mutation merely because the object itself changed internally.
+The Store tracks changes at the key/root-value level. If an object or array stored under a key is mutated in place, the Store does not infer that mutation merely because the object itself changed internally.
 
 Call `touch()` after the mutation:
 
@@ -272,7 +267,7 @@ store.set("items", [
 
 Use `touch()` when in-place mutation is intentional or more appropriate.
 
-The same rule applies through namespaces, module APIs, and action contexts.
+The same rule applies through module APIs and action contexts.
 
 ---
 
@@ -307,80 +302,7 @@ batch(() => {
 
 The inner batch does not independently commit the staged changes; the outermost batch remains responsible for the final commit.
 
-Batching is primarily about **coordinating store writes and deferring their notifications**. It should not be interpreted as a promise that every reactive consumer runs exactly once regardless of how many distinct keys it depends on. The normal reactive update rules still apply when the staged keys are committed.
-
----
-
-## Namespaces
-
-A namespace provides a lightweight scope over the global store:
-
-```js
-import { createNamespace } from "udodi";
-
-const ui = createNamespace("ui");
-```
-
-Local keys are automatically prefixed:
-
-```js
-ui.set("sidebarOpen", true);
-
-ui.get("sidebarOpen");
-```
-
-The underlying global key is:
-
-```text
-ui:sidebarOpen
-```
-
-Namespaces also prefix action names.
-
-```js
-ui.defineAction("toggle", (ctx) => {
-  ctx.update("sidebarOpen", (open) => !open);
-});
-
-await ui.dispatch("toggle");
-```
-
-The action is registered under:
-
-```text
-ui:toggle
-```
-
-### What a namespace is
-
-A namespace is **not a new store instance**.
-
-It is a scoped API over the existing global store. This means state created through a namespace still participates in the same global reactivity, batching, and persistence infrastructure.
-
-A namespace is appropriate when you want organization and key isolation without the lifecycle and registration semantics of a module.
-
-### Namespace API
-
-A namespace exposes the core store operations in local-key form, including:
-
-```text
-get()
-set()
-update()
-touch()
-delete()
-has()
-keys()
-subscribe()
-select()
-defineAction()
-dispatch()
-hasAction()
-deleteAction()
-persist()
-```
-
-The namespace adds its prefix internally.
+Batching is primarily about coordinating store writes and deferring their notifications. It should not be interpreted as a promise that every reactive consumer runs exactly once regardless of how many distinct keys it depends on. The normal reactive update rules still apply when the staged keys are committed.
 
 ---
 
@@ -419,7 +341,7 @@ cart:items
 cart:total
 ```
 
-Its actions are also namespaced:
+Its actions are also namespaced internally:
 
 ```text
 cart:addItem
@@ -436,17 +358,19 @@ await cart.dispatch("addItem", {
 });
 ```
 
+Notice that module consumers work with local keys and action names. The module API applies its namespace internally.
+
 ### Why use a module?
 
-A module is useful when a feature needs more than a key prefix:
+A module is useful when a feature needs more than a simple shared key:
 
-- initial state,
-- named actions,
-- a module-scoped reactive `state` proxy,
-- selectors and subscriptions,
-- persistence,
-- an explicit cleanup hook,
-- registration and retrieval through the registry.
+* initial state,
+* named actions,
+* a module-scoped reactive `state` proxy,
+* selectors and subscriptions,
+* persistence,
+* an explicit cleanup hook,
+* registration and retrieval through the registry.
 
 Modules provide a lifecycle boundary around feature state.
 
@@ -519,7 +443,7 @@ const result = await store.dispatch(
 
 The handler is always invoked as:
 
-```text
+```js
 fn(ctx, payload)
 ```
 
@@ -536,13 +460,16 @@ store.defineAction("reset", (ctx) => {
 or asynchronous:
 
 ```js
-store.defineAction("save", async (ctx, data) => {
-  const result = await api.save(data);
+store.defineAction(
+  "save",
+  async (ctx, data) => {
+    const result = await api.save(data);
 
-  ctx.set("saved", result);
+    ctx.set("saved", result);
 
-  return result;
-});
+    return result;
+  },
+);
 ```
 
 `dispatch()` returns the action's result. When the handler is asynchronous, the returned value is a Promise.
@@ -582,11 +509,12 @@ This lets action code operate against its supplied context instead of depending 
 
 ## Selectors
 
-Selectors are for **derived state**.
+Selectors are for derived state.
 
 ```js
 const doubleCount = store.select(
-  (state) => (state.get("count") ?? 0) * 2,
+  (state) =>
+    (state.get("count") ?? 0) * 2,
 );
 ```
 
@@ -610,6 +538,7 @@ Selectors are useful for avoiding duplicated state:
 
 ```text
 source state
+
     │
     ├── items
     ├── prices
@@ -619,7 +548,7 @@ source state
       selector
           │
           ▼
-       total
+        total
 ```
 
 Store the source data; derive values that can be calculated from it.
@@ -646,7 +575,7 @@ const stop = store.subscribe(
 
 The callback receives:
 
-```text
+```js
 (next, prev)
 ```
 
@@ -664,7 +593,7 @@ For reactive UI derivation, prefer a normal effect, computed value, selector, or
 
 ## Persistence
 
-Store persistence is **opt-in** and uses IndexedDB.
+Store persistence is opt-in and uses IndexedDB.
 
 ```js
 const controller = store.persist(
@@ -695,13 +624,17 @@ This ordering matters:
 
 ```text
 IndexedDB
+
     │
     │ hydrate
     ▼
+
 Store state
+
     │
     │ subscribe
     ▼
+
 Future changes → IndexedDB
 ```
 
@@ -717,17 +650,17 @@ await controller.ready;
 
 The controller exposes four important lifecycle operations:
 
-```text
-ready
-flush()
-clear()
-stop()
-```
+* `ready`
+* `flush()`
+* `clear()`
+* `stop()`
 
-- **`ready`** — resolves when persistence initialization and hydration have completed.
-- **`flush()`** — immediately writes pending persistence changes.
-- **`clear()`** — removes persisted values for the controller's configured keys.
-- **`stop()`** — stops future synchronization while leaving already persisted data in IndexedDB.
+| Method | Purpose |
+| --- | --- |
+| **`ready`** | Resolves when persistence initialization and hydration have completed. |
+| **`flush()`** | Immediately writes pending persistence changes. |
+| **`clear()`** | Removes persisted values for the controller's configured keys. |
+| **`stop()`** | Stops future synchronization while leaving already persisted data in IndexedDB. |
 
 `clear()` and `stop()` therefore have different purposes:
 
@@ -753,12 +686,17 @@ A debounce value of `0` uses microtask scheduling rather than a timer.
 
 Use `flush()` when pending changes must be written immediately.
 
-### Scoped persistence
+### Module persistence
 
-Namespaces and modules can persist their own local keys:
+Modules can persist their own local keys:
 
 ```js
-const settings = createNamespace("settings");
+const settings = defineStore("settings", {
+  state: {
+    theme: "system",
+    locale: "en",
+  },
+});
 
 settings.persist([
   "theme",
@@ -766,21 +704,14 @@ settings.persist([
 ]);
 ```
 
-The local API uses:
-
-```text
-theme
-locale
-```
-
-while the persisted Store keys are scoped by the namespace:
+The module API uses local keys while the underlying Store entries are scoped by the module:
 
 ```text
 settings:theme
 settings:locale
 ```
 
-This prevents different scopes from accidentally persisting the same logical key into the same Store entry.
+This keeps persistence scoped to the module and prevents different modules from accidentally sharing the same Store key.
 
 See [Persistent Stores](./persistence.md) for the complete persistence API and controller lifecycle.
 
@@ -792,45 +723,44 @@ These systems solve different ownership problems.
 
 | Concern | Prefer |
 | --- | --- |
-| UI state owned by one component | Component `state` |
-| Shared client/application state | **Store** |
-| Server data and request lifecycle | **Query Pool** |
-| Remote-data caching and invalidation | **Query Pool** |
-| Background refresh or asynchronous query work | **Query Pool** |
-| Local preferences and durable client state | **Store + persistence** |
+| UI state owned by one component | Component state |
+| Shared client/application state | Store |
+| Server data and request lifecycle | Query Pool |
+| Remote-data caching and invalidation | Query Pool |
+| Background refresh or asynchronous query work | Query Pool |
+| Local preferences and durable client state | Store + persistence |
 
 The distinction is primarily about **state ownership**.
 
 A Store value is application-owned client state:
 
-```text
-theme
-locale
-sidebar state
-feature flags
-drafts
-session/client state
-```
+* theme
+* locale
+* sidebar state
+* feature flags
+* drafts
+* session/client state
 
 Query Pool data is request-owned or server-owned state:
 
-```text
-API responses
-query cache
-loading/error state
-refresh lifecycle
-mutations
-worker-backed asynchronous work
-```
+* API responses
+* query cache
+* loading/error state
+* refresh lifecycle
+* mutations
+* worker-backed asynchronous work
 
 A Store action may still call an API. That does not turn the Store into a query cache:
 
 ```js
-store.defineAction("renameUser", async (ctx, name) => {
-  const user = await api.renameUser(name);
+store.defineAction(
+  "renameUser",
+  async (ctx, name) => {
+    const user = await api.renameUser(name);
 
-  ctx.set("user", user);
-});
+    ctx.set("user", user);
+  },
+);
 ```
 
 This can be perfectly valid when the resulting value is application state. But if the problem requires request caching, deduplication, invalidation, refresh, cancellation, or mutation lifecycle management, Query Pool is the appropriate abstraction.
@@ -843,15 +773,16 @@ When deciding where a value belongs, ask:
 
 ```text
 Does the value belong only to one component?
+
         │
        yes
         ▼
  Component state
-
         no
         │
         ▼
 Is it client/application state?
+
         │
        yes
         ▼
@@ -859,14 +790,12 @@ Is it client/application state?
         │
         ├── Simple shared keys → global store
         │
-        ├── Scoped keys/actions → namespace
-        │
         └── Feature lifecycle → module
-
         no
         │
         ▼
 Is it asynchronous/server-owned data?
+
         │
        yes
         ▼
@@ -887,24 +816,24 @@ The Store can be understood as a layered API over one reactive state space:
                          │    reactive map   │
                          └─────────┬─────────┘
                                    │
-                    ┌──────────────┼──────────────┐
-                    │              │              │
-                    ▼              ▼              ▼
-                 global       namespaces       modules
-                    │              │              │
-                    │         prefix keys      registry
-                    │              │              │
-                    └──────────────┼──────────────┘
+                    ┌──────────────┴──────────────┐
+                    │                             │
+                    ▼                             ▼
+                 global                       modules
+                    │                             │
+                    │                       registry / scope
+                    │                             │
+                    └──────────────┬──────────────┘
                                    │
                           actions / selectors
-                             subscriptions
-                               batching
+                            subscriptions
+                              batching
                                    │
                                    ▼
                               persistence
                                    │
                                    ▼
-                               IndexedDB
+                                IndexedDB
 ```
 
 The registry therefore organizes state; it does not replace the global reactive storage model.
@@ -917,33 +846,19 @@ Likewise, persistence is an adapter around Store state; it does not become a sec
 
 The Store is easiest to use correctly when these principles are kept in mind:
 
-### 1. State has an owner
+1. **State has an owner** — Use component state for component-owned concerns and Store for application-owned concerns.
 
-Use component state for component-owned concerns and Store for application-owned concerns.
+2. **Modules provide feature boundaries** — Use a module when a feature needs initial state, scoped actions, lifecycle management, or a reusable state API.
 
-### 2. Scope is organization, not a new reactivity system
+3. **Reads establish dependencies** — Store reads inside effects, computed values, and templates establish reactive dependencies. Do not manually synchronize consumers that can depend on the Store reactively.
 
-Namespaces and modules isolate keys and actions by convention and lifecycle while remaining part of the same underlying Store.
+4. **Replace or touch** — When state changes, either replace the root value with `set()` / `update()` or explicitly notify with `touch()` after an in-place mutation.
 
-### 3. Reads establish dependencies
+5. **Derive instead of duplicate** — Use selectors for values that can be calculated from existing Store state.
 
-Store reads normally inside effects, computed values, and templates. Do not manually synchronize consumers that can depend on the Store reactively.
+6. **Persist deliberately** — Persistence is opt-in. Persist only the state that genuinely needs to survive a page reload.
 
-### 4. Replace or touch
-
-When state changes, either replace the root value with `set()` / `update()` or explicitly notify with `touch()` after an in-place mutation.
-
-### 5. Derive instead of duplicate
-
-Use selectors for values that can be calculated from existing Store state.
-
-### 6. Persist deliberately
-
-Persistence is opt-in. Persist only the state that genuinely needs to survive a page reload.
-
-### 7. Keep server state in Query Pool
-
-Do not turn Store actions into a home-grown query cache when the problem is fundamentally asynchronous server data.
+7. **Keep server state in Query Pool** — Do not turn Store actions into a home-grown query cache when the problem is fundamentally asynchronous server data.
 
 ---
 
@@ -951,7 +866,7 @@ Do not turn Store actions into a home-grown query cache when the problem is fund
 
 | Guide | What you will learn |
 | --- | --- |
-| **[Creating Stores](./creating.md)** | Global state operations, namespaces, actions, batching, selectors, and subscriptions |
+| **[Creating Stores](./creating.md)** | Global state operations, actions, batching, selectors, and subscriptions |
 | **[Store Registry](./registry.md)** | `defineStore()`, `useStore()`, `destroyStore()`, module state, and lifecycle |
 | **[Persistent Stores](./persistence.md)** | IndexedDB persistence, hydration, debouncing, and controller lifecycle |
 | **[Store API Reference](../api/store.md)** | Exact signatures, options, and return values |

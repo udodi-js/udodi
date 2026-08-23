@@ -6,9 +6,9 @@ A store is useful when state must be shared by multiple components or managed in
 
 The Store package provides three complementary layers:
 
-- **Global store** — A flat reactive key/value store with updates, actions, selectors, subscriptions, batching, and optional persistence.
-- **Namespaces and modules** — Organize state and actions under a prefix, or define a complete feature module with `defineStore()`.
-- **Persistence** — Opt-in IndexedDB synchronization for selected keys, including hydration and explicit persistence control.
+* **Global store** — A flat reactive key/value store with updates, actions, selectors, subscriptions, batching, and optional persistence.
+* **Modules** — Define feature modules with `defineStore()`, retrieve them with `useStore()`, and destroy them with `destroyStore()`.
+* **Persistence** — Opt-in IndexedDB synchronization for selected keys, including hydration and explicit persistence control.
 
 The Store is intended for **application state**. For server state fetching, caching, background refresh, mutations, and worker-backed asynchronous work, use [Query Pool](../query-pool/README.md).
 
@@ -18,8 +18,8 @@ The Store is intended for **application state**. For server state fetching, cach
 
 | Guide | Description |
 | --- | --- |
-| **[Store Overview](./overview.md)** | Understand the store model, reactivity, namespaces, modules, and when to use each layer. |
-| **[Creating Stores](./creating.md)** | Work with the global `store`, namespaces, actions, selectors, subscriptions, and batching. |
+| **[Store Overview](./overview.md)** | Understand the store model, reactivity, modules, and when to use each layer. |
+| **[Creating Stores](./creating.md)** | Work with the global `store`, actions, selectors, subscriptions, and batching. |
 | **[Store Registry](./registry.md)** | Define reusable modules with `defineStore()`, retrieve them with `useStore()`, and destroy them with `destroyStore()`. |
 | **[Persistent Stores](./persistence.md)** | Persist selected store keys to IndexedDB, hydrate them on startup, and control synchronization. |
 
@@ -29,7 +29,7 @@ The Store is intended for **application state**. For server state fetching, cach
 
 ## Quick Example
 
-The following example combines the global store, a namespaced module, reactive reads, actions, selectors, subscriptions, and persistence:
+The following example combines the global store, a feature module, reactive reads, actions, selectors, subscriptions, and persistence:
 
 ```js
 import {
@@ -111,7 +111,7 @@ This illustrates the main separation in the Store system:
 3. `batch()` groups store writes into one store-level transaction.
 4. `subscribe()` provides an imperative observation mechanism and returns a cleanup function.
 5. `persist()` adds IndexedDB synchronization without turning normal store reads and writes into asynchronous operations.
-6. `defineStore()` creates a feature-scoped module on top of a namespace.
+6. `defineStore()` creates a feature-scoped module.
 7. `useStore()` retrieves an already registered module.
 8. `destroyStore()` removes the module and its owned resources.
 
@@ -132,11 +132,11 @@ const user = store.get("user");
 
 The important distinction is between **reading state** and **changing state**:
 
-- `get()` reads a value and participates in reactive dependency tracking.
-- `set()` replaces a value.
-- `update()` derives a replacement from the current value.
-- `touch()` explicitly notifies reactivity after an in-place mutation.
-- `delete()` removes a key.
+* `get()` reads a value and participates in reactive dependency tracking.
+* `set()` replaces a value.
+* `update()` derives a replacement from the current value.
+* `touch()` explicitly notifies reactivity after an in-place mutation.
+* `delete()` removes a key.
 
 ### Core operations
 
@@ -208,7 +208,7 @@ store.touch("items");
 
 `touch()` is specifically for telling the reactive system that the value stored under a key was changed in place. It does not replace the value.
 
-The same operation is available through an action context and namespaced/module APIs.
+The same operation is available through an action context and module APIs.
 
 ---
 
@@ -337,56 +337,6 @@ A subscription does not turn the store into an event emitter. It is implemented 
 
 ---
 
-## Namespaces
-
-`createNamespace()` creates a lightweight API over a prefixed section of the global store.
-
-```js
-const ui = createNamespace("ui");
-
-ui.set("sidebarOpen", true);
-
-console.log(ui.get("sidebarOpen")); // true
-```
-
-The underlying global key is:
-
-```text
-ui:sidebarOpen
-```
-
-Actions are prefixed in the same way:
-
-```js
-store.defineAction("ui:toggle", (ctx) => {
-  ctx.update("sidebarOpen", (open) => !open);
-});
-
-await ui.dispatch("toggle");
-```
-
-From the namespace API, callers work with local keys and action names. The namespace applies the prefix internally.
-
-Namespaces also support:
-
-```text
-get()
-set()
-update()
-touch()
-subscribe()
-dispatch()
-select()
-persist()
-delete()
-has()
-hasAction()
-```
-
-A namespace does **not** introduce a separate store instance. It is a scoped view over the global store.
-
----
-
 ## Store Modules
 
 For feature-level state, use the registry:
@@ -397,13 +347,13 @@ defineStore(name, definition)
 
 A module combines:
 
-- namespaced state,
-- namespaced actions,
-- a reactive `state` proxy,
-- selectors,
-- subscriptions,
-- persistence,
-- lifecycle cleanup.
+* namespaced state,
+* namespaced actions,
+* a reactive `state` proxy,
+* selectors,
+* subscriptions,
+* persistence,
+* lifecycle cleanup.
 
 Example:
 
@@ -555,11 +505,11 @@ Persistence does not make `get()`, `set()`, `update()`, or other normal store op
 
 By default:
 
-- database name: `udodi-store`
-- object store name: `state`
-- hydration: enabled
-- `undefined`: removes the persisted key
-- debounce: `0`, meaning writes are scheduled through a microtask
+* database name: `udodi-store`
+* object store name: `state`
+* hydration: enabled
+* `undefined`: removes the persisted key
+* debounce: `0`, meaning writes are scheduled through a microtask
 
 ### Hydration
 
@@ -617,35 +567,32 @@ changes are delayed until the debounce period expires. A value of `0` uses a mic
 
 If IndexedDB is unavailable, persistence becomes an inactive controller rather than changing the synchronous store API. The controller's `ready` resolves to `false`.
 
----
+### Persistence and modules
 
-## Persistence and Namespaces
-
-Namespaces and store modules can persist local keys while keeping their storage keys isolated.
+Modules can persist local keys while keeping their storage keys isolated:
 
 ```js
-const settings = createNamespace("settings");
+const settings = defineStore("settings", {
+  state: {
+    theme: "system",
+    language: "en",
+  },
+});
 
-const persistence = settings.persist(
-  ["theme", "language"],
-);
+const persistence = settings.persist([
+  "theme",
+  "language",
+]);
 ```
 
-The application works with:
-
-```text
-theme
-language
-```
-
-through the namespace API, while persistence uses the fully qualified keys:
+The application works with local keys through the module API, while persistence uses the fully qualified keys:
 
 ```text
 settings:theme
 settings:language
 ```
 
-This prevents different namespaces from accidentally sharing the same IndexedDB key.
+This prevents different modules from accidentally sharing the same IndexedDB key.
 
 ---
 
@@ -656,7 +603,6 @@ Udodi provides several ways to organize shared state:
 | Use | Recommended API |
 | --- | --- |
 | A few simple application-wide values | `store` |
-| A small isolated group of keys/actions | `createNamespace()` |
 | A feature with state, actions, selectors, and lifecycle | `defineStore()` / `useStore()` |
 | State that must survive reloads | `persist()` |
 | Remote/server data, caching, refresh, or mutations | [Query Pool](../query-pool/README.md) |
@@ -685,14 +631,14 @@ The Store package is deliberately layered.
                          │    reactive map   │
                          └─────────┬─────────┘
                                    │
-                    ┌──────────────┼──────────────┐
-                    │              │              │
-                    ▼              ▼              ▼
-                 global       namespaces       modules
-                    │              │              │
-                    │         prefix keys      registry
-                    │              │              │
-                    └──────────────┼──────────────┘
+                    ┌──────────────┴──────────────┐
+                    │                             │
+                    ▼                             ▼
+                 global                       modules
+                    │                             │
+                    │                       registry / scope
+                    │                             │
+                    └──────────────┬──────────────┘
                                    │
                           actions / selectors
                              subscriptions
@@ -705,7 +651,7 @@ The Store package is deliberately layered.
                                IndexedDB
 ```
 
-The registry does not create an independent storage engine. Modules are built on the global store through namespaces. This keeps global state, namespaces, and modules consistent while allowing different levels of structure and lifecycle management.
+The registry does not create an independent storage engine. Modules are built on the global store through an internal namespace. This keeps global state and modules consistent while allowing different levels of structure and lifecycle management.
 
 ---
 
@@ -713,18 +659,18 @@ The registry does not create an independent storage engine. Modules are built on
 
 The distinction is primarily about **organization and lifecycle**, not different reactivity systems.
 
-| Capability | Global `store` | Namespace | `defineStore()` module |
-| --- | --- | --- | --- |
-| Reactive state | Yes | Yes | Yes |
-| Key/value access | Yes | Scoped | Scoped |
-| Actions | Yes | Prefixed | Prefixed |
-| Selectors | Yes | Yes | Module-scoped |
-| Subscriptions | Yes | Yes | Yes |
-| Persistence | Yes | Yes | Yes |
-| Reactive `state` proxy | Action context | No module state object | Yes |
-| Initial state definition | Manual | Manual | `state` definition |
-| Cleanup hook | No | No | `cleanup()` |
-| Explicit lifecycle | Application-wide | Namespace lifetime | `destroy()` / `destroyStore()` |
+| Capability | Global `store` | `defineStore()` module |
+| --- | --- | --- |
+| Reactive state | Yes | Yes |
+| Key/value access | Yes | Scoped |
+| Actions | Yes | Prefixed |
+| Selectors | Yes | Module-scoped |
+| Subscriptions | Yes | Yes |
+| Persistence | Yes | Yes |
+| Reactive `state` proxy | Action context | Yes |
+| Initial state definition | Manual | `state` definition |
+| Cleanup hook | No | `cleanup()` |
+| Explicit lifecycle | Application-wide | `destroy()` / `destroyStore()` |
 
 Use the smallest layer that gives the feature the structure it needs.
 
@@ -763,12 +709,12 @@ A store action can call asynchronous application code, but that does not make th
 
 ## Related Documentation
 
-- **[Store Overview](./overview.md)** — The conceptual model of global state, namespaces, modules, and reactivity.
-- **[Creating Stores](./creating.md)** — Detailed store usage and state operations.
-- **[Store Registry](./registry.md)** — Module registration, access, actions, and lifecycle.
-- **[Persistent Stores](./persistence.md)** — IndexedDB persistence, hydration, and controllers.
-- **[Reactivity](../reactivity/README.md)** — Signals, effects, computed values, and `touch()`.
-- **[Query Pool](../query-pool/README.md)** — Reactive asynchronous data, caching, and mutations.
-- **[Store API Reference](../api/store.md)** — Authoritative signatures, options, and return values.
+* **[Store Overview](./overview.md)** — The conceptual model of global state, modules, and reactivity.
+* **[Creating Stores](./creating.md)** — Detailed store usage and state operations.
+* **[Store Registry](./registry.md)** — Module registration, access, actions, and lifecycle.
+* **[Persistent Stores](./persistence.md)** — IndexedDB persistence, hydration, and controllers.
+* **[Reactivity](../reactivity/README.md)** — Signals, effects, computed values, and `touch()`.
+* **[Query Pool](../query-pool/README.md)** — Reactive asynchronous data, caching, and mutations.
+* **[Store API Reference](../api/store.md)** — Authoritative signatures, options, and return values.
 
 The API reference is the authoritative source for exact signatures and option details. The guides explain how the pieces fit together and when to use each API.
