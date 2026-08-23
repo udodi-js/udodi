@@ -1,8 +1,8 @@
 # Creating Stores
 
-This guide covers the **global Store API** and the tools built around it: reactive reads and writes, actions, batching, selectors, subscriptions, and namespaces.
+This guide covers the **global Store API**, including reactive state, actions, batching, selectors, and subscriptions.
 
-For registered feature modules with initial state and lifecycle management, see [Store Registry](./registry.md). For IndexedDB persistence, see [Persistent Stores](./persistence.md). For the conceptual model and choosing between component state, Store, and Query Pool, see [Store Overview](./overview.md).
+For feature-level state with initial values, scoped actions, and lifecycle management, see [Store Registry](./registry.md). For IndexedDB persistence, see [Persistent Stores](./persistence.md).
 
 ---
 
@@ -12,68 +12,63 @@ For registered feature modules with initial state and lifecycle management, see 
 import {
   store,
   batch,
-  createNamespace,
 } from "udodi";
 ```
 
-These APIs have distinct roles:
-
 * **`store`** — the global reactive key/value store.
-* **`batch()`** — stage multiple store writes before committing them.
-* **`createNamespace()`** — create a prefix-scoped view over the global store.
+* **`batch`** — groups multiple writes into one coherent reactive update.
 
-The normal Store API is synchronous. Persistence is the separate asynchronous storage boundary.
+For registered feature modules, use `defineStore`, `useStore`, and `destroyStore` instead. See [Store Registry](./registry.md).
 
 ---
 
 ## Reading and Writing State
 
-The Store works with root keys. Each key has one current value.
+The global Store is a reactive key/value map. Each key holds one value and participates independently in Udodi's fine-grained reactivity system.
 
-### get()
+### get
 
 ```js
-const theme = store.get("theme");
+store.get("theme");
 ```
 
-`get()` returns the current value. If the key has never been created, a reactive entry with value `undefined` is created.
+`get(key)`:
 
-When called inside an active effect, computed value, or template evaluation, `get()` tracks the key as a reactive dependency:
+* Returns the current value for `key`.
+* Creates a reactive entry with value `undefined` if the key has never been set.
+* Tracks the key when called inside an effect, computed value, or template.
+* Causes that reactive consumer to re-run when the key subsequently changes.
+
+For example:
 
 ```js
-const label = computed(() => {
-  return store.get("theme") === "dark"
-    ? "Dark mode"
-    : "Light mode";
+const theme = computed(() => {
+  return store.get("theme") ?? "system";
 });
 ```
 
-Use `has()` when you need to distinguish a missing key from a key whose value is `undefined`:
+The computed value now depends specifically on the `theme` key.
 
-```js
-if (store.has("theme")) {
-  // The key exists.
-}
-```
-
-### set()
+### set
 
 ```js
 store.set("theme", "dark");
 store.set("count", 0);
 ```
 
-`set()` replaces the value for a key. The write is ignored when the new value is equal to the current value.
+`set(key, value)`:
+
+* Stores `value` under `key`.
+* Does nothing when `value` is `Object.is`-equal to the current value.
+* Notifies reactive dependents and subscriptions when the value changes.
 
 ```js
 store.set("count", 1);
-store.set("count", 1); // unchanged
-store.set("count", 2); // changed
+store.set("count", 1); // no update
+store.set("count", 2); // update
 ```
 
-Actual changes notify reactive dependents and relevant subscribers.
-
-### update()
+### update
 
 Use `update()` when the next value depends on the current value:
 
@@ -84,6 +79,8 @@ store.update(
 );
 ```
 
+The updater receives the current value and its return value becomes the new value.
+
 Conceptually:
 
 ```js
@@ -93,15 +90,11 @@ store.set(
 );
 ```
 
-It is useful for counters, toggles, and other state transitions:
+Using `update()` is preferable when expressing read-modify-write operations because the operation stays within the Store API.
 
-```js
-store.update("enabled", (value) => !value);
-```
+### touch
 
-### touch()
-
-`touch()` is for in-place mutation:
+Use `touch()` when a stored object or array is intentionally mutated in place:
 
 ```js
 const items = store.get("items");
@@ -114,50 +107,69 @@ items.push({
 store.touch("items");
 ```
 
-Because the root reference did not change, `touch()` explicitly notifies dependents that the value under the key has been mutated.
+`touch(key)`:
 
-It returns `true` when the key exists and is notified, and `false` when the key does not exist.
+* Notifies reactive dependents of the key.
+* Notifies subscriptions.
+* Returns `false` when the key does not exist.
+* Returns `true` when the key exists and the notification is triggered.
 
-Prefer replacement when practical:
+Prefer replacing the value with `set()` when practical:
 
 ```js
-store.set("items", [
-  ...store.get("items"),
-  {
-    id: 1,
-    name: "Book",
-  },
-]);
+store.set(
+  "items",
+  [...store.get("items"), newItem],
+);
 ```
 
-Use `touch()` when intentional in-place mutation is appropriate.
+Use `touch()` when preserving the existing object or array reference is intentional.
 
-### has(), keys(), and delete()
+### has, keys, and delete
+
+Check whether a key exists:
 
 ```js
-store.has("theme"); // boolean
-const keys = store.keys(); // current global keys
+store.has("theme");
+```
+
+Get all registered keys:
+
+```js
+store.keys();
+```
+
+Remove a key:
+
+```js
 store.delete("theme");
 ```
 
-`delete()` removes the key and stops persistence associated with that key.
+Deleting a key removes its reactive entry and also stops persistence associated with that key.
 
-### clear()
+### clear
 
 ```js
 store.clear();
 ```
 
-`clear()` removes global state and registered actions, stops persistence, and clears pending batch state. It affects the entire global Store and should therefore be used deliberately.
+`clear()` removes all global Store state and registered global actions.
+
+It also stops active persistence and clears pending batch state.
+
+Use `clear()` when the entire global Store should be reset rather than when removing an individual key.
 
 ---
 
 ## Batching Updates
 
-Use `batch()` to stage several Store writes before committing them:
+Use `batch()` when several state changes should be committed as one coherent update:
 
 ```js
-import { store, batch } from "udodi";
+import {
+  store,
+  batch,
+} from "udodi";
 
 batch(() => {
   store.set("count", 10);
@@ -166,7 +178,26 @@ batch(() => {
 });
 ```
 
-Writes and deletes inside a batch are staged. They are committed when the outermost batch finishes.
+### Batch behavior
+
+Writes and deletes inside a batch are staged until the outermost batch completes.
+
+```text
+batch()
+  │
+  ├── set()
+  ├── set()
+  ├── delete()
+  │
+  ▼
+outermost batch finishes
+  │
+  ▼
+commit staged changes
+  │
+  ▼
+reactive notification
+```
 
 Nested batches are supported:
 
@@ -183,35 +214,21 @@ batch(() => {
 });
 ```
 
-The inner batch does not independently commit; it only increases the batch depth.
+Only the outermost batch commits the staged changes.
 
-Reads during a batch see staged values through the normal `get()` path:
+Reads inside a batch see the staged values through the normal `get()` path, so code does not need a separate "pending state" API.
 
-```js
-batch(() => {
-  store.set("count", 10);
-  console.log(store.get("count")); // 10
-
-  store.update(
-    "count",
-    (value) => value + 1,
-  );
-
-  console.log(store.get("count")); // 11
-});
-```
-
-Batching changes when staged writes are committed, not the public `set()` / `delete()` API.
-
-It should not be documented as a guarantee that every reactive consumer executes exactly once for an entire batch. Once staged keys are committed, each changed key follows the normal reactive update path.
+Batching changes when updates become observable; it does not introduce a different state API.
 
 ---
 
 ## Actions
 
-Actions give state transitions stable names and a consistent execution context.
+Actions provide named operations over Store state.
 
-### defineAction()
+### defineAction
+
+Register an action on the global Store:
 
 ```js
 store.defineAction(
@@ -223,7 +240,17 @@ store.defineAction(
     );
   },
 );
+```
 
+Actions receive:
+
+```js
+(ctx, payload)
+```
+
+The payload is optional and can be any value:
+
+```js
 store.defineAction(
   "setTheme",
   (ctx, theme) => {
@@ -232,145 +259,192 @@ store.defineAction(
 );
 ```
 
-The handler signature is always:
-
-```js
-(ctx, payload)
-```
-
-Handlers may be synchronous or asynchronous:
+Actions may also be asynchronous:
 
 ```js
 store.defineAction(
-  "savePreferences",
-  async (ctx, preferences) => {
-    const result =
-      await api.savePreferences(preferences);
+  "loadUser",
+  async (ctx, id) => {
+    const user = await api.getUser(id);
 
-    ctx.set("preferences", result);
+    ctx.set("user", user);
 
-    return result;
+    return user;
   },
 );
 ```
 
-Defining an existing action name replaces the previous registration.
+The same action name can be registered again. The latest registration replaces the previous handler.
 
-### Action context
+### Action Context
 
-Every action receives:
+Every global action receives the same ActionContext:
 
 ```js
 {
-  state,
-  get,
-  set,
-  update,
-  touch,
-  select,
+  state,   // reactive proxy over the global Store
+  get,     // (key) => value
+  set,     // (key, value) => void
+  update,  // (key, fn) => void
+  touch,   // (key) => boolean
+  select,  // (selector, scope?) => computed
 }
 ```
 
-For a global action, these operations target the global Store.
+#### ctx.state
 
-`ctx.state` is a reactive proxy:
+`ctx.state` is a reactive proxy over the global Store.
+
+Property access maps to Store operations:
 
 ```js
 store.defineAction(
-  "rename",
-  (ctx, name) => {
-    ctx.state.user = {
-      ...ctx.state.user,
-      name,
-    };
+  "setTheme",
+  (ctx, theme) => {
+    ctx.state.theme = theme;
   },
 );
 ```
 
-For module actions, the same context shape is scoped to the module namespace. See [Store Registry](./registry.md).
-
-### dispatch()
+Conceptually:
 
 ```js
-await store.dispatch("increment", 2);
-await store.dispatch("setTheme", "dark");
+ctx.state.theme
+// equivalent to ctx.get("theme")
+
+ctx.state.theme = "dark"
+// equivalent to ctx.set("theme", "dark")
 ```
 
-`dispatch()` returns the handler's result. If the handler is asynchronous, the result is a Promise.
+Use `ctx.get()`, `ctx.set()`, and `ctx.update()` when explicit Store operations make the intent clearer.
 
-By default, dispatching a missing action warns and returns `undefined`.
+#### Action context and modules
 
-To make a missing action an error:
+Global actions receive a context over the global Store.
+
+Module actions use the same ActionContext shape, but their context is scoped to the module's state. This means module code can work with local keys without knowing the module's internal namespace.
+
+For example, see [Store Registry](./registry.md).
+
+### dispatch
+
+Run a registered action with `dispatch()`:
 
 ```js
 await store.dispatch(
-  "missing",
-  null,
-  { throwOnMissing: true },
+  "increment",
+  2,
 );
 ```
 
-The equivalent strict option is:
+For an asynchronous action:
 
 ```js
-await store.dispatch(
-  "missing",
-  null,
-  { strict: true },
+const user = await store.dispatch(
+  "loadUser",
+  userId,
 );
 ```
 
-### hasAction() and deleteAction()
+`dispatch()` returns the action handler's result directly.
+
+If the handler is asynchronous, the returned value is a Promise.
+
+### Missing actions
+
+By default, dispatching an action that does not exist warns and returns `undefined`:
 
 ```js
-store.hasAction("increment"); // true
+store.dispatch("doesNotExist");
+// warns
+// returns undefined
+```
+
+Use `throwOnMissing` when a missing action should be treated as an error:
+
+```js
+store.dispatch(
+  "doesNotExist",
+  null,
+  {
+    throwOnMissing: true,
+  },
+);
+```
+
+`strict: true` can be used as an equivalent strict option:
+
+```js
+store.dispatch(
+  "doesNotExist",
+  null,
+  {
+    strict: true,
+  },
+);
+```
+
+### hasAction and deleteAction
+
+Check whether an action is registered:
+
+```js
+store.hasAction("increment");
+```
+
+Remove an action:
+
+```js
 store.deleteAction("increment");
 ```
 
-Actions and state keys are independent. Removing an action does not remove state that the action previously modified.
+Deleting an action does not modify Store state. It only removes the named action handler.
 
 ---
 
 ## Selectors
 
-Selectors expose derived Store state as lazy computed values:
+Selectors derive values from Store state.
 
 ```js
 const doubleCount = store.select(
-  (state) => (state.get("count") ?? 0) * 2,
+  (state) => {
+    return (state.get("count") ?? 0) * 2;
+  },
 );
-
-console.log(doubleCount());
 ```
 
-Selectors are built on Udodi's `computed` primitive. They are lazy and cache their value until a tracked dependency changes.
-
-A selector tracks the Store reads performed by its selector function:
+Read the derived value by invoking the returned computed:
 
 ```js
-const subtotal = store.select((state) => {
-  return (
-    (state.get("price") ?? 0) *
-    (state.get("quantity") ?? 0)
-  );
-});
+doubleCount();
 ```
 
-Changing an unrelated Store key does not invalidate this selector.
+Selectors are built on Udodi's `computed` primitive.
 
-### Selector scope
+They are:
 
-`select()` accepts an optional scope:
+* **lazy** — computation begins when the selector is read;
+* **reactive** — dependencies are tracked through Store reads;
+* **cached** — the computed value is reused until a tracked dependency changes.
+
+For example:
 
 ```js
-store.select(selector, scope);
+store.set("count", 10);
+
+doubleCount();
+// 20
+
+store.set("count", 20);
+
+doubleCount();
+// 40
 ```
 
-The scope is used when the selector is owned by a lifecycle context, such as a module. A scope contains the effect collection used to dispose owned selectors.
+### Selectors inside actions
 
-For global selectors, omit the scope.
-
-Inside an action, use the action context:
+The action context exposes the same selector mechanism:
 
 ```js
 store.defineAction(
@@ -386,212 +460,163 @@ store.defineAction(
 );
 ```
 
+The optional second argument to `select()` is a scope used when the selector needs lifecycle cleanup, particularly in module contexts.
+
+Global selectors generally do not need to provide a scope explicitly.
+
 ---
 
 ## Subscriptions
 
-Use `subscribe()` for imperative observation of a single key:
+Use `subscribe()` when imperative code needs to react to a Store key changing:
 
 ```js
 const stop = store.subscribe(
   "count",
   (next, prev) => {
     console.log(
-      "count changed:", prev, "→", next,
+      "count changed:",
+      prev,
+      "→",
+      next,
     );
   },
 );
 ```
 
-The callback receives:
-
-```js
-(next, prev)
-```
-
-### Initial notification
-
-A subscription is implemented with an effect that reads the Store key.
-
-On its first run, when the current value is not `undefined`, the callback runs with:
-
-```js
-(next, undefined)
-```
-
-For example:
-
-```js
-store.set("theme", "dark");
-
-const stop = store.subscribe(
-  "theme",
-  (next, prev) => {
-    console.log(next, prev);
-  },
-);
-
-// dark undefined
-```
-
-If the current value is `undefined`, there is no initial callback.
-
-### Subsequent notifications
-
-Later callbacks run when the key changes:
-
-```js
-store.set("count", 1);
-store.set("count", 2);
-```
-
-A `touch()` notification also invokes the callback even when an object or array retains the same reference.
-
-### Unsubscribing
-
-The returned function disposes the subscription:
+The returned function removes the subscription:
 
 ```js
 stop();
 ```
 
-Subscriptions are best suited to imperative boundaries such as logging, browser APIs, and integration with non-Udodi libraries. For UI derivation, prefer reactive reads in components and templates.
+### Subscription behavior
 
----
+Subscriptions are implemented using Udodi's reactive effect system.
 
-## Namespaces
+On the initial run:
 
-`createNamespace()` creates a prefix-scoped helper over the global Store:
+* if the value is not `undefined`, the callback runs with `(next, undefined)`;
+* if the value is `undefined`, no initial callback is emitted.
 
-```js
-import { createNamespace } from "udodi";
-
-const ui = createNamespace("ui");
-```
-
-Local keys are automatically prefixed:
+Subsequent changes invoke:
 
 ```js
-ui.set("sidebarOpen", true);
-ui.get("sidebarOpen");
+cb(next, prev);
 ```
 
-The underlying Store key is:
-
-```text
-ui:sidebarOpen
-```
-
-A namespace is not a separate Store instance. It is a scoped API over the same global reactive state.
-
-### Namespace API
-
-| Namespace API | Underlying operation |
-| --- | --- |
-| `ui.get(key)` | `store.get("ui:key")` |
-| `ui.set(key, value)` | `store.set("ui:key", value)` |
-| `ui.update(key, fn)` | `store.update("ui:key", fn)` |
-| `ui.touch(key)` | `store.touch("ui:key")` |
-| `ui.delete(key)` | `store.delete("ui:key")` |
-| `ui.has(key)` | `store.has("ui:key")` |
-| `ui.subscribe(key, cb)` | `store.subscribe("ui:key", cb)` |
-| `ui.dispatch(action, payload, options?)` | `store.dispatch("ui:action", payload, options?)` |
-| `ui.hasAction(action)` | `store.hasAction("ui:action")` |
-| `ui.select(selector, scope?)` | selector receives the namespace API |
-| `ui.persist(keys, options?)` | persists the fully prefixed keys |
+A subscription can also run when `touch()` forces a notification even though the stored reference remains the same.
 
 For example:
 
 ```js
-ui.update(
-  "sidebarOpen",
-  (open) => !open,
+const items = store.get("items");
+
+const stop = store.subscribe(
+  "items",
+  (next, prev) => {
+    // next and prev may be
+    // the same object reference.
+  },
 );
 
-ui.touch("items");
+items.push(newItem);
 
-ui.subscribe(
-  "sidebarOpen",
-  (next) => {
-    console.log("sidebar:", next);
+store.touch("items");
+```
+
+Use subscriptions primarily for imperative integration:
+
+```js
+store.subscribe(
+  "theme",
+  (theme) => {
+    document.documentElement
+      .dataset.theme = theme;
   },
 );
 ```
 
-### Namespace selectors
+For UI rendering, prefer normal reactive reads in components and templates.
 
-A namespace selector receives the namespace API, so selectors use local keys:
+---
+
+## Organizing State
+
+The global Store is appropriate for simple shared state:
 
 ```js
-const sidebarLabel = ui.select(
-  (state) =>
-    state.get("sidebarOpen")
-      ? "Close sidebar"
-      : "Open sidebar",
-);
-
-console.log(sidebarLabel());
+store.set("theme", "system");
+store.set("locale", "en");
 ```
 
-### Namespaced actions
-
-Actions are registered under their fully qualified names:
+When state belongs to a feature and needs a formal boundary, use a Store module:
 
 ```js
-store.defineAction(
-  "ui:toggleSidebar",
-  (ctx) => {
-    const key = "ui:sidebarOpen";
+import {
+  defineStore,
+  useStore,
+} from "udodi";
 
-    ctx.update(
-      key,
-      (open) => !open,
-    );
+defineStore("cart", {
+  state: {
+    items: [],
+  },
+
+  actions: {
+    addItem(ctx, item) {
+      ctx.update(
+        "items",
+        (items) => [
+          ...items,
+          item,
+        ],
+      );
+    },
+  },
+});
+
+const cart = useStore("cart");
+
+cart.dispatch(
+  "addItem",
+  {
+    id: 1,
+    name: "Book",
   },
 );
 ```
 
-The namespace dispatches using the local action name:
+Modules provide scoped state and actions without requiring application code to manually manage key prefixes.
+
+Internally, module state is namespaced, but that namespace is an implementation detail. Application code should work with the module's local keys:
 
 ```js
-await ui.dispatch("toggleSidebar");
+cart.get("items");
+cart.set("items", nextItems);
+cart.update("items", fn);
+cart.dispatch("addItem", item);
 ```
 
-The action above still receives the global action context. If you need a genuinely module-scoped action context, initial state, and lifecycle, prefer `defineStore()`.
-
-### Namespace persistence
-
-Namespaces can persist local keys:
-
-```js
-const controller = ui.persist(
-  ["sidebarOpen"],
-);
-```
-
-The persisted Store key remains:
-
-```text
-ui:sidebarOpen
-```
-
-See [Persistent Stores](./persistence.md) for persistence behavior and controller lifecycle.
+See [Store Registry](./registry.md) for the complete module API.
 
 ---
 
 ## Putting It Together
 
+The following example combines global state, actions, batching, selectors, and subscriptions:
+
 ```js
 import {
   store,
   batch,
-  createNamespace,
 } from "udodi";
 
-// Global preferences
+// Shared application state
 store.set("theme", "system");
-store.set("locale", "en");
+store.set("count", 0);
 
+// Named operation
 store.defineAction(
   "setTheme",
   (ctx, theme) => {
@@ -599,36 +624,39 @@ store.defineAction(
   },
 );
 
-// UI namespace
-const ui = createNamespace("ui");
-ui.set("sidebarOpen", false);
-
 store.defineAction(
-  "ui:toggleSidebar",
-  (ctx) => {
-    const key = "ui:sidebarOpen";
-
-    ctx.set(
-      key,
-      !ctx.get(key),
+  "increment",
+  (ctx, by = 1) => {
+    ctx.update(
+      "count",
+      (count) => (count ?? 0) + by,
     );
   },
 );
 
-// Coordinated multi-key change
+// Coherent multi-key update
 batch(() => {
-  store.set("theme", "dark");
-  ui.set("sidebarOpen", true);
+  store.dispatch(
+    "setTheme",
+    "dark",
+  );
+
+  store.dispatch(
+    "increment",
+    1,
+  );
 });
 
 // Derived state
 const isDark = store.select(
-  (state) => state.get("theme") === "dark",
+  (state) =>
+    state.get("theme") === "dark",
 );
 
-console.log(isDark()); // true
+console.log(isDark());
+// true
 
-// Imperative listener
+// Imperative integration
 const stop = store.subscribe(
   "theme",
   (theme) => {
@@ -636,52 +664,55 @@ const stop = store.subscribe(
       .dataset.theme = theme;
   },
 );
-
-// Dispose the listener when it is no longer needed
-stop();
 ```
 
-The roles are deliberately distinct:
+The global Store remains deliberately small:
 
 ```text
-store
-  │
-  ├── state       → application-owned values
-  ├── actions     → named state transitions
-  ├── selectors   → derived values
-  ├── subscribe   → imperative observation
-  ├── batch       → coordinated writes
-  └── namespace   → scoped keys/actions
+Global Store
+├── reactive state
+├── actions
+├── batching
+├── selectors
+└── subscriptions
 ```
+
+For structured feature state, move to Store modules rather than manually creating namespaces.
 
 ---
 
-## Choosing the API
+## Persistence
 
-| Need | Use |
-| --- | --- |
-| Read shared state | `store.get()` |
-| Replace state | `store.set()` |
-| Update from the current value | `store.update()` |
-| Notify after in-place mutation | `store.touch()` |
-| Check whether a key exists | `store.has()` |
-| List global keys | `store.keys()` |
-| Remove one key | `store.delete()` |
-| Remove all global state/actions | `store.clear()` |
-| Define a reusable state operation | `store.defineAction()` |
-| Execute a named operation | `store.dispatch()` |
-| Check/remove an action | `hasAction()` / `deleteAction()` |
-| Derive reactive state | `store.select()` |
-| Imperatively observe a key | `store.subscribe()` |
-| Coordinate multiple writes | `batch()` |
-| Scope keys/actions without a module | `createNamespace()` |
-| Add initial state and lifecycle | `defineStore()` |
+Persistence is intentionally documented separately because it introduces an asynchronous storage boundary while the Store itself remains synchronous.
+
+```js
+const controller = store.persist(
+  ["theme", "locale"],
+  {
+    debounce: 50,
+  },
+);
+
+await controller.ready;
+```
+
+See [Persistent Stores](./persistence.md) for:
+
+* IndexedDB persistence;
+* hydration;
+* debounced writes;
+* `ready`;
+* `flush()`;
+* `clear()`;
+* `stop()`;
+* persistence errors;
+* module persistence.
 
 ---
 
 ## Next Steps
 
-* **[Store Overview](./overview.md)** — Mental model, state ownership, and choosing between component state, Store, and Query Pool.
-* **[Store Registry](./registry.md)** — `defineStore()`, `useStore()`, module state, actions, and lifecycle cleanup.
-* **[Persistent Stores](./persistence.md)** — IndexedDB persistence, hydration, debouncing, and persistence controllers.
-* **[Store API Reference](../api/store.md)** — Exact signatures, options, and return values.
+* **[Store Overview](./overview.md)** — mental model, reactivity, state organization, and Store vs Component State vs Query Pool.
+* **[Store Registry](./registry.md)** — `defineStore`, `useStore`, module state, scoped actions, and lifecycle.
+* **[Persistent Stores](./persistence.md)** — IndexedDB persistence, hydration, and persistence controllers.
+* **[Store API Reference](../api/store.md)** — precise signatures, options, and return values.
