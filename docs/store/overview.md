@@ -564,10 +564,7 @@ const stop = store.subscribe(
   "theme",
   (next, prev) => {
     console.log(
-      "theme:",
-      prev,
-      "→",
-      next,
+      "theme:", prev, "→", next,
     );
   },
 );
