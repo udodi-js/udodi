@@ -475,7 +475,10 @@ const stop = store.subscribe(
   "count",
   (next, prev) => {
     console.log(
-      "count changed:", prev, "→", next,
+      "count changed:",
+      prev,
+      "→",
+      next,
     );
   },
 );
