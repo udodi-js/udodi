@@ -174,7 +174,7 @@ start run
       source / module
 ```
 
-The query uses an internal execution **id** so that results belonging to an older run cannot overwrite the state of a newer run.
+The query uses an internal execution **ID** so that results belonging to an older run cannot overwrite the state of a newer run.
 
 ### Example
 
