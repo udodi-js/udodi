@@ -29,7 +29,7 @@ query becomes stale
        query re-executes
 ```
 
-For cache freshness and TTL behavior, see [Caching](./caching.md). For dependency relationships and dependent refreshes, see [Query Dependencies](./dependencies.md). For execution planning, force, and in-flight reuse, see [Query Scheduling](./scheduling.md).
+For cache freshness and TTL behavior, see [Caching](./caching.md). For dependency relationships, dependent refreshes, execution planning, force, and in-flight reuse, see [Query Dependencies](./dependencies.md).
 
 ---
 
@@ -113,7 +113,7 @@ const createUser = pool.mutation("createUser", {
   invalidates: ["users"],
 });
 
-await createUser.mutate({ name: "Ada" });
+await createUser.mutate({ name: "Attamah" });
 ```
 
 The mutation first completes its write successfully. The declared invalidation targets are then processed and their refreshes are scheduled according to the mutation's invalidation options.
@@ -468,7 +468,7 @@ const createUser = pool.mutation("createUser", {
 await users.fetch();
 
 await createUser.mutate({
-  name: "Ada",
+  name: "Attamah",
 });
 ```
 
@@ -528,8 +528,7 @@ refresh plan
 | --- | --- |
 | TTL and cache freshness | [Caching](./caching.md) |
 | Optimistic updates and mutations | [Mutations](./mutations.md) |
-| Query dependencies and dependents | [Query Dependencies](./dependencies.md) |
-| Execution plans, force, and in-flight reuse | [Query Scheduling](./scheduling.md) |
+| Query dependencies, dependents, execution plans, force, and in-flight reuse | [Query Dependencies](./dependencies.md) |
 | Query state and preserved data | [Query Lifecycle](./lifecycle.md) |
 | Creating and configuring queries | [Queries](./queries.md) |
 | Query Pool architecture | [Query Pool Overview](./overview.md) |

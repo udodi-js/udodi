@@ -2,7 +2,7 @@
 
 Query dependencies let a Query Pool express relationships between asynchronous operations. A query can declare that it depends on one or more other queries, causing the pool to execute those upstream queries before the dependent query.
 
-Dependencies form a directed acyclic graph (DAG). The Query Pool builds an execution plan for the requested query, executes independent branches in parallel, reuses in-flight work when possible, and can optionally refresh reverse dependents after a successful execution.
+Dependencies form a directed acyclic graph (DAG). The Query Pool builds an **execution plan** for the requested query, executes independent branches in **waves** (in parallel when possible), reuses **in-flight** work when appropriate, optionally short-circuits via **cache**, honors **`force`**, and can refresh **reverse dependents** after a successful run.
 
 ```text
              users
@@ -16,7 +16,7 @@ Dependencies form a directed acyclic graph (DAG). The Query Pool builds an execu
 
 This makes dependencies useful when one piece of asynchronous data cannot be meaningfully computed until another query has completed.
 
-For the broader Query Pool model, see [Query Pool Overview](./overview.md). For execution order and in-flight reuse, see [Query Scheduling](./scheduling.md).
+For the broader Query Pool model, see [Query Pool Overview](./overview.md). For TTL short-circuits, see [Caching](./caching.md). For status transitions, see [Query Lifecycle](./lifecycle.md).
 
 ---
 
@@ -57,7 +57,7 @@ userCount
 
 When `userCount` executes through a dependency-aware plan, `users` is executed first. Once `users` succeeds, `userCount` can run and consume its data.
 
-The dependency is expressed by query key, not by passing one query handle directly into another definition.
+The dependency is expressed by **query key**, not by passing one query handle directly into another definition.
 
 ---
 
@@ -143,14 +143,14 @@ Importantly, independent dependencies do not need to execute sequentially:
 
 ```text
              ┌──► session ──────┐
-dashboard ───┤                  ├──► dashboard
+dashboard ───┤                   ├──► dashboard
              └──► permissions ──┘
 
 
-            independent branches
+             independent branches
                     │
                     ▼
-              run in parallel
+               run in parallel
 ```
 
 The Query Pool schedules ready nodes in waves, allowing independent branches to execute concurrently.
@@ -189,31 +189,72 @@ profile
 permissions
 ```
 
-Requesting `permissions` causes the pool to build the complete execution plan:
+Requesting `permissions` causes the pool to build the complete execution plan and run upstream-first:
 
 ```text
-permissions
-     │
-     ▼
-  profile
-     │
-     ▼
-  session
-```
-
-The execution itself occurs upstream-first:
-
-```text
-session
-   │
-   ▼
-profile
-   │
-   ▼
-permissions
+session → profile → permissions
 ```
 
 The application therefore does not need to manually fetch each level.
+
+---
+
+## How Execution Is Scheduled
+
+Dependencies define the **graph**. For each concrete request, the pool builds a **plan**, then runs each node through an internal **`runSelf`** path that decides whether to execute, reuse in-flight work, or satisfy from a fresh cache.
+
+```text
+request (fetch / refresh / registration / invalidation refresh)
+        │
+        ▼
+  build execution plan
+        │
+        ├── membership (root ± dependencies ± dependents)
+        ├── topological order / waves
+        └── cycle detection
+        │
+        ▼
+  for each ready wave
+        │
+        └── runSelf(node)
+                │
+                ├── force?           → execute
+                ├── in-flight?       → reuse promise
+                ├── fresh cache?     → reuse result
+                └── otherwise        → execute source / module
+```
+
+### Entry points
+
+| Operation | Role |
+| --- | --- |
+| Query registration | Starts an initial plan for the new key (includes upstream `dependsOn` when declared). |
+| `query.refresh(options?)` | Dependency-aware plan using the query’s **last recorded input**. |
+| `pool.refresh(key, options?)` | Same as handle `refresh`, by key. |
+| `query.fetch(options?)` | Run with optional explicit **input**; may expand upstream with `dependencies: true`. |
+| Mutation `invalidates` | After a successful write: mark targets stale, then schedule their refresh plans. |
+
+```js
+await dashboard.refresh();
+await pool.refresh("dashboard");
+await dashboard.fetch({ dependencies: true, force: true });
+```
+
+### fetch vs refresh
+
+| | `fetch` | `refresh` |
+| --- | --- | --- |
+| Input | Explicit `options.input` (optional) | Last recorded input for the query |
+| Plan | Self-only by default; add upstream with `dependencies: true` | Plan for this key (upstream dependencies included as required) |
+| Typical use | First load or change of arguments | Reload with the same arguments |
+
+```js
+await posts.fetch({ input: { page: 2 } });
+await posts.refresh(); // uses recorded page: 2
+
+await dashboard.fetch({ dependencies: true });
+await dashboard.refresh({ dependents: true, force: true });
+```
 
 ---
 
@@ -244,7 +285,7 @@ execute ready nodes
 requested query
 ```
 
-The pool uses a depth-first traversal to resolve the dependency graph and rejects cyclic dependencies.
+The pool resolves the dependency graph and rejects cyclic dependencies.
 
 For example:
 
@@ -296,17 +337,17 @@ There is no valid upstream-first execution order because each query requires the
 
 The Query Pool detects the cycle while building the execution plan and throws rather than attempting to execute an invalid graph.
 
-### Longer Cycles
+### Longer cycles
 
 Cycles can also occur across several queries:
 
 ```text
-A → B → C → D
-    ▲       │
-    └───────┘
+A → B → C
+    ▲   │
+    └───┘
 ```
 
-The number of nodes does not matter. Any dependency path that eventually points back to a query already being resolved forms a cycle.
+Any dependency path that eventually points back to a query already being resolved forms a cycle.
 
 ---
 
@@ -331,12 +372,10 @@ The execution waves are:
 ```text
 Wave 1:        A
 
-
                │
           ┌────┴────┐
           ▼         ▼
 Wave 2:   B         C
-
 
           └────┬────┘
                ▼
@@ -360,54 +399,6 @@ The execution planner instead identifies nodes that are ready at the same time a
 
 ---
 
-## Dependency-Aware Execution
-
-There are several ways to initiate dependency execution.
-
-### refresh()
-
-Calling:
-
-```js
-await dashboard.refresh();
-```
-
-runs the dependency execution plan for `dashboard`.
-
-Likewise:
-
-```js
-await pool.refresh("dashboard");
-```
-
-starts the plan using the query key.
-
-For:
-
-```text
-session ──► profile ──► dashboard
-```
-
-refreshing `dashboard` causes the upstream dependency chain to be considered before `dashboard` itself runs.
-
-See [Query Scheduling](./scheduling.md) for the details of execution reuse and forcing.
-
-### fetch({ dependencies: true })
-
-A query can also explicitly request dependency execution when using `fetch()`:
-
-```js
-await dashboard.fetch({
-  dependencies: true,
-});
-```
-
-This tells the pool to execute the dependency plan rather than treating the fetch as an isolated self-execution.
-
-This is useful when a query normally executes independently but a particular operation requires its upstream graph to be refreshed or evaluated.
-
----
-
 ## Self Execution vs Dependency Execution
 
 The Query Pool separates executing a query itself from executing its dependency graph.
@@ -428,7 +419,7 @@ executeExecutionPlan()
        └── runSelf("dashboard")
 ```
 
-A dependency node is executed through its internal self-run path rather than recursively calling its public `refresh()` method.
+A dependency node is executed through its internal **`runSelf`** path rather than recursively calling its public `refresh()` method.
 
 This distinction is important.
 
@@ -442,14 +433,11 @@ refresh(B)
    │
    ▼
 refresh(C)
-   │
-   ▼
-...
 ```
 
 the dependency graph could recursively rebuild itself.
 
-Instead, the pool builds one execution plan and executes its nodes directly:
+Instead, the pool builds **one** execution plan and executes its nodes directly:
 
 ```text
 build once
@@ -464,76 +452,138 @@ execute plan
 
 This keeps dependency execution deterministic and prevents graph recursion.
 
+### runSelf decision path
+
+For each plan node:
+
+```text
+runSelf(key)
+    │
+    ├── force? ──────────────────────────► execute (supersede prior run as needed)
+    │
+    ├── active in-flight promise? ───────► reuse promise
+    │
+    ├── cache configured and fresh? ─────► commit from cache
+    │
+    └── otherwise ───────────────────────► execute source / module
+```
+
+Outcomes update that query’s reactive lifecycle fields (`data`, `error`, `loading`, `status`, …). See [Query Lifecycle](./lifecycle.md).
+
 ---
 
-## In-Flight Dependency Reuse
+## In-Flight Reuse
 
-Dependencies also participate in in-flight deduplication.
+In-flight deduplication applies to **any** concurrent request for the same query—not only nodes inside a multi-query plan.
 
-Suppose `users` is already loading:
+```js
+const first = users.fetch();
+const second = users.fetch();
+
+await Promise.all([first, second]);
+// often one underlying source/module invocation
+```
+
+When a plan needs a key that is already loading, the pool can attach to the same promise:
 
 ```js
 const promise = users.fetch();
+await userCount.refresh(); // may reuse users' in-flight work
 ```
-
-and another operation requests a plan that requires `users`:
-
-```js
-await userCount.refresh();
-```
-
-The pool can reuse the existing in-flight execution instead of starting another request.
-
-Conceptually:
 
 ```text
-                 users
-                   │
-             already running
-                   │
-                   ▼
-             existing promise
-                   │
-             ┌─────┴─────┐
-             │           │
-          caller 1     caller 2
-             │           │
-             └─────┬─────┘
-                   ▼
-             same execution
+request A ──► start run ──► promise P
+request B ──► see P in flight ──► await P
 ```
 
-This prevents duplicate work when multiple parts of an application request the same query at approximately the same time.
+| Mechanism | When | What is reused |
+| --- | --- | --- |
+| In-flight | Concurrent runs of the same key | The active promise |
+| Fresh cache | After a prior success within TTL | Stored result without calling source |
 
-A forced execution can bypass this reuse when appropriate.
+See [Caching](./caching.md).
 
 ---
 
 ## force
 
-A dependency plan normally reuses suitable in-flight work.
+A plan normally reuses suitable in-flight work and may short-circuit on a fresh cache entry.
 
-A forced execution can request a new run:
+`force: true` requests a **new** execution instead of relying on those short-circuits:
 
 ```js
 await dashboard.refresh({
   force: true,
 });
+
+await users.fetch({
+  force: true,
+  input: { page: 1 },
+});
 ```
 
-The exact force behavior is part of the Query Pool scheduling model: force prevents reuse of an existing in-flight execution for the affected run.
+```text
+without force
+  in-flight? → reuse
+  fresh cache? → reuse
+  else → execute
 
-This is useful when an application explicitly requires a fresh execution rather than waiting for work that is already in progress.
+with force
+  → execute (typically supersedes the previous run for that query)
+```
 
-See [Query Scheduling](./scheduling.md).
+Forced runs generally increment the query’s execution identity and abort the previous controller so only the current run may commit state. See [Query Cancellation](./cancellation.md).
+
+On mutations, `force` is primarily forwarded into **invalidation refreshes**:
+
+```js
+await createUser.mutate(input, { force: true });
+```
+
+---
+
+## Dependency-Aware Execution
+
+### refresh()
+
+```js
+await dashboard.refresh();
+await pool.refresh("dashboard");
+```
+
+Runs the dependency execution plan for `dashboard`. For:
+
+```text
+session ──► profile ──► dashboard
+```
+
+refreshing `dashboard` causes the upstream chain to be considered before `dashboard` itself runs.
+
+### fetch({ dependencies: true })
+
+```js
+await dashboard.fetch({
+  dependencies: true,
+});
+```
+
+Tells the pool to execute the dependency plan rather than treating the fetch as an isolated self-execution—useful when a particular call must evaluate upstream work as well.
+
+### dependents
+
+```js
+await users.refresh({
+  dependents: true,
+});
+```
+
+Expands the plan with **reverse** dependents (queries that list this key in `dependsOn`). See [Reverse Dependents](#reverse-dependents).
 
 ---
 
 ## Dependency Failures
 
 A dependency can fail before the dependent query executes.
-
-Consider:
 
 ```text
 users
@@ -546,14 +596,12 @@ userCount
 
 `userCount` cannot meaningfully execute if its required upstream query failed.
 
-The Query Pool represents dependency failures with `QueryDependencyError` for affected upstream/dependent plan nodes.
+The Query Pool represents dependency failures with `QueryDependencyError` for affected plan nodes where appropriate.
 
-This preserves an important distinction between:
+This preserves a distinction between:
 
-- the original error produced by the query that actually failed, and
+- the **original** error from the query that actually failed, and
 - the dependency error observed by a query that could not proceed.
-
-For example:
 
 ```js
 const users = pool.query("users", {
@@ -571,47 +619,22 @@ const userCount = pool.query("userCount", {
 });
 ```
 
-The underlying failure is still:
+The underlying failure remains `Error("Users API unavailable")` rather than being replaced by an unrelated generic error from the dependent query. That matters for cancellation and other root causes as well.
 
-```js
-Error("Users API unavailable")
-```
-
-rather than being replaced by an unrelated generic error from the dependent query.
-
-This is particularly important for preserving the root cause of cancellation and other execution failures.
-
-### Dependent Queries Do Not Execute After a Failed Upstream Node
-
-For:
+### Dependent queries do not succeed after a failed upstream node
 
 ```text
-  A
-  │
-  ▼
-  B
-  │
-  ▼
-  C
+A ──✕
+│
+╳
+B
+│
+C
 ```
 
-if `A` fails:
+`B` cannot complete as a successful dependency execution; `C` cannot rely on `B`.
 
-```text
-  A ──✕
-  │
-  ╳
-  B
-
-
-  C
-```
-
-`B` cannot proceed as a successful dependency execution, and consequently `C` cannot rely on `B`.
-
-The dependent query's previous successful data, if any, is not automatically destroyed merely because its dependency failed. Query lifecycle state and existing data remain governed by the individual query's lifecycle rules.
-
-See [Query Lifecycle](./lifecycle.md).
+Previous successful **data** on a dependent is not automatically destroyed. Lifecycle rules still govern each handle. See [Query Lifecycle](./lifecycle.md).
 
 ---
 
@@ -631,8 +654,6 @@ const userCount = pool.query("userCount", {
 });
 ```
 
-This is preferable to passing query handles through application state because the dependency itself is already represented by the graph:
-
 ```text
 users
   │
@@ -641,13 +662,11 @@ users
 userCount
 ```
 
-The dependent query should nevertheless tolerate the expected shape of its upstream data. Dependency ordering guarantees execution order; it does not change the value returned by the upstream query.
+Dependency ordering guarantees **execution order**; it does not change the value the upstream query returns. The dependent `source` still defines `userCount.data`.
 
 ---
 
 ## Multiple-Level Example
-
-A more realistic graph might look like:
 
 ```js
 const session = pool.query("session", {
@@ -659,7 +678,6 @@ const profile = pool.query("profile", {
 
   source: async () => {
     const session = pool.data("session");
-
     return loadProfile(session.userId);
   },
 });
@@ -669,7 +687,6 @@ const permissions = pool.query("permissions", {
 
   source: async () => {
     const session = pool.data("session");
-
     return loadPermissions(session.userId);
   },
 });
@@ -686,19 +703,15 @@ const dashboard = pool.query("dashboard", {
 });
 ```
 
-The graph is:
-
 ```text
-               session
-              /       \
-             ▼         ▼
-         profile    permissions
-             \         /
-              ▼       ▼
-              dashboard
+                  session
+                 /       \
+                ▼         ▼
+            profile   permissions
+                \         /
+                 ▼       ▼
+                 dashboard
 ```
-
-The execution proceeds as:
 
 ```text
               ┌─────────┐
@@ -718,7 +731,7 @@ The execution proceeds as:
              └─────────────┘
 ```
 
-Only the branches that have no unresolved dependency can run at each stage.
+Only branches with no unresolved dependency run at each stage.
 
 ---
 
@@ -730,9 +743,7 @@ Dependencies normally describe the upstream relationship:
 users ──► userCount
 ```
 
-The pool can also use the reverse relationship when a query succeeds and dependent refresh is requested.
-
-For example:
+The pool can also use the reverse relationship when dependent refresh is requested:
 
 ```js
 await users.refresh({
@@ -740,8 +751,6 @@ await users.refresh({
 });
 ```
 
-Conceptually:
-
 ```text
 users
   │
@@ -750,52 +759,25 @@ users
   └──► userPosts
 ```
 
-A successful refresh of `users` can schedule its reverse dependents:
+| Option | Role |
+| --- | --- |
+| `dependsOn` | Declares what **this** query requires (graph edge). |
+| `dependents: true` | Whether queries that **require this query** should be scheduled in the plan. |
 
-```text
-users
-  │
-  ├──► userCount
-  │
-  └──► userPosts
-```
-
-This is useful when upstream data changes and derived queries need to be refreshed.
-
-The `dependents` option is intentionally separate from `dependsOn`:
-
-- `dependsOn` declares what this query requires.
-- `dependents` controls whether queries that require this query should be scheduled.
+Invalidating a key alone does not expand dependents; expansion is a property of the **refresh plan**. See [Invalidation](./invalidation.md).
 
 ---
 
 ## Dependencies and Mutations
 
-Mutations commonly invalidate queries that appear upstream in a dependency graph.
-
-For example:
-
-```text
-users
-  │
-  ├──► userCount
-  │
-  └──► userPosts
-```
-
-A mutation can invalidate `users`:
+Mutations are **not** nodes in the query dependency graph. They affect the graph through invalidation after a successful write.
 
 ```js
 const createUser = pool.mutation("createUser", {
   execute: createUserRequest,
-
   invalidates: ["users"],
 });
 ```
-
-After successful mutation execution, the pool invalidates the specified query and performs the configured refresh behavior.
-
-A mutation can also request dependent propagation:
 
 ```js
 const updateUser = pool.mutation("updateUser", {
@@ -805,14 +787,23 @@ const updateUser = pool.mutation("updateUser", {
     {
       key: "users",
       dependents: true,
+      force: true,
     },
   ],
 });
 ```
 
-This allows the dependency graph to propagate freshness changes through related queries.
+```text
+mutation success
+      │
+      ▼
+invalidate targets
+      │
+      ▼
+schedule refresh plans  ← same plan / runSelf rules
+```
 
-See [Invalidation](./invalidation.md) for the complete invalidation model.
+See [Invalidation](./invalidation.md) and [Mutations](./mutations.md).
 
 ---
 
@@ -820,29 +811,21 @@ See [Invalidation](./invalidation.md) for the complete invalidation model.
 
 Dependencies do not imply that every upstream query must perform a network request.
 
-If an upstream query has a fresh cache entry:
+If an upstream query has a fresh cache entry, a plan can satisfy it without calling `source` / module:
 
 ```js
 const users = pool.query("users", {
   source: loadUsers,
-
-  cache: {
-    ttl: 60_000,
-  },
+  cache: { ttl: 60_000 },
 });
 ```
-
-a dependency plan can satisfy `users` from its fresh cache.
-
-Conceptually:
 
 ```text
 execute dashboard
        │
        ▼
-     users
+    users
        │
-       ▼
   cache fresh?
     │       │
    yes      no
@@ -856,19 +839,13 @@ execute dashboard
     dashboard
 ```
 
-Thus, dependency execution and cache policy remain separate concerns.
-
-The graph determines what must be available; caching determines whether that availability requires new execution.
-
-See [Caching](./caching.md).
+The graph determines **what must be available**; caching determines **whether availability requires new work**. Force bypasses the fresh-cache short-circuit. See [Caching](./caching.md).
 
 ---
 
 ## Dependencies and Cancellation
 
-A dependency plan can also be cancelled.
-
-For example:
+A dependency plan can be cancelled:
 
 ```js
 const request = dashboard.refresh();
@@ -878,17 +855,15 @@ dashboard.cancel();
 await request;
 ```
 
-Cancellation supersedes the relevant in-flight execution and propagates through the execution machinery without treating cancellation as an ordinary application error.
+Cancellation supersedes the relevant in-flight execution. An abort should not be treated as an ordinary application/server failure.
 
-This distinction matters because an aborted dependency should not be confused with a server failure.
-
-See [Query Cancellation](./cancellation.md).
+Always pass the provided `AbortSignal` into cancellable work. See [Query Cancellation](./cancellation.md).
 
 ---
 
 ## Registering Dependencies Safely
 
-Dependencies reference query keys, so the dependency graph should use stable, unique names:
+Use stable, unique query keys:
 
 ```js
 const users = pool.query("users", {
@@ -901,17 +876,11 @@ const userCount = pool.query("userCount", {
 });
 ```
 
-Avoid generating keys dynamically unless the generated key is intentionally part of the application's query identity.
+Avoid generating keys dynamically unless that key is intentionally part of the query’s identity.
 
-The query key identifies the query throughout:
+The query key is used for dependency resolution, cache lookup, invalidation, `pool.get()`, `pool.data()`, and dependent scheduling.
 
-- dependency resolution
-- cache lookup
-- invalidation
-- `pool.get()`
-- `pool.data()`
-- mutation invalidation
-- dependent scheduling
+Re-calling `pool.query` with an existing key returns the existing handle and does **not** replace the definition or `dependsOn`.
 
 ---
 
@@ -956,8 +925,6 @@ products
        profile roles settings
 ```
 
-One upstream query can support several independent consumers.
-
 ### Fan-In
 
 ```text
@@ -966,9 +933,7 @@ profile ──────┐
 permissions ──┘
 ```
 
-Several independent queries can converge into a single dependent query.
-
-### Multi-Level Fan-Out/Fan-In
+### Multi-Level Fan-Out / Fan-In
 
 ```text
                   session
@@ -984,13 +949,11 @@ Several independent queries can converge into a single dependent query.
              summary ────────┘
 ```
 
-The Query Pool's execution planner handles these relationships rather than requiring each component to manually orchestrate them.
-
 ---
 
 ## What Dependencies Do Not Do
 
-Dependencies define execution relationships. They do not automatically:
+Dependencies define **execution** relationships. They do not automatically:
 
 - merge query data
 - transform upstream results
@@ -998,8 +961,6 @@ Dependencies define execution relationships. They do not automatically:
 - create application state
 - replace caching
 - make unrelated queries reactive to one another
-
-For example:
 
 ```js
 const userCount = pool.query("userCount", {
@@ -1011,51 +972,35 @@ const userCount = pool.query("userCount", {
 });
 ```
 
-`dependsOn` establishes:
-
-```text
-users → userCount
-```
-
-The `source` function still determines what `userCount.data` actually becomes.
+`dependsOn` establishes `users → userCount`. The `source` still determines what `userCount.data` becomes.
 
 ---
 
 ## Dependency Graph vs State Graph
 
-It is useful to distinguish the execution graph from the reactive state graph.
-
-The dependency graph:
+**Dependency graph:**
 
 ```text
 users ──► userCount
 ```
 
-means:
+means: `userCount` requires `users` to be executed or satisfied before its own execution.
 
-> `userCount` requires `users` to be executed or satisfied before its own execution.
-
-The reactive relationship:
+**Reactive relationship:**
 
 ```text
 users.data ──► consumer
 ```
 
-means:
+means: a reactive consumer read `users.data` and will respond when that value changes.
 
-> a reactive consumer has read `users.data` and will respond when that value changes.
-
-These are related but independent mechanisms.
-
-A dependency does not require a component to read the upstream query directly, and reading query data does not automatically create a `dependsOn` relationship.
+These are independent. Reading query data does not create a `dependsOn` edge; declaring `dependsOn` does not require a component to subscribe to the upstream handle.
 
 ---
 
 ## Best Practices
 
 ### Keep dependencies about execution
-
-Good:
 
 ```js
 const profile = pool.query("profile", {
@@ -1064,136 +1009,79 @@ const profile = pool.query("profile", {
 });
 ```
 
-The dependency expresses a real prerequisite.
-
 ### Avoid artificial dependencies
 
-Do not add:
-
-```js
-dependsOn: ["users"]
-```
-
-merely because two queries happen to be used by the same component.
-
-A dependency should represent an actual execution requirement.
+Do not add `dependsOn: ["users"]` merely because two queries appear in the same component. A dependency should be a real execution prerequisite.
 
 ### Keep graphs directed and acyclic
 
-Prefer:
-
-```text
-A → B → C
-```
-
-over trying to make queries mutually dependent.
+Prefer `A → B → C` over mutual dependence.
 
 ### Use cache for freshness, not dependencies
 
-A dependency answers:
-
-> What must be available before this query runs?
-
-Cache answers:
-
-> Can that value be reused without executing again?
-
-They solve different problems.
+| Question | Mechanism |
+| --- | --- |
+| What must be available before this runs? | `dependsOn` / plan |
+| Can that value be reused without executing again? | Cache TTL |
+| Must this run ignore reuse right now? | `force` |
 
 ### Let the pool coordinate concurrency
 
-Avoid manually sequencing independent branches:
-
-```js
-await a.fetch();
-await b.fetch();
-await c.fetch();
-```
-
-when the real relationship is:
-
-```text
-      ┌──► A ──┐
-root ─┤        ├──► D
-      └──► B ──┘
-```
-
-Declare the graph and allow the execution planner to schedule independent branches together.
+Avoid manually sequencing independent branches when the graph already expresses fan-out/fan-in. Declare edges and let waves schedule parallel work.
 
 ---
 
 ## Dependency Execution Model
 
-The complete model can be summarized as:
-
 ```text
-            requested query
-                   │
-                   ▼
-          ┌──────────────────┐
-          │ Build execution  │
-          │      plan        │
-          └────────┬─────────┘
-                   │
-          resolve dependencies
-                   │
-                   ▼
-          ┌──────────────────┐
-          │ Detect cycles    │
-          └────────┬─────────┘
-                   │
-                   ▼
-          ┌──────────────────┐
-          │  Ready nodes     │
-          │     in wave      │
-          └────────┬─────────┘
-                   │
-          ┌────────┴───────┐
-          ▼                ▼
-      runSelf(A)       runSelf(B)
-          │                │
-          └────────┬───────┘
-                   ▼
-            next ready wave
-                   │
-                   ▼
-            runSelf(target)
-                   │
-                   ▼
-                success
-                   │
-                   ▼
-          optional dependents
+                    requested query
+                          │
+                          ▼
+                 ┌──────────────────┐
+                 │ Build execution  │
+                 │      plan        │
+                 └────────┬─────────┘
+                          │
+                 resolve dependencies
+                          │
+                          ▼
+                 ┌──────────────────┐
+                 │ Detect cycles    │
+                 └────────┬─────────┘
+                          │
+                          ▼
+                 ┌──────────────────┐
+                 │  Ready nodes     │
+                 │     in wave      │
+                 └────────┬─────────┘
+                          │
+                  ┌───────┴────────┐
+                  ▼                ▼
+              runSelf(A)       runSelf(B)
+                  │                │
+                  └───────┬────────┘
+                          ▼
+                   next ready wave
+                          │
+                          ▼
+                   runSelf(target)
+                          │
+                          ▼
+                       success
+                          │
+                          ▼
+                optional dependents
 ```
 
-The key separation is:
-
 ```text
-  dependsOn
-      │
-      ▼
-  execution graph
-
-
-    cache
-      │
-      ▼
-  freshness / reuse
-
-
-    force
-      │
-      ▼
-  execution override
-
-
-  dependents
-      │
-      ▼
-  reverse refresh cascade
+dependsOn   →  execution graph
+cache       →  freshness / reuse
+force       →  execution override
+dependents  →  reverse refresh cascade
+in-flight   →  concurrent promise reuse
 ```
 
-Together, these mechanisms allow the Query Pool to coordinate complex asynchronous workflows without turning dependency management into application-level request bookkeeping.
+Together, these mechanisms coordinate asynchronous workflows without turning dependency management into application-level request bookkeeping.
 
 ---
 
@@ -1201,13 +1089,13 @@ Together, these mechanisms allow the Query Pool to coordinate complex asynchrono
 
 | Goal | Guide |
 | --- | --- |
-| Understand query execution order | [Query Scheduling](./scheduling.md) |
 | Understand query state transitions | [Query Lifecycle](./lifecycle.md) |
 | Configure cache reuse | [Caching](./caching.md) |
 | Refresh stale queries | [Invalidation](./invalidation.md) |
 | Cancel dependency execution | [Query Cancellation](./cancellation.md) |
-| Create queries | [Queries](./queries.md) |
+| Create queries (`fetch` / `refresh`) | [Queries](./queries.md) |
 | Coordinate writes and dependent refreshes | [Mutations](./mutations.md) |
 | Run asynchronous work in workers | [Query Pool and Workers](./workers.md) |
+| Overall architecture | [Query Pool Overview](./overview.md) |
 
 The [Query Pool API Reference](../api/query-pool.md) remains the authoritative source for exact signatures and option details.

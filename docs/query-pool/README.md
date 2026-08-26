@@ -29,10 +29,9 @@ The Query Pool is intended for **server state and asynchronous work**. For share
 | **[Query Lifecycle](./lifecycle.md)** | Understand query execution states, lifecycle transitions, cancellation, reactive fields, and reset behavior. |
 | **[Query Registry](./registry.md)** | Register worker modules and make them available to module-backed queries and mutations. |
 | **[Mutations](./mutations.md)** | Perform asynchronous writes with optimistic updates, rollback, success hooks, cancellation, and automatic invalidation. |
-| **[Query Dependencies](./dependencies.md)** | Build dependency graphs with `dependsOn`, control execution order, and refresh dependent queries. |
+| **[Query Dependencies](./dependencies.md)** | Build dependency graphs with `dependsOn`, control execution order, refresh dependent queries, and understand dependency execution plans, parallel branches, in-flight reuse, and forced execution |
 | **[Caching](./caching.md)** | Configure TTL-based caching, understand freshness, and control when cached results are reused. |
 | **[Invalidation](./invalidation.md)** | Mark queries stale and refresh them after mutations or explicit invalidation. |
-| **[Query Scheduling](./scheduling.md)** | Understand dependency execution plans, parallel branches, in-flight reuse, and forced execution. |
 | **[Query Cancellation](./cancellation.md)** | Cancel in-flight queries and mutations and understand cancellation state and data preservation. |
 | **[Query Pool and Workers](./workers.md)** | Execute module-backed queries and mutations through the Main Worker and Compute Worker Pool. |
 | **[Transferable Data](./transfers.md)** | Use Transferable Object transport for large binary inputs and understand ownership and caching implications. |
@@ -345,7 +344,7 @@ const updatePost = pool.mutation("updatePost", {
   onSuccess(result, input, ctx) {
     // Optional post-success work.
   },
-  
+
   invalidates: ["posts"],
 });
 ```
@@ -415,7 +414,7 @@ Dependency cycles are rejected.
 
 Dependencies also interact with invalidation: a successful mutation or explicit invalidation can optionally propagate refreshes through dependent queries.
 
-See [Query Dependencies](./dependencies.md) for the execution-plan model and [Query Scheduling](./scheduling.md) for scheduling behavior.
+See [Query Dependencies](./dependencies.md) for the execution-plan model, and scheduling behavior.
 
 ---
 
@@ -662,10 +661,9 @@ See [Udodi Store](../store/README.md) for application state management.
 | Understand query states and transitions | [Query Lifecycle](./lifecycle.md) |
 | Register worker modules | [Query Registry](./registry.md) |
 | Perform asynchronous writes | [Mutations](./mutations.md) |
-| Connect queries into an execution graph | [Query Dependencies](./dependencies.md) |
+| Understand execution order, and connect queries into an execution graph | [Query Dependencies](./dependencies.md) |
 | Control cache freshness | [Caching](./caching.md) |
 | Refresh stale queries | [Invalidation](./invalidation.md) |
-| Understand execution order | [Query Scheduling](./scheduling.md) |
 | Stop in-flight work | [Query Cancellation](./cancellation.md) |
 | Run work outside the UI thread | [Query Pool and Workers](./workers.md) |
 | Transfer large binary values efficiently | [Transferable Data](./transfers.md) |

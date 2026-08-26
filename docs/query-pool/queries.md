@@ -809,7 +809,7 @@ The independent branches can execute in parallel:
 
 Cycles in `dependsOn` are rejected when the execution plan is built.
 
-See [Query Dependencies](./dependencies.md) and [Query Scheduling](./scheduling.md).
+See [Query Dependencies](./dependencies.md).
 
 ---
 
@@ -1216,8 +1216,7 @@ users.reset();
 | Goal | Guide |
 | --- | --- |
 | Understand query lifecycle and status | [Query Lifecycle](./lifecycle.md) |
-| Connect queries with dependencies | [Query Dependencies](./dependencies.md) |
-| Understand execution order | [Query Scheduling](./scheduling.md) |
+| Understand execution order, and connect queries with dependencies | [Query Dependencies](./dependencies.md) |
 | Configure TTL caching | [Caching](./caching.md) |
 | Invalidate and refresh queries | [Invalidation](./invalidation.md) |
 | Cancel asynchronous work | [Query Cancellation](./cancellation.md) |
