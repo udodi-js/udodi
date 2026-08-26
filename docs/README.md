@@ -142,7 +142,6 @@ Queries expose reactive state such as **`data`**, **`loading`**, **`error`**, an
 * [Query Dependencies](./query-pool/dependencies.md)
 * [Caching](./query-pool/caching.md)
 * [Invalidation](./query-pool/invalidation.md)
-* [Query Scheduling](./query-pool/scheduling.md)
 * [Query Cancellation](./query-pool/cancellation.md)
 * [Query Pool and Workers](./query-pool/workers.md)
 * [Transferable Data](./query-pool/transfers.md)

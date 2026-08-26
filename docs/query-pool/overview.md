@@ -361,7 +361,7 @@ executeExecutionPlan(key)
 
 Upstream dependency failures are represented as `QueryDependencyError` for dependent nodes so that the root query can retain its original error, including an `AbortError`.
 
-See [Query Dependencies](./dependencies.md) and [Query Scheduling](./scheduling.md).
+See [Query Dependencies](./dependencies.md).
 
 ---
 
@@ -691,10 +691,9 @@ Transferable transport can avoid structured-clone costs for large binary values,
 | Understand query status and transitions | [Query Lifecycle](./lifecycle.md) |
 | Register worker modules | [Query Registry](./registry.md) |
 | Perform asynchronous writes | [Mutations](./mutations.md) |
-| Connect queries into a dependency graph | [Query Dependencies](./dependencies.md) |
+| Connect queries into a dependency graph, and understand dependency execution order | [Query Dependencies](./dependencies.md) |
 | Control cache freshness | [Caching](./caching.md) |
 | Invalidate and refresh queries | [Invalidation](./invalidation.md) |
-| Understand dependency execution order | [Query Scheduling](./scheduling.md) |
 | Stop in-flight work | [Query Cancellation](./cancellation.md) |
 | Run work off the UI thread | [Query Pool and Workers](./workers.md) |
 | Transfer large binary values | [Transferable Data](./transfers.md) |

@@ -19,7 +19,7 @@ This guide explains:
 
 For creating queries and using `fetch()` / `refresh()`, see [Queries](./queries.md).
 
-For dependency execution and in-flight reuse, see [Query Dependencies](./dependencies.md) and [Query Scheduling](./scheduling.md).
+For dependency execution and in-flight reuse, see [Query Dependencies](./dependencies.md).
 
 For abort behavior, see [Query Cancellation](./cancellation.md).
 
@@ -252,7 +252,7 @@ The pool can reuse the active execution rather than treating both calls as indep
 
 Use `force` when a new execution must supersede the existing in-flight work.
 
-See [Query Scheduling](./scheduling.md) for the complete execution and deduplication model.
+See [Query Dependencies](./dependencies.md) for the complete execution and deduplication model.
 
 ---
 
@@ -1075,8 +1075,7 @@ The practical rules are:
 | --- | --- |
 | Create queries and use `fetch()` / `refresh()` | [Queries](./queries.md) |
 | Abort in-flight work | [Query Cancellation](./cancellation.md) |
-| Build dependency graphs | [Query Dependencies](./dependencies.md) |
-| Understand execution order and in-flight reuse | [Query Scheduling](./scheduling.md) |
+| Build dependency graphs, understand execution order and in-flight reuse | [Query Dependencies](./dependencies.md) |
 | Configure TTL and cache reuse | [Caching](./caching.md) |
 | Mark queries stale and trigger refresh | [Invalidation](./invalidation.md) |
 | Perform asynchronous writes | [Mutations](./mutations.md) |
