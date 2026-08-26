@@ -14,7 +14,7 @@ Caching is:
 
 Caching determines whether a query needs to execute. It does not replace the query lifecycle, dependency graph, or reactive state system.
 
-For stale marking and mutation-driven refresh, see [Invalidation](./invalidation.md). For execution plans, force, and in-flight reuse, see [Query Scheduling](./scheduling.md).
+For stale marking, mutation-driven refresh, execution plans, force, and in-flight reuse, see [Invalidation](./invalidation.md).
 
 Query caching allows the Query Pool to reuse successful query results for a limited period, avoiding repeated execution of the query's `source` or worker module when the same query is executed again.
 
@@ -221,7 +221,7 @@ This distinction is important:
 
 > Dependencies determine what must be considered and in what order. Cache determines whether an individual query actually needs to perform its work.
 
-See [Query Dependencies](./dependencies.md) and [Query Scheduling](./scheduling.md).
+See [Query Dependencies](./dependencies.md).
 
 ---
 
@@ -424,7 +424,7 @@ forced execution
 - `invalidate()` marks the entry stale.
 - `force` requests execution without relying on a fresh cache entry.
 
-`force` also participates in the Query Pool's in-flight execution rules. See [Query Scheduling](./scheduling.md).
+`force` also participates in the Query Pool's in-flight execution rules. See [Query Dependencies](./dependencies.md).
 
 ---
 
@@ -494,7 +494,7 @@ So the two mechanisms operate at different times:
                   execute work
 ```
 
-See [Query Scheduling](./scheduling.md).
+See [Query Dependencies](./dependencies.md).
 
 ---
 
@@ -1107,8 +1107,7 @@ The distinction between these mechanisms is what allows the Query Pool to remain
 | Topic | Guide |
 | --- | --- |
 | Mark queries stale and refresh them | [Invalidation](./invalidation.md) |
-| Understand execution plans and force | [Query Scheduling](./scheduling.md) |
-| Combine caching with dependencies | [Query Dependencies](./dependencies.md) |
+| Understand execution, combine caching with dependencies plans and force | [Query Dependencies](./dependencies.md) |
 | Understand status and data preservation | [Query Lifecycle](./lifecycle.md) |
 | Perform writes that invalidate queries | [Mutations](./mutations.md) |
 | Create and execute queries | [Queries](./queries.md) |
