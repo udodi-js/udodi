@@ -143,7 +143,7 @@ Importantly, independent dependencies do not need to execute sequentially:
 
 ```text
              ┌──► session ──────┐
-dashboard ───┤                   ├──► dashboard
+dashboard ───┤                  ├──► dashboard
              └──► permissions ──┘
 
 

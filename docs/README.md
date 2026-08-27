@@ -152,7 +152,7 @@ Queries expose reactive state such as **`data`**, **`loading`**, **`error`**, an
 
 ### Overlay
 
-Udodi includes a built-in **Overlay system** for managing modal, dialog, and other layered UI experiences through **`openModal`**, **`closeModal`**, and **`closeTopModal`**.
+Udodi includes a built-in **Overlay system** for managing modal, dialog, and other layered UI experiences through **`openModal`**, and **`closeTopModal`**.
 
 `openModal` returns a **Promise** that resolves with the value provided when the overlay closes, making it straightforward to coordinate overlay interactions with application logic.
 

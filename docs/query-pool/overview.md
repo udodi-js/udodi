@@ -6,15 +6,15 @@ It owns the lifecycle of work tied to remote data, background computation, reque
 
 A Query Pool coordinates:
 
-- **Queries** — asynchronous reads with reactive state, caching, and refresh
-- **Mutations** — asynchronous writes with optimistic updates, rollback, and invalidation
-- **Dependencies** — directed execution graphs between related queries
-- **In-flight deduplication** — reuse of work that is already running
-- **Caching** — optional TTL-based reuse of successful results
-- **Invalidation** — marking related queries stale and refreshing them when appropriate
-- **Cancellation** — aborting in-flight queries and mutations
-- **Worker execution** — optional module-backed work through a Main Worker and Compute Worker Pool
-- **Transferable transport** — optional movement of transferable objects across worker boundaries without structured cloning
+- **Queries**: asynchronous reads with reactive state, caching, and refresh
+- **Mutations**: asynchronous writes with optimistic updates, rollback, and invalidation
+- **Dependencies**: directed execution graphs between related queries
+- **In-flight deduplication**: reuse of work that is already running
+- **Caching**: optional TTL-based reuse of successful results
+- **Invalidation**: marking related queries stale and refreshing them when appropriate
+- **Cancellation**: aborting in-flight queries and mutations
+- **Worker execution**: optional module-backed work through a Main Worker and Compute Worker Pool
+- **Transferable transport**: optional movement of transferable objects across worker boundaries without structured cloning
 
 Query and mutation handles expose reactive fields such as `data`, `error`, `loading`, and `status`. Udodi components, effects, and computed values can therefore react directly to asynchronous execution without manually coordinating request state.
 
