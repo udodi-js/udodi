@@ -52,7 +52,7 @@ This is the foundation of fine-grained updates: the runtime does not re-evaluate
 | **Reactive collections** | Arrays, Maps, and Sets that notify on structural mutation |
 | **`touch()`** | Explicitly notify dependents after an in-place nested mutation |
 
-These primitives compose. Component `state()`, `computed`, watchers, and template directives are built on top of them.
+These primitives form the foundation for component `state()`, `computed` properties, watchers, and template directives.
 
 ---
 
@@ -72,10 +72,10 @@ const state = reactive({
 });
 
 // Tracked — replaces the top-level property
-state.user = { name: "Grace" };
+state.user = { name: "Attamah" };
 
 // Not tracked automatically — nested plain object
-state.user.name = "Grace";
+state.user.name = "Attamah";
 touch(state, "user"); // notify dependents of `user`
 
 // Tracked — structural array mutation
