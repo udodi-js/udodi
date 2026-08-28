@@ -60,7 +60,7 @@ setCount(1); // effect runs again
 ```
 
 - **get** — returns the current value and, if an effect is active, registers that effect as a subscriber.
-- **set** — updates the value when it is not `Object.is`-equal to the previous one, then notifies subscribers.
+- **set** — updates the value when it is not equal to the previous one, then notifies subscribers.
 - **trigger** — notifies subscribers **without** changing the value (useful after in-place mutation of a nested structure held in the signal).
 
 Signals are the substrate under reactive objects and computed values.
@@ -116,7 +116,7 @@ Behavior:
 
 - First access creates an internal effect that runs the computation.
 - The result is cached.
-- When a dependency changes, the computation re-runs; if the result is not `Object.is`-equal to the cache, consumers are notified.
+- When a dependency changes, the computation re-runs; if the result is not equal to the cache using `Object.is`, consumers are notified.
 - Consumers of the computed (other effects/computeds) track the computed itself, not every upstream signal.
 
 Computed values are used for component `computed: { ... }` options and anywhere a derived value should stay in sync without manual invalidation.
