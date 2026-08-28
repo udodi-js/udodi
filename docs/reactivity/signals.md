@@ -19,7 +19,7 @@ const [count, setCount, triggerCount] = createSignal(0);
 | Function | Role |
 |----------|------|
 | **get** | Returns the current value; registers the active effect as a subscriber |
-| **set** | Updates the value when it is not `Object.is`-equal, then notifies subscribers |
+| **set** | Performs an `Object.is` equality check before updating the value and notifying subscribers |
 | **trigger** | Notifies subscribers **without** changing the stored value |
 
 ```js
@@ -101,10 +101,10 @@ Updates use `Object.is` for equality:
 
 | Comparison | Result |
 |------------|--------|
-| `Object.is(1, 1)` | equal — no notify |
-| `Object.is(NaN, NaN)` | equal — no notify |
-| `Object.is(0, -0)` | not equal — notify |
-| `Object.is({}, {})` | not equal — notify |
+| `Object.is(1, 1)` | Is equal; do not notify |
+| `Object.is(NaN, NaN)` | Is equal; do not notify |
+| `Object.is(0, -0)` | Is not equal, then notify |
+| `Object.is({}, {})` | Is not equal, then notify |
 
 Replacing an object with a new reference always notifies, even if the contents are identical. Mutating an object in place does **not** notify unless you call `trigger` (or `touch` on a reactive property).
 
@@ -213,7 +213,7 @@ const [get, set, trigger] = createSignal(initialValue);
 | Call | Behavior |
 |------|----------|
 | `get()` | Return value; track active effect |
-| `set(next)` | Update if not `Object.is`-equal; notify |
+| `set(next)` | Update if not equal using `Object.is`; notify |
 | `trigger()` | Notify without changing the value |
 
 Return type: `[() => any, (next: any) => void, () => void]`
