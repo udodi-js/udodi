@@ -9,6 +9,23 @@
 export as namespace Udodi;
 
 /* ================================================================== */
+/* Shared helpers                                                     */
+/* ================================================================== */
+
+/** Lifecycle status shared by queries and mutations. */
+export type AsyncStatus =
+	| "idle"
+	| "loading"
+	| "success"
+	| "error"
+	| "cancelled";
+
+/** Optional scope used to auto-dispose effects / computed values. */
+export interface EffectScope {
+	effects: Array<() => void>;
+}
+
+/* ================================================================== */
 /* Component runtime                                                  */
 /* ================================================================== */
 
@@ -21,6 +38,7 @@ export as namespace Udodi;
 export interface WatchConfig {
 	/** State keys to observe. */
 	deps: string[];
+	
 	/**
 	 * Called after a change is detected (not on the initial setup pass).
 	 * `this` is the component context.
@@ -35,8 +53,8 @@ export interface WatchConfig {
 /**
  * Definition object passed to `createComponent`.
  *
- * @typeParam TState  Shape of the reactive state object.
- * @typeParam TProps  Shape of the props accepted by the factory.
+ * @typeParam TState - Shape of the reactive state object.
+ * @typeParam TProps - Shape of the props accepted by the factory.
  *
  * @example
  * const Counter = createComponent({
@@ -55,10 +73,10 @@ export interface ComponentDefinition<
 	TProps extends Record<string, any> = Record<string, any>,
 > {
 	/**
-   * Display name used in warnings, errors, and debug messages.
-   * When omitted or empty, the runtime uses `"Unknown"`.
-   */
-  name?: string;
+	 * Display name used in warnings, errors, and debug messages.
+	 * When omitted or empty, the runtime uses `"Unknown"`.
+	 */
+	name?: string;
 
 	/**
 	 * Factory that returns a **fresh** state object per instance.
@@ -71,7 +89,10 @@ export interface ComponentDefinition<
 	 * Derived values. Each function receives the public component context
 	 * and is turned into a lazy computed getter.
 	 */
-	computed?: Record<string, (ctx: ComponentContext<TState, TProps>) => any>;
+	computed?: Record<
+		string,
+		(ctx: ComponentContext<TState, TProps>) => any
+	>;
 
 	/**
 	 * Interceptors run before a state write.
@@ -96,9 +117,9 @@ export interface ComponentDefinition<
 	watch?: Record<string, WatchConfig>;
 
 	/**
-   * The CSS string. Prefer **css\`...\`** for syntax highlighting
-   * and formatting.
-   */
+	 * The CSS string. Prefer **css\`...\`** for syntax highlighting
+	 * and formatting.
+	 */
 	style?: string;
 
 	/**
@@ -147,7 +168,7 @@ export type ComponentContext<
 		 */
 		readonly ud: {
 			forms: Record<string, any>;
-			[key: string]: any;
+			readonly [key: string]: any;
 		};
 	};
 
@@ -164,7 +185,6 @@ export interface ComponentInstance {
 	publicContext: ComponentContext;
 	onMount(root: HTMLElement): void;
 	onUnmount(root: HTMLElement): void;
-	[key: string]: any;
 }
 
 /**
@@ -174,7 +194,7 @@ export interface ComponentInstance {
  */
 export type ComponentFactory<
 	TProps extends Record<string, any> = Record<string, any>,
-> = (props?: TProps) => string; // placeholder HTML string
+> = (props?: TProps) => string;
 
 /**
  * Create a reusable component factory.
@@ -210,7 +230,10 @@ export function createComponent<
  * @example
  * template: () => html`<div ⁣@text="title"></div>`
  */
-export const html: (strings: TemplateStringsArray, ...values: any[]) => string;
+export const html: (
+	strings: TemplateStringsArray,
+	...values: any[]
+) => string;
 
 /**
  * CSS tagged template for component `style` fields.
@@ -221,7 +244,10 @@ export const html: (strings: TemplateStringsArray, ...values: any[]) => string;
  *   :scope { color: tomato; }
  * `
  */
-export const css: (strings: TemplateStringsArray, ...values: any[]) => string;
+export const css: (
+	strings: TemplateStringsArray,
+	...values: any[]
+) => string;
 
 /**
  * Result of a successful `render()` call.
@@ -250,7 +276,7 @@ export interface MountedInstance {
  * instance.unmount();
  */
 export function render(
-	placeholder: any,
+	placeholder: string,
 	target: HTMLElement | string,
 ): MountedInstance;
 
@@ -259,6 +285,9 @@ export function render(
  * Clears the container’s contents and runs registered cleanups.
  *
  * @param target - Element or CSS selector
+ *
+ * @example
+ * unmount("#app");
  */
 export function unmount(target: HTMLElement | string): void;
 
@@ -322,36 +351,20 @@ export interface OpenModalOptions {
  *   // user chose Yes
  * }
  */
-export function openModal(
-	renderFn: (close: (result?: any) => void) => string,
+export function openModal<T = any>(
+	renderFn: (close: (result?: T) => void) => string,
 	options?: OpenModalOptions,
-): Promise<any>;
-
-/**
- * Close a specific modal entry (advanced / internal use).
- */
-export function closeModal(modal: any, result?: any): void;
+): Promise<T | undefined>;
 
 /**
  * Close the top-most modal.
+ *
+ * @param result - Value forwarded to the Promise returned by `openModal`
+ *
+ * @example
+ * closeTopModal(false);
  */
 export function closeTopModal(result?: any): void;
-
-/* ================================================================== */
-/* App refresh                                                        */
-/* ================================================================== */
-
-/**
- * Register a callback that runs on the next `refreshApp()` call.
- * @returns Unsubscribe function
- */
-export function onAppRefresh(callback: () => void): () => void;
-
-/**
- * Schedule a microtask that invokes all registered refresh callbacks.
- * Useful when external state changes require a coordinated re-render.
- */
-export function refreshApp(): void;
 
 /* ================================================================== */
 /* Reactivity                                                         */
@@ -407,7 +420,7 @@ export function touch(proxy: object, key: PropertyKey): boolean;
  *   { count: 0, age: 18 },
  *   {
  *     interceptors: {
- *       age(v) { return Math.max(0, v); }
+ *       age(v) { return Math.max(0, Number(v)); }
  *     }
  *   }
  * );
@@ -432,10 +445,7 @@ export function reactive<T extends object>(
  * const fullName = computed(() => `${state.first} ${state.last}`);
  * effect(() => console.log(fullName()));
  */
-export function computed<T>(
-	fn: () => T,
-	scope?: { effects: Array<() => void> },
-): () => T;
+export function computed<T>(fn: () => T, scope?: EffectScope): () => T;
 
 /**
  * Run a reactive effect. Any signals/computed values read inside
@@ -447,13 +457,11 @@ export function computed<T>(
  * const stop = effect(() => {
  *   console.log("count is", state.count);
  * });
+ * 
  * // later
  * stop();
  */
-export function effect(
-	fn: () => void,
-	scope?: { effects: Array<() => void> },
-): () => void;
+export function effect(fn: () => void, scope?: EffectScope): () => void;
 
 /**
  * Opaque marker returned by `bindProp()`.
@@ -483,30 +491,47 @@ export function bindProp<T>(getter: () => T): ReactiveBinding<T>;
 /**
  * Context object passed to every store action
  * (global actions and module actions share the same shape).
+ *
+ * @typeParam TState - Map of key → value for this action’s state scope
  */
-export interface ActionContext {
+export interface ActionContext<
+	TState extends Record<string, any> = Record<string, any>,
+> {
 	/** Reactive state proxy for the current scope. */
-	state: Record<string, any>;
+	state: TState;
+	get<K extends keyof TState & string>(key: K): TState[K];
 	get(key: string): any;
+	set<K extends keyof TState & string>(key: K, value: TState[K]): void;
 	set(key: string, value: any): void;
+	update<K extends keyof TState & string>(
+		key: K,
+		fn: (prev: TState[K]) => TState[K],
+	): void;
 	update(key: string, fn: (prev: any) => any): void;
 	touch(key: string): boolean;
-	select(
-		selector: (storeOrCtx: any) => any,
-		scope?: { effects: Function[] },
-	): () => any;
+	select<T>(
+		selector: (storeOrCtx: ActionContext<TState>) => T,
+		scope?: EffectScope,
+	): () => T;
 }
 
 /**
  * Definition for a namespaced store module registered via `defineStore`.
+ *
+ * @typeParam TState - Initial state shape for the module
  */
-export interface StoreModuleDefinition {
+export interface StoreModuleDefinition<
+	TState extends Record<string, any> = Record<string, any>,
+> {
 	/** Initial state values. */
-	state?: Record<string, any>;
+	state?: TState;
 	/** Action handlers; receive `(ctx, payload)`. */
-	actions?: Record<string, (ctx: ActionContext, payload?: any) => any>;
+	actions?: Record<
+		string,
+		(ctx: ActionContext<TState>, payload?: any) => any
+	>;
 	/** Cleanup hook called when the module is destroyed. */
-	cleanup?: (api: any) => void;
+	cleanup?: (api: StoreModuleApi<TState>) => void;
 }
 
 /**
@@ -537,8 +562,8 @@ export interface PersistOptions {
 	/** Called when an IndexedDB operation fails. */
 	onError?: (error: unknown) => void;
 	/**
-	 * Internal key prefix (used by namespaced stores).
-	 * Prefer letting `createNamespace` / `defineStore` set this.
+	 * Internal key prefix (used by namespaced store modules).
+	 * Prefer letting `defineStore` set this.
 	 */
 	_prefix?: string;
 }
@@ -570,7 +595,20 @@ export interface PersistController {
 }
 
 /**
+ * Options for `store.dispatch` / module `dispatch`.
+ */
+export interface DispatchOptions {
+	/** Throw when the action is not registered. */
+	throwOnMissing?: boolean;
+	/** Stricter missing-action behavior used by some module paths. */
+	strict?: boolean;
+}
+
+/**
  * Global key-value reactive store.
+ *
+ * Values are untyped at the global surface because keys are free-form
+ * strings. Prefer `defineStore` when you want a typed state shape.
  *
  * @example
  * store.set("user", { name: "Ada" });
@@ -581,7 +619,7 @@ export interface PersistController {
  * });
  * await store.dispatch("login", { name: "Ada" });
  */
-export const store: {
+export interface StoreApi {
 	get(key: string): any;
 	set(key: string, value: any): void;
 	update(key: string, fn: (prev: any) => any): void;
@@ -598,74 +636,81 @@ export const store: {
 	dispatch(
 		name: string,
 		payload?: any,
-		options?: { throwOnMissing?: boolean; strict?: boolean },
+		options?: DispatchOptions,
 	): Promise<any> | undefined;
 	hasAction(name: string): boolean;
 	deleteAction(name: string): void;
 
-	select(
-		selector: (s: typeof store) => any,
-		scope?: { effects: Function[] },
-	): () => any;
-	subscribe(key: string, cb: (next: any, prev: any) => void): () => void;
-	persist(keys: string | string[], options?: PersistOptions): PersistController;
-};
-
-/**
- * Run a function inside a batch transaction.
- * State writes are deferred until the batch ends.
- */
-export function batch<T>(fn: () => T): T;
-
-/**
- * Namespaced view of the global store.
- * Keys and action names are automatically prefixed with `"ns:"`.
- */
-export interface NamespaceApi {
-	get(key: string): any;
-	set(key: string, value: any): void;
-	update(key: string, fn: (prev: any) => any): void;
-	touch(key: string): boolean;
-	delete(key: string): void;
-	has(key: string): boolean;
-	subscribe(key: string, cb: (next: any, prev: any) => void): () => void;
-	dispatch(
-		action: string,
-		payload?: any,
-		options?: { throwOnMissing?: boolean; strict?: boolean },
-	): Promise<any> | undefined;
-	select(
-		selector: (ns: NamespaceApi) => any,
-		scope?: { effects: Function[] },
-	): () => any;
+	select<T>(selector: (s: StoreApi) => T, scope?: EffectScope): () => T;
+	subscribe(
+		key: string,
+		cb: (next: any, prev: any) => void,
+	): () => void;
 	persist(keys: string | string[], options?: PersistOptions): PersistController;
 }
 
 /**
- * Create a namespaced helper around the global store.
- * Keys are automatically prefixed with `"ns:"`.
+ * Global key-value reactive store.
  *
  * @example
- * const user = createNamespace("user");
- * user.set("name", "Ada");          // store key = "user:name"
- * user.dispatch("login", payload);  // action  = "user:login"
+ * store.set("theme", "dark");
+ * const theme = store.get("theme");
  */
-export function createNamespace(ns: string): NamespaceApi;
+export const store: StoreApi;
+
+/**
+ * Run a function inside a batch transaction.
+ * State writes are deferred until the batch ends.
+ *
+ * @example
+ * batch(() => {
+ *   store.set("a", 1);
+ *   store.set("b", 2);
+ * }); // subscribers notified once
+ */
+export function batch<T>(fn: () => T): T;
 
 /**
  * Public API of a module registered with `defineStore`.
+ *
+ * @typeParam TState - Module state shape
  */
-export interface StoreModuleApi extends NamespaceApi {
+export interface StoreModuleApi<
+	TState extends Record<string, any> = Record<string, any>,
+> {
 	/** Reactive state proxy for this module’s keys. */
-	state: Record<string, any>;
+	state: TState;
+
+	get<K extends keyof TState & string>(key: K): TState[K];
+	get(key: string): any;
+	set<K extends keyof TState & string>(key: K, value: TState[K]): void;
+	set(key: string, value: any): void;
+	update<K extends keyof TState & string>(
+		key: K,
+		fn: (prev: TState[K]) => TState[K],
+	): void;
+	update(key: string, fn: (prev: any) => any): void;
+	touch(key: string): boolean;
+	delete(key: string): void;
+	has(key: string): boolean;
+	subscribe(
+		key: string,
+		cb: (next: any, prev: any) => void,
+	): () => void;
+	dispatch(
+		action: string,
+		payload?: any,
+		options?: DispatchOptions,
+	): Promise<any> | undefined;
 	/**
 	 * Create a lazily computed selector over module state.
 	 * The selector receives `(stateProxy, moduleApi)`.
 	 */
-	select(
-		selector: (state: Record<string, any>, api: StoreModuleApi) => any,
-		scope?: { effects: Function[] },
-	): () => any;
+	select<T>(
+		selector: (state: TState, api: StoreModuleApi<TState>) => T,
+		scope?: EffectScope,
+	): () => T;
+	persist(keys: string | string[], options?: PersistOptions): PersistController;
 	/** Destroy the module and run its cleanup hooks. */
 	destroy(): void;
 }
@@ -677,23 +722,36 @@ export interface StoreModuleApi extends NamespaceApi {
  * @example
  * const counter = defineStore("counter", {
  *   state: { value: 0 },
+ * 
  *   actions: {
- *     increment(ctx) { ctx.update("value", v => v + 1); }
+ *     increment(ctx) { ctx.update("value", v => (v as number) + 1); }
  *   }
  * });
  *
- * counter.state.value;               // reactive read
+ * counter.state.value;  // reactive read
  * await store.dispatch("counter:increment");
  */
-export function defineStore(
-	name: string,
-	def: StoreModuleDefinition,
-): StoreModuleApi;
+export function defineStore<
+	TState extends Record<string, any> = Record<string, any>,
+>(name: string, def: StoreModuleDefinition<TState>): StoreModuleApi<TState>;
 
-/** Retrieve a previously registered store module. */
-export function useStore(name: string): StoreModuleApi | undefined;
+/**
+ * Retrieve a previously registered store module.
+ *
+ * @example
+ * const counter = useStore("counter");
+ * counter?.state.value;
+ */
+export function useStore<
+	TState extends Record<string, any> = Record<string, any>,
+>(name: string): StoreModuleApi<TState> | undefined;
 
-/** Destroy a store module and run its cleanup hooks. */
+/**
+ * Destroy a store module and run its cleanup hooks.
+ *
+ * @example
+ * destroyStore("counter");
+ */
 export function destroyStore(name: string): void;
 
 /* ================================================================== */
@@ -705,18 +763,24 @@ export function destroyStore(name: string): void;
  *
  * A query runs either locally (`source` + optional `compute`)
  * or remotely via a registered worker `module`.
+ *
+ * @typeParam TData  - Resolved data type
+ * @typeParam TInput - Optional input passed to `source` / worker
  */
-export interface QueryDefinition {
+export interface QueryDefinition<TData = any, TInput = any> {
 	/**
 	 * Local source function.
 	 * Receives an AbortSignal (and optional input) and returns raw data.
 	 */
-	source?: (signal: AbortSignal, input?: any) => any | Promise<any>;
+	source?: (
+		signal: AbortSignal,
+		input?: TInput,
+	) => TData | Promise<TData>;
 
 	/**
 	 * Optional transformation applied to the result of `source`.
 	 */
-	compute?: (data: any) => any | Promise<any>;
+	compute?: (data: TData) => TData | Promise<TData>;
 
 	/**
 	 * Key of a registered worker module.
@@ -725,7 +789,7 @@ export interface QueryDefinition {
 	module?: string;
 
 	/** Initial cached input used by `refresh()` until overridden. */
-	input?: any;
+	input?: TInput;
 
 	/** Enable streaming for worker-module execution. */
 	stream?: boolean;
@@ -759,128 +823,185 @@ export interface QueryPoolOptions {
 		/** Number of compute workers. */
 		computeWorkers?: number;
 	};
-	/** Optional shared module registry. */
-	registry?: any;
+	/**
+	 * Optional shared module registry created by the query package.
+	 * Pass the same instance when multiple pools should share modules.
+	 */
+	registry?: QueryModuleRegistry;
 }
 
 /**
- * Public handle returned for each registered query.
- * (Simplified surface – the real object has additional internal methods.)
+ * Minimal surface of a shared query-module registry.
+ * Concrete implementation lives in the query package.
  */
-export type QueryFetchOptions = {
-	input?: any;
+export interface QueryModuleRegistry {
+	register(key: string, definition: QueryModuleDefinition): QueryModuleDescriptor;
+	registerAll(
+		definitions: Record<string, QueryModuleDefinition>,
+	): QueryModuleDescriptor[];
+	get(key: string): QueryModuleDescriptor | undefined;
+	remove(key: string): boolean;
+}
+
+/** Options accepted by `QueryHandle.fetch`. */
+export interface QueryFetchOptions<TInput = any> {
+	input?: TInput;
 	transfer?: boolean;
 	force?: boolean;
+	/** When true, run upstream `dependsOn` queries before this fetch. */
 	dependencies?: boolean;
-};
+}
 
-export type QueryRefreshOptions = {
+/** Options accepted by `QueryHandle.refresh` / `QueryPool.refresh`. */
+export interface QueryRefreshOptions {
 	force?: boolean;
+	/** Also refresh downstream dependents after this query. */
 	dependents?: boolean;
-};
+}
 
+/** Entry accepted by mutation `invalidates`. */
 export type QueryInvalidateEntry =
 	| string
 	| { key: string; dependents?: boolean; force?: boolean };
 
+/**
+ * Context passed to mutation lifecycle hooks (`onMutate`, `onSuccess`, `onError`).
+ */
 export interface MutationContext {
 	/** The pool that owns this mutation. */
 	pool: QueryPool;
 	getQueryData(key: string): any;
-	setQueryData(key: string, updater: any | ((previous: any) => any)): boolean;
+	setQueryData(
+		key: string,
+		updater: any | ((previous: any) => any),
+	): boolean;
 }
 
-export interface MutationDefinition {
+/**
+ * Definition of a mutation inside a Query Pool.
+ *
+ * @typeParam TData      - Result type of a successful mutate
+ * @typeParam TVariables - Input / variables type
+ *
+ * @example
+ * const def: MutationDefinition<User, { name: string }> = {
+ *   execute: async (input, { signal }) => {
+ *     const res = await fetch("/api/users", {
+ *       method: "POST",
+ *       body: JSON.stringify(input),
+ *       signal
+ *     });
+ *     return res.json();
+ *   },
+ * 
+ *   invalidates: ["users"]
+ * };
+ */
+export interface MutationDefinition<TData = any, TVariables = any> {
 	execute?: (
-		input: any,
+		input: TVariables,
 		context: {
 			signal: AbortSignal;
 			stream: (chunk: any) => void;
 			endStream: () => void;
 		},
-	) => any | Promise<any>;
+	) => TData | Promise<TData>;
 	module?: string;
 	stream?: boolean;
 	defaults?: {
 		transfer?: boolean;
 	};
-	onMutate?: (input: any, context: MutationContext) => any | Promise<any>;
+	onMutate?: (
+		input: TVariables,
+		context: MutationContext,
+	) => any | Promise<any>;
 	onError?: (
-		error: any,
-		input: any,
+		error: unknown,
+		input: TVariables,
 		context: MutationContext,
 	) => any | Promise<any>;
 	onSuccess?: (
-		result: any,
-		input: any,
+		result: TData,
+		input: TVariables,
 		context: MutationContext,
 	) => any | Promise<any>;
 	invalidates?: QueryInvalidateEntry[];
 }
 
-export interface MutationHandle {
-	readonly data: any;
-	readonly variables: any;
+/**
+ * Public handle returned for each registered mutation.
+ *
+ * @typeParam TData      - Result type
+ * @typeParam TVariables - Input type
+ */
+export interface MutationHandle<TData = any, TVariables = any> {
+	readonly data: TData | undefined;
+	readonly variables: TVariables | undefined;
 	readonly chunks: any[];
-	readonly error: any;
+	readonly error: unknown;
 	readonly loading: boolean;
 	readonly streaming: boolean;
 	readonly streamed: boolean;
-	readonly status: "idle" | "loading" | "success" | "error" | "cancelled";
+	readonly status: AsyncStatus;
 	mutate(
-		input: any,
+		input: TVariables,
 		options?: {
 			transfer?: boolean;
 			force?: boolean;
 			skipInvalidation?: boolean;
 			awaitInvalidations?: boolean;
 		},
-	): Promise<any>;
+	): Promise<TData>;
 	cancel(): void;
 	reset(): void;
 }
 
+/** Worker module registration payload. */
 export interface QueryModuleDefinition {
 	url: string;
 	queryExport?: string;
 	defaultExport?: string | null;
-	metadata?: any;
+	metadata?: Record<string, any>;
 }
 
+/** Descriptor returned after registering a worker module. */
 export interface QueryModuleDescriptor {
 	key: string;
 	url: string;
 	queryExport: string;
 	defaultExport: string | null;
-	metadata?: any;
+	metadata?: Record<string, any>;
 	revision: number;
 }
 
-export interface QueryHandle {
-	readonly key: string;
-	readonly data: any;
+/**
+ * Public handle returned for each registered query.
+ *
+ * @typeParam TData  - Resolved data type
+ * @typeParam TInput - Input type accepted by `fetch`
+ */
+export interface QueryHandle<TData = any, TInput = any> {
+	readonly data: TData | undefined;
 	readonly chunks: any[];
-	readonly error: any;
+	readonly error: unknown;
 	readonly loading: boolean;
 	readonly streaming: boolean;
 	readonly streamed: boolean;
-	readonly status: "idle" | "loading" | "success" | "error" | "cancelled";
+	readonly status: AsyncStatus;
 
 	/**
-	 * Execute the query (and its dependency graph).
-	 * @param opts.input      - Override cached input
-	 * @param opts.transfer   - Use transferable transport
-	 * @param opts.force      - Bypass cache
-	 * @param opts.dependencies - Also refresh upstream deps
+	 * Execute the query (optionally with explicit input).
+	 * By default only this query runs; set `dependencies: true` to
+	 * load upstream `dependsOn` entries first.
 	 */
-	fetch(opts?: QueryFetchOptions): Promise<any>;
+	fetch(opts?: QueryFetchOptions<TInput>): Promise<TData>;
 
 	/**
 	 * Re-run through the dependency execution plan.
 	 * @param opts.force       - Bypass cache and restart execution.
 	 * @param opts.dependents  - Also refresh downstream dependents after this query.
 	 */
-	refresh(opts?: QueryRefreshOptions): Promise<any>;
+	refresh(opts?: QueryRefreshOptions): Promise<TData>;
 
 	/** Abort any in-flight execution. */
 	cancel(): void;
@@ -899,238 +1020,247 @@ export interface QueryHandle {
  * queries, mutations, dependency graphs, caching, and optional streaming.
  */
 export interface QueryPool {
-  /**
-   * Register a query (or return the existing handle if the key is already registered).
-   *
-   * Builds reverse dependency edges for `dependsOn` and starts an initial
-   * execution plan (dependencies first). Independent dependency branches
-   * run in parallel.
-   *
-   * @param key        - Unique query key
-   * @param definition - Local (`source` / `compute`) or worker (`module`) definition
-   * @returns Query handle with `fetch`, `refresh`, `cancel`, etc.
-   *
-   * @example
-   * pool.query("users", {
-   *   source: async (signal) => {
-   *     const res = await fetch("/api/users", { signal });
-   *     return res.json();
-   *   },
-   *   cache: { ttl: 60_000 }
-   * });
-   *
-   * pool.query("posts", {
-   *   dependsOn: ["users"],
-   *   source: async (signal) => {
-   *     const res = await fetch("/api/posts", { signal });
-   *     return res.json();
-   *   }
-   * });
-   */
-  query(key: string, definition: QueryDefinition): QueryHandle;
+	/**
+	 * Register a query (or return the existing handle if the key is already registered).
+	 *
+	 * Builds reverse dependency edges for `dependsOn` and starts an initial
+	 * execution plan (dependencies first). Independent dependency branches
+	 * run in parallel.
+	 *
+	 * @param key        - Unique query key
+	 * @param definition - Local (`source` / `compute`) or worker (`module`) definition
+	 * @returns Query handle with `fetch`, `refresh`, `cancel`, etc.
+	 *
+	 * @example
+	 * pool.query("users", {
+	 *   source: async (signal) => {
+	 *     const res = await fetch("/api/users", { signal });
+	 *     return res.json();
+	 *   },
+	 * 
+	 *   cache: { ttl: 60_000 }
+	 * });
+	 *
+	 * pool.query("posts", {
+	 *   dependsOn: ["users"],
+	 * 
+	 *   source: async (signal) => {
+	 *     const res = await fetch("/api/posts", { signal });
+	 *     return res.json();
+	 *   }
+	 * });
+	 */
+	query<TData = any, TInput = any>(
+		key: string,
+		definition: QueryDefinition<TData, TInput>,
+	): QueryHandle<TData, TInput>;
 
-  /**
-   * Read the current cached data for a query without triggering a fetch.
-   *
-   * @param key - Query key
-   * @returns Cached data, or `undefined` if the query does not exist / has no data yet
-   *
-   * @example
-   * const users = pool.data("users");
-   */
-  data(key: string): any;
+	/**
+	 * Read the current cached data for a query without triggering a fetch.
+	 *
+	 * @param key - Query key
+	 * @returns Cached data, or `undefined` if the query does not exist / has no data yet
+	 *
+	 * @example
+	 * const users = pool.data("users");
+	 */
+	data(key: string): any;
 
-  /**
-   * Write reactive query data without going through `source` / worker module.
-   *
-   * Used by mutation `onMutate` / `onError` for optimistic updates and rollbacks.
-   *
-   * @param key     - Query key
-   * @param updater - Next value, or a function `(previous) => next`
-   * @returns `true` when the query exists and was updated; otherwise `false`
-   *
-   * @example
-   * // Replace
-   * pool.setQueryData("users", [{ id: 1, name: "Ada" }]);
-   *
-   * // Update from previous
-   * pool.setQueryData("users", (prev = []) => [
-   *   ...prev,
-   *   { id: 2, name: "Grace" }
-   * ]);
-   */
-  setQueryData(
-    key: string,
-    updater: any | ((previous: any) => any)
-  ): boolean;
+	/**
+	 * Write reactive query data without going through `source` / worker module.
+	 *
+	 * Used by mutation `onMutate` / `onError` for optimistic updates and rollbacks.
+	 *
+	 * @param key     - Query key
+	 * @param updater - Next value, or a function `(previous) => next`
+	 * @returns `true` when the query exists and was updated; otherwise `false`
+	 *
+	 * @example
+	 * // Replace
+	 * pool.setQueryData("users", [{ id: 1, name: "Ada" }]);
+	 *
+	 * // Update from previous
+	 * pool.setQueryData("users", (prev = []) => [
+	 *   ...prev,
+	 *   { id: 2, name: "Grace" }
+	 * ]);
+	 */
+	setQueryData(
+		key: string,
+		updater: any | ((previous: any) => any),
+	): boolean;
 
-  /**
-   * Refresh a query by key through the dependency execution plan.
-   *
-   * Dependencies execute first. Independent branches run in parallel.
-   *
-   * @param key  - Query key
-   * @param opts.force      - Cancel in-flight work where applicable and re-execute
-   * @param opts.dependents - Also schedule queries that depend on this key after the plan completes
-   * @returns Promise resolving to the root query’s data
-   *
-   * @example
-   * await pool.refresh("users");
-   * await pool.refresh("users", { force: true, dependents: true });
-   */
-  refresh(
-    key: string,
-    opts?: { force?: boolean; dependents?: boolean }
-  ): Promise<any>;
+	/**
+	 * Refresh a query by key through the dependency execution plan.
+	 *
+	 * Dependencies execute first. Independent branches run in parallel.
+	 *
+	 * @param key  - Query key
+	 * @param opts.force      - Cancel in-flight work where applicable and re-execute
+	 * @param opts.dependents - Also schedule queries that depend on this key after the plan completes
+	 * @returns Promise resolving to the root query’s data
+	 *
+	 * @example
+	 * await pool.refresh("users");
+	 * await pool.refresh("users", { force: true, dependents: true });
+	 */
+	refresh(key: string, opts?: QueryRefreshOptions): Promise<any>;
 
-  /**
-   * Register a mutation (or return the existing handle if the key is already registered).
-   *
-   * Mutations can run locally via `execute` or on a worker via `module`,
-   * support optimistic updates (`onMutate`), and invalidate queries on success.
-   *
-   * @param key        - Unique mutation key
-   * @param definition - Mutation definition
-   * @returns Mutation handle with `mutate`, `cancel`, `reset`
-   *
-   * @example
-   * const createUser = pool.mutation("createUser", {
-   *   execute: async (input, { signal }) => {
-   *     const res = await fetch("/api/users", {
-   *       method: "POST",
-   *       body: JSON.stringify(input),
-   *       signal
-   *     });
-   *     return res.json();
-   *   },
-   *   onMutate(input, ctx) {
-   *     const previous = ctx.getQueryData("users");
-   *     ctx.setQueryData("users", (prev = []) => [...prev, input]);
-   *     return { previous };
-   *   },
-   *   onError(_err, _input, ctx) {
-   *     // rollback using context from onMutate if you stored it
-   *   },
-   *   invalidates: ["users"]
-   * });
-   *
-   * await createUser.mutate({ name: "Ada" });
-   */
-  mutation(key: string, definition: MutationDefinition): MutationHandle;
+	/**
+	 * Register a mutation (or return the existing handle if the key is already registered).
+	 *
+	 * Mutations can run locally via `execute` or on a worker via `module`,
+	 * support optimistic updates (`onMutate`), and invalidate queries on success.
+	 *
+	 * @param key        - Unique mutation key
+	 * @param definition - Mutation definition
+	 * @returns Mutation handle with `mutate`, `cancel`, `reset`
+	 *
+	 * @example
+	 * const createUser = pool.mutation("createUser", {
+	 *   execute: async (input, { signal }) => {
+	 *     const res = await fetch("/api/users", {
+	 *       method: "POST",
+	 *       body: JSON.stringify(input),
+	 *       signal
+	 *     });
+	 * 
+	 *     return res.json();
+	 *   },
+	 * 
+	 *   onMutate(input, ctx) {
+	 *     const previous = ctx.getQueryData("users");
+	 *     ctx.setQueryData("users", (prev = []) => [...prev, input]);
+	 *     return { previous };
+	 *   },
+	 * 
+	 *   onError(_err, _input, ctx) {
+	 *     // rollback using context from onMutate if you stored it
+	 *   },
+	 * 
+	 *   invalidates: ["users"]
+	 * });
+	 *
+	 * await createUser.mutate({ name: "Ada" });
+	 */
+	mutation<TData = any, TVariables = any>(
+		key: string,
+		definition: MutationDefinition<TData, TVariables>,
+	): MutationHandle<TData, TVariables>;
 
-  /**
-   * Get a registered mutation handle by key.
-   *
-   * @param key - Mutation key
-   * @returns Mutation handle, or `undefined` if not registered
-   *
-   * @example
-   * const createUser = pool.getMutation("createUser");
-   * await createUser?.mutate({ name: "Ada" });
-   */
-  getMutation(key: string): MutationHandle | undefined;
+	/**
+	 * Get a registered mutation handle by key.
+	 *
+	 * @param key - Mutation key
+	 * @returns Mutation handle, or `undefined` if not registered
+	 *
+	 * @example
+	 * const createUser = pool.getMutation("createUser");
+	 * await createUser?.mutate({ name: "Ada" });
+	 */
+	getMutation(key: string): MutationHandle | undefined;
 
-  /**
-   * Whether a mutation key is registered.
-   *
-   * @param key - Mutation key
-   *
-   * @example
-   * if (pool.hasMutation("createUser")) { … }
-   */
-  hasMutation(key: string): boolean;
+	/**
+	 * Whether a mutation key is registered.
+	 *
+	 * @param key - Mutation key
+	 *
+	 * @example
+	 * if (pool.hasMutation("createUser")) { ... }
+	 */
+	hasMutation(key: string): boolean;
 
-  /**
-   * Register a worker module used by queries/mutations that set `module`.
-   *
-   * @param key        - Module key referenced by `QueryDefinition.module` / `MutationDefinition.module`
-   * @param definition - Module URL and export names
-   * @returns Descriptor for the registered module
-   *
-   * @example
-   * pool.registerModule("analytics", {
-   *   url: new URL("./workers/analytics.js", import.meta.url).href,
-   *   queryExport: "runQuery"
-   * });
-   *
-   * pool.query("report", { module: "analytics", input: { range: "7d" } });
-   */
-  registerModule(
-    key: string,
-    definition: QueryModuleDefinition
-  ): QueryModuleDescriptor;
+	/**
+	 * Register a worker module used by queries/mutations that set `module`.
+	 *
+	 * @param key        - Module key referenced by `QueryDefinition.module` / `MutationDefinition.module`
+	 * @param definition - Module URL and export names
+	 * @returns Descriptor for the registered module
+	 *
+	 * @example
+	 * pool.registerModule("analytics", {
+	 *   url: new URL("./workers/analytics.js", import.meta.url).href,
+	 *   queryExport: "runQuery"
+	 * });
+	 *
+	 * pool.query("report", { module: "analytics", input: { range: "7d" } });
+	 */
+	registerModule(
+		key: string,
+		definition: QueryModuleDefinition,
+	): QueryModuleDescriptor;
 
-  /**
-   * Register multiple worker modules at once.
-   *
-   * @param definitions - Map of module key → definition
-   * @returns Array of descriptors
-   *
-   * @example
-   * pool.registerModules({
-   *   analytics: { url: "/workers/analytics.js", queryExport: "runQuery" },
-   *   search:    { url: "/workers/search.js",    queryExport: "search" }
-   * });
-   */
-  registerModules(
-    definitions: Record<string, QueryModuleDefinition>
-  ): QueryModuleDescriptor[];
+	/**
+	 * Register multiple worker modules at once.
+	 *
+	 * @param definitions - Map of module key by definition
+	 * @returns Array of descriptors
+	 *
+	 * @example
+	 * pool.registerModules({
+	 *   analytics: { url: "/workers/analytics.js", queryExport: "runQuery" },
+	 *   search:    { url: "/workers/search.js",    queryExport: "search" }
+	 * });
+	 */
+	registerModules(
+		definitions: Record<string, QueryModuleDefinition>,
+	): QueryModuleDescriptor[];
 
-  /**
-   * Look up a registered worker module descriptor.
-   *
-   * @param key - Module key
-   * @returns Descriptor, or `undefined` if not registered
-   *
-   * @example
-   * const mod = pool.getModule("analytics");
-   */
-  getModule(key: string): QueryModuleDescriptor | undefined;
+	/**
+	 * Look up a registered worker module descriptor.
+	 *
+	 * @param key - Module key
+	 * @returns Descriptor, or `undefined` if not registered
+	 *
+	 * @example
+	 * const mod = pool.getModule("analytics");
+	 */
+	getModule(key: string): QueryModuleDescriptor | undefined;
 
-  /**
-   * Remove a registered worker module.
-   *
-   * @param key - Module key
-   * @returns `true` if a module was removed
-   *
-   * @example
-   * pool.removeModule("analytics");
-   */
-  removeModule(key: string): boolean;
+	/**
+	 * Remove a registered worker module.
+	 *
+	 * @param key - Module key
+	 * @returns `true` if a module was removed
+	 *
+	 * @example
+	 * pool.removeModule("analytics");
+	 */
+	removeModule(key: string): boolean;
 
-  /**
-   * Get a registered query handle by key.
-   *
-   * @param key - Query key
-   * @returns Query handle, or `undefined` if not registered
-   *
-   * @example
-   * const users = await pool.get("users")?.fetch();
-   */
-  get(key: string): QueryHandle | undefined;
+	/**
+	 * Get a registered query handle by key.
+	 *
+	 * @param key - Query key
+	 * @returns Query handle, or `undefined` if not registered
+	 *
+	 * @example
+	 * const users = await pool.get("users")?.fetch();
+	 */
+	get(key: string): QueryHandle | undefined;
 
-  /**
-   * Whether a query key is registered.
-   *
-   * @param key - Query key
-   *
-   * @example
-   * if (pool.has("users")) {
-   *   await pool.refresh("users");
-   * }
-   */
-  has(key: string): boolean;
+	/**
+	 * Whether a query key is registered.
+	 *
+	 * @param key - Query key
+	 *
+	 * @example
+	 * if (pool.has("users")) {
+	 *   await pool.refresh("users");
+	 * }
+	 */
+	has(key: string): boolean;
 
-  /**
-   * Cancel in-flight mutations, terminate the worker bridge (if any),
-   * and release pool resources.
-   *
-   * Call when the pool is no longer needed (e.g. app teardown).
-   *
-   * @example
-   * pool.terminate();
-   */
-  terminate(): void;
+	/**
+	 * Cancel in-flight mutations, terminate the worker bridge (if any),
+	 * and release pool resources.
+	 *
+	 * Call when the pool is no longer needed (e.g. app teardown).
+	 *
+	 * @example
+	 * pool.terminate();
+	 */
+	terminate(): void;
 }
 
 /**
@@ -1145,12 +1275,17 @@ export interface QueryPool {
  *     const res = await fetch("/api/users", { signal });
  *     return res.json();
  *   },
+ * 
  *   cache: { ttl: 60_000 }
  * });
  *
  * pool.query("posts", {
  *   dependsOn: ["users"],
- *   source: async (signal) => { … }
+ * 
+ *   source: async (signal) => {
+ *     const res = await fetch("/api/posts", { signal });
+ *     return res.json();
+ *   }
  * });
  *
  * const users = await pool.get("users")?.fetch();

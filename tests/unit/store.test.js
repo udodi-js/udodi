@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
 	batch,
-	createNamespace,
 	defineStore,
 	destroyStore,
 	store,
@@ -95,18 +94,22 @@ describe("store", () => {
 		expect(total()).toBe(30);
 	});
 
-	it("creates computed selectors from namespaced store state", async () => {
+	it("supports module-scoped state selectors through defineStore", async () => {
 		store.clear();
-		const session = createNamespace("session");
-		session.set("firstName", "Ada");
-		session.set("lastName", "Lovelace");
+		const session = defineStore("session", {
+			state: {
+				firstName: "Ada",
+				lastName: "Lovelace",
+			},
+		});
 		const fullName = session.select((state) => {
-			return `${state.get("firstName")} ${state.get("lastName")}`;
+			return `${state.firstName} ${state.lastName}`;
 		});
 		expect(fullName()).toBe("Ada Lovelace");
 		session.set("lastName", "Byron");
 		await nextMicrotask();
 		expect(fullName()).toBe("Ada Byron");
+		destroyStore("session");
 	});
 
 	describe("persistence", () => {
@@ -154,11 +157,14 @@ describe("store", () => {
 			restored.stop();
 		});
 
-		it("persists namespaced store values", async () => {
+		it("persists module-scoped store values", async () => {
 			store.clear();
 			const dbName = `udodi-test-${Date.now()}-${Math.random()}`;
-			const session = createNamespace("session");
-			session.set("theme", "dark");
+			const session = defineStore("session", {
+				state: {
+					theme: "dark",
+				},
+			});
 			const persistence = session.persist("theme", { dbName });
 			expect(await persistence.ready).toBe(true);
 			await persistence.flush();
@@ -171,6 +177,7 @@ describe("store", () => {
 			expect(await restored.ready).toBe(true);
 			expect(session.get("theme")).toBe("dark");
 			restored.stop();
+			destroyStore("session");
 		});
 
 		it("persists module state through the module API", async () => {

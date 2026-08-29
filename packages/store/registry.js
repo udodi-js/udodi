@@ -1,4 +1,4 @@
-import { createNamespace, store } from "./store.js";
+import { store } from "./store.js";
 
 const modules = new Map();
 
@@ -107,7 +107,7 @@ export function defineStore(name, def) {
 		return modules.get(name);
 	}
 
-	const ns = createNamespace(name);
+	const ns = store.createNamespace(name);
 
 	const stateKeys = new Set(
 		Object.keys(def.state || {}),
