@@ -3,7 +3,6 @@ import { mount } from "./mount.js";
 const OVERLAY_ID = "udodi-overlay-root";
 
 let overlayRoot = null;
-
 let stylesInjected = false;
 
 /**
@@ -239,7 +238,7 @@ document.addEventListener("keydown", globalKeydownHandler);
 /**
  * Close a specific modal.
  */
-export function closeModal(modal, result = false) {
+function closeModal(modal, result = false) {
 	if (!modal) return;
 
 	if (modal.closed) return;

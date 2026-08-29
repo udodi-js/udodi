@@ -116,16 +116,15 @@ function processRefDirective(nodes, vm, context) {
 			const key = isQuotedString(expr) ? unquoteString(expr) : expr;
 
 			if (key === "") {
-				console.warn(directiveMessage(context, "@ref", "Ref name cannot be empty."));
-				continue;
+				throw new Error("Ref name cannot be empty.");
 			}
 
 			refs[key] = elem;
 			elem.removeAttribute("@ref");
 
 		} catch (err) {
-			console.warn(
-				directiveMessage(context, "@ref", `Invalid directive "${expr}": ${err.message}`)
+			throw new Error(
+				directiveMessage(context, "@ref", err.message)
 			);
 		}
 	}
@@ -159,6 +158,7 @@ function processTextDirective(nodes, vm, context, scope) {
 				console.warn(
 					directiveMessage(context, "@text", `Invalid quoted directive usage: ${expr}`)
 				);
+
 				elem.removeAttribute("@text");
 				continue;
 			}
@@ -184,16 +184,18 @@ function processTextDirective(nodes, vm, context, scope) {
 							context, "@text", `Error evaluating "${expr}": ${err.message}`
 						)
 					);
+
 					elem.textContent = "";
 				}
+
 			}, scope);
 
 			cleanups.push(dispose);
 			elem.removeAttribute("@text");
 
 		} catch (err) {
-			console.warn(
-				directiveMessage(context, "@text", `Invalid directive: ${err.message}`)
+			throw new Error(
+				directiveMessage(context, "@text", err.message)
 			);
 		}
 	}
@@ -352,8 +354,8 @@ function processBindDirective(nodes, vm, context, scope) {
             elem.removeAttribute("@bind");
 
         } catch (err) {
-			console.warn(
-				directiveMessage(context, "@bind", `Invalid directive "${expr}": ${err.message}`)
+			throw new Error(
+				directiveMessage(context, "@bind", err.message)
 			);
         }
     }
@@ -388,14 +390,9 @@ function processShowDirective(nodes, vm, context, scope) {
 
 		try {
 			if (isQuotedString(expr)) {
-				console.warn(
-					directiveMessage(
-						context,
-						"@show",
-						`Invalid directive "${expr}". Expected a boolean expression, not a string literal.`,
-					),
+				throw new Error(
+					`Invalid directive "${expr}". Expected a boolean expression, not a string literal.`
 				);
-				continue;
 			}
 
 			// Canonicalization of directive.
@@ -423,8 +420,8 @@ function processShowDirective(nodes, vm, context, scope) {
 			elem.removeAttribute("@show");
 
 		} catch (err) {
-			console.warn(
-				directiveMessage(context, "@show", `Invalid directive: ${err.message}`),
+			throw new Error(
+				directiveMessage(context, "@show", err.message)
 			);
 		}
 	}
@@ -472,21 +469,21 @@ function processIfDirective(nodes, vm, context, scope) {
 
 		try {
 			if (isQuotedString(expr)) {
-				console.warn(
-					directiveMessage(
-						context,
-						"@if",
-						`Invalid directive "${expr}". Expected a boolean expression, not a string literal.`,
-					),
+				throw new Error(
+					`Invalid directive "${expr}". Expected a boolean expression, not a string literal.`
 				);
-				continue;
 			}
 
 			const parent = root.parentNode;
 
 			if (!parent) {
-				continue;
+				throw new Error(
+					`Invalid directive "@if". Element has no parent node.`
+				);
 			}
+
+			const anchor = document.createComment("@if");
+			parent.insertBefore(anchor, root);
 
 			/** @type {{template: HTMLElement, instructions?: *, isElse: boolean, componentDefinitions: Map<number, Object>}[]} */
 			const branches = [];
@@ -496,132 +493,113 @@ function processIfDirective(nodes, vm, context, scope) {
 			let foundElse = false;
 			let isSecondNode = false;
 
-			while (node !== null) {
-				// If we encounter a secondary @if, it belongs to another chain.
-				if (isSecondNode && node.hasAttribute("@if")) {
-					break;
+			try {
+				while (node !== null) {
+					// If we encounter a secondary @if, it belongs to another chain.
+					if (isSecondNode && node.hasAttribute("@if")) {
+						break;
+					}
+
+					isSecondNode = true;
+
+					if (node.hasAttribute("@if")) {
+						const expression = node.getAttribute("@if");
+						const next = node.nextElementSibling;
+
+						node.removeAttribute("@if");
+						if (node.parentNode) {
+							node.parentNode.removeChild(node);
+						}
+
+						branches.push({
+							template: node,
+							instructions: getOrCompileInstructions(
+								"if=" + normalizeDirective(expression),
+							),
+							isElse: false,
+							componentDefinitions: collectComponentDefinitions(
+								node,
+								scope._componentDefinitions,
+							),
+						});
+
+						node = next;
+						continue;
+
+					} else if (node.hasAttribute("@elseif")) {
+						if (foundElse) {
+							throw new Error("@elseif cannot appear after @else.");
+						}
+
+						const expression = node.getAttribute("@elseif");
+
+						if (!expression) {
+							throw new Error("@elseif requires an expression.");
+						}
+
+						if (isQuotedString(expression)) {
+							throw new Error("@elseif requires a boolean expression.");
+						}
+
+						const next = node.nextElementSibling;
+						node.removeAttribute("@elseif");
+						if (node.parentNode) {
+							node.parentNode.removeChild(node);
+						}
+
+						branches.push({
+							template: node,
+							instructions: getOrCompileInstructions(
+								"elseif=" + normalizeDirective(expression),
+							),
+							isElse: false,
+							componentDefinitions: collectComponentDefinitions(
+								node,
+								scope._componentDefinitions,
+							),
+						});
+
+						node = next;
+						continue;
+
+					} else if (node.hasAttribute("@else")) {
+						if (foundElse) {
+							throw new Error("Only one @else is allowed.");
+						}
+
+						foundElse = true;
+						const next = node.nextElementSibling;
+						node.removeAttribute("@else");
+						if (node.parentNode) {
+							node.parentNode.removeChild(node);
+						}
+
+						branches.push({
+							template: node,
+							isElse: true,
+							componentDefinitions: collectComponentDefinitions(
+								node,
+								scope._componentDefinitions,
+							),
+						});
+
+						node = next;
+						break;
+
+					} else {
+						break;
+					}
 				}
 
-				isSecondNode = true;
-
-				if (node.hasAttribute("@if")) {
-					const expression = node.getAttribute("@if");
-					const template = node.cloneNode(true);
-
-					template.removeAttribute("@if");
-
-					branches.push({
-						template,
-						instructions: getOrCompileInstructions(
-							"if=" + normalizeDirective(expression),
-						),
-						isElse: false,
-						componentDefinitions: collectComponentDefinitions(
-							template,
-							scope._componentDefinitions,
-						),
-					});
-					node.removeAttribute("@if");
-
-				} else if (node.hasAttribute("@elseif")) {
-					if (foundElse) {
-						throw new Error(
-							directiveMessage(
-								context,
-								"@if",
-								"@elseif cannot appear after @else.",
-							),
-						);
-					}
-
-					const expression = node.getAttribute("@elseif");
-					if (!expression) {
-						throw new Error(
-							directiveMessage(
-								context,
-								"@if",
-								"@elseif requires an expression.",
-							),
-						);
-					}
-					if (isQuotedString(expression)) {
-						throw new Error(
-							directiveMessage(
-								context,
-								"@if",
-								"@elseif requires a boolean expression.",
-							),
-						);
-					}
-
-					const template = node.cloneNode(true);
-					template.removeAttribute("@elseif");
-
-					branches.push({
-						template,
-						instructions: getOrCompileInstructions(
-							"elseif=" + normalizeDirective(expression),
-						),
-						isElse: false,
-						componentDefinitions: collectComponentDefinitions(
-							template,
-							scope._componentDefinitions,
-						),
-					});
-
-					node.removeAttribute("@elseif");
-
-				} else if (node.hasAttribute("@else")) {
-					if (foundElse) {
-						throw new Error(
-							directiveMessage(
-								context,
-								"@if",
-								"Only one @else is allowed.",
-							),
-						);
-					}
-
-					foundElse = true;
-
-					const template = node.cloneNode(true);
-					template.removeAttribute("@else");
-
-					branches.push({
-						template,
-						isElse: true,
-						componentDefinitions: collectComponentDefinitions(
-							template,
-							scope._componentDefinitions,
-						),
-					});
-					
-					node.removeAttribute("@else");
-					break;
-
-				} else {
-					break;
+			} catch (err) {
+				if (anchor.parentNode === parent) {
+					anchor.remove();
 				}
 
-				node = node.nextElementSibling;
+				throw err;
 			}
 
-			// Structural Pruning Phase.
 			const branchesLength = branches.length;
-			const anchor = document.createComment("@if");
-			parent.insertBefore(anchor, root);
-
-			let branchNode = root;
-
-			for (let j = 0; j < branchesLength; j++) {
-				const nextNode = branchNode.nextElementSibling;
-
-				if (branchNode.parentNode === parent) {
-					branchNode.remove();
-				}
-
-				branchNode = nextNode;
-			}
 
 			// Track state matching via direct numeric array index pointers
 			let currentActiveIndex = -1;
@@ -781,12 +759,8 @@ function processIfDirective(nodes, vm, context, scope) {
 			});
 
 		} catch (err) {
-			console.warn(
-				directiveMessage(
-					context,
-					"@if",
-					`Invalid directive chain definition: ${err.message}`,
-				),
+			throw new Error(
+				directiveMessage(context, "@if", err.message)
 			);
 		}
 	}
@@ -987,8 +961,8 @@ function processEventDirective(nodes, vm, context, scope) {
 			elem.removeAttribute("@on");
 
 		} catch (err) {
-			console.warn(
-				directiveMessage(context, "@on", `Invalid directive: ${err.message}`),
+			throw new Error(
+				directiveMessage(context, "@on", err.message)
 			);
 		}
 	}
@@ -1168,14 +1142,15 @@ function processClassDirective(nodes, vm, context, scope) {
 						),
 					);
 				}
+
 			}, scope);
 
 			cleanups.push(dispose);
 			elem.removeAttribute("@class");
 
 		} catch (err) {
-			console.warn(
-				directiveMessage(context, "@class", `Invalid directive: ${err.message}`),
+			throw new Error(
+				directiveMessage(context, "@class", err.message)
 			);
 		}
 	}
@@ -1379,6 +1354,7 @@ function processStyleDirective(nodes, vm, context, scope) {
 
 						if (typeof value === "string") {
 							parseStyleString(value, map);
+
 						} else if (Array.isArray(value)) {
 							for (let n = 0, alen = value.length; n < alen; n++) {
 								const pair = value[n];
@@ -1392,6 +1368,7 @@ function processStyleDirective(nodes, vm, context, scope) {
 									}
 								}
 							}
+
 						} else if (typeof value === "object") {
 							const keys = Object.keys(value);
 
@@ -1443,14 +1420,15 @@ function processStyleDirective(nodes, vm, context, scope) {
 						),
 					);
 				}
+
 			}, scope);
 
 			cleanups.push(dispose);
 			elem.removeAttribute("@style");
 
 		} catch (err) {
-			console.warn(
-				directiveMessage(context, "@style", `Invalid directive: ${err.message}`),
+			throw new Error(
+				directiveMessage(context, "@style", err.message)
 			);
 		}
 	}
@@ -1491,14 +1469,9 @@ function processAttrDirective(nodes, vm, context, scope) {
 
 		try {
 			if (isQuotedString(expr)) {
-				console.warn(
-					directiveMessage(
-						context,
-						"@attr",
-						`Invalid directive "${expr}". Expected attribute bindings such as title='Hello' or href=url, not a standalone string literal.`,
-					),
+				throw new Error(
+					`Invalid directive "${expr}". Expected attribute bindings such as title='Hello' or href=url, not a standalone string literal.`
 				);
-				continue;
 			}
 
 			const instructions = getOrCompileInstructions(normalizeDirective(expr));
@@ -1593,8 +1566,8 @@ function processAttrDirective(nodes, vm, context, scope) {
 			elem.removeAttribute("@attr");
 
 		} catch (err) {
-			console.warn(
-				directiveMessage(context, "@attr", `Invalid directive: ${err.message}`),
+			throw new Error(
+				directiveMessage(context, "@attr", err.message)
 			);
 		}
 	}
@@ -1931,14 +1904,9 @@ function processValidateDirective(nodes, vm, context, scope) {
 
         try {
             if (isQuotedString(expr)) {
-                console.warn(
-                    directiveMessage(
-                        context,
-                        "@validate",
-                        `Invalid directive "${expr}". Expected an expression, not a string literal.`,
-                    ),
+                throw new Error(
+                    `Invalid directive "${expr}". Expected an expression, not a string literal.`
                 );
-                continue;
             }
 
             // Canonicalize validator expressions.
@@ -1974,13 +1942,7 @@ function processValidateDirective(nodes, vm, context, scope) {
 							break;
 
 						default:
-							console.warn(
-								directiveMessage(
-									context,
-									"@trigger",
-									`Unknown trigger "${tokens[i]}".`,
-								),
-							);
+							throw new Error(`Unknown @trigger value "${tokens[i]}".`);
 					}
 				}
 			}
@@ -2560,24 +2522,18 @@ function processValidateDirective(nodes, vm, context, scope) {
 
 			if (triggerSubmit) {
 				if (form === null) {
-					console.warn(
-						directiveMessage(
-							context,
-							"@trigger",
-							"submit requires the element to be inside a <form> with @form.",
-						),
+					throw new Error(
+						"The @trigger submit requires the element to be inside a <form> with @form."
 					);
+					
 				} else {
 					const submitEntry = formValidators.get(form);
 
 					if (submitEntry === undefined) {
-						console.warn(
-							directiveMessage(
-								context,
-								"@trigger",
-								"submit requires the parent <form> to have an @form directive.",
-							),
+						throw new Error(
+							"The @trigger submit requires the parent <form> to have an @form directive."
 						);
+						
 					} else {
 						const validators = submitEntry.validators;
 
@@ -2625,9 +2581,9 @@ function processValidateDirective(nodes, vm, context, scope) {
 			if (triggerExpr !== null) elem.removeAttribute("@trigger");
 
         } catch (err) {
-            console.warn(
-                directiveMessage(context, "@validate", `Invalid directive: ${err.message}`),
-            );
+            throw new Error(
+				directiveMessage(context, "@validate", err.message)
+			);
         }
     }
 }
@@ -2758,50 +2714,29 @@ function processFormDirective(nodes, vm, context, scope) {
 
         try {
             if (elem.tagName !== "FORM") {
-                console.warn(
-                    directiveMessage(
-                        context,
-                        "@form",
-                        "Directive can only be used on <form> elements.",
-                    ),
-                );
-                continue;
+                throw new Error("Directive can only be used on <form> elements.");
             }
 
             if (isQuotedString(expr)) {
-                console.warn(
-                    directiveMessage(
-                        context,
-                        "@form",
-                        `Invalid directive "${expr}". Expected a form identifier, not a string literal.`,
-                    ),
+                throw new Error(
+                    `Invalid directive "${expr}". Expected a form identifier, not a string literal.`
                 );
-                continue;
             }
 
             const tokens = normalizeDirective(expr).split(" ");
 
 			if (tokens.length === 0 || tokens.length > 2) {
-				console.warn(
-					directiveMessage(context, "@form", `Invalid directive "${expr}".`),
-				);
-				continue;
+				throw new Error(`Invalid directive "${expr}".`);
 			}
 
 			const key = tokens[0];
 
 			if (key === "") {
-				console.warn(
-					directiveMessage(context, "@form", "Form identifier cannot be empty."),
-				);
-				continue;
+				throw new Error(`Form identifier cannot be empty.`);
 			}
 
 			if (forms[key] !== undefined) {
-                console.warn(
-					directiveMessage(context, "@form", `Duplicate form "${key}".`),
-				);
-                continue;
+                throw new Error(`Duplicate form "${key}".`);
             }
 
 			const validationMode = tokens[1] === undefined
@@ -2812,14 +2747,7 @@ function processFormDirective(nodes, vm, context, scope) {
 				validationMode !== "sequential" &&
 				validationMode !== "parallel"
 			) {
-				console.warn(
-					directiveMessage(
-						context,
-						"@form",
-						`Unknown validation mode "${validationMode}".`,
-					),
-				);
-				continue;
+				throw new Error(`Unknown validation mode "${validationMode}".`);
 			}
 
             const entry = {
@@ -2859,7 +2787,6 @@ function processFormDirective(nodes, vm, context, scope) {
 
             const getFieldValue = (field) => {
                 const type = field.type;
-                const tagName = field.tagName;
 
                 if (type === "checkbox") return field.checked;
                 if (type === "radio") return field.checked ? field.value : null;
@@ -3124,9 +3051,9 @@ function processFormDirective(nodes, vm, context, scope) {
             elem.removeAttribute("@form");
 
         } catch (err) {
-            console.warn(
-                directiveMessage(context, "@form", `Invalid directive: ${err.message}`),
-            );
+            throw new Error(
+				directiveMessage(context, "@form", err.message)
+			);
         }
     }
 }
@@ -3211,38 +3138,19 @@ function processSubmitDirective(nodes, vm, context, scope) {
 
         try {
             if (elem.tagName !== "FORM") {
-                console.warn(
-                    directiveMessage(
-                        context,
-                        "@submit",
-                        "Directive can only be used on <form> elements.",
-                    ),
-                );
-                continue;
+                throw new Error("Directive can only be used on <form> elements.");
             }
 
             if (isQuotedString(directive)) {
-                console.warn(
-                    directiveMessage(
-                        context,
-                        "@submit",
-                        `Invalid directive "${directive}". Expected an expression, not a string literal.`,
-                    ),
+                throw new Error(
+                    `Invalid directive "${directive}". Expected an expression, not a string literal.`
                 );
-                continue;
             }
 
             const entry = formValidators.get(elem);
 
             if (entry === undefined) {
-                console.warn(
-                    directiveMessage(
-                        context,
-                        "@submit",
-                        "The parent form must also have an @form directive.",
-                    ),
-                );
-                continue;
+                throw new Error("The parent form must also have an @form directive.");
             }
 
             const instructions = getOrCompileInstructions(
@@ -3257,15 +3165,10 @@ function processSubmitDirective(nodes, vm, context, scope) {
             switch (submitExpr.type) {
                 case EXPR_PATH: {
                     if (submitExpr.segments.length !== 1) {
-                        console.warn(
-                            directiveMessage(
-                                context,
-                                "@submit",
-                                `"${submitExpr.key}" is not a valid submit handler. ` +
-                                "Submit handlers do not support nested paths.",
-                            ),
+                        throw new Error(
+                            `"${submitExpr.key}" is not a valid submit handler. ` +
+                            "Submit handlers do not support nested paths."
                         );
-                        continue;
                     }
 
                     submitFn = resolveContextValue(
@@ -3285,27 +3188,15 @@ function processSubmitDirective(nodes, vm, context, scope) {
                 }
 
                 default:
-                    console.warn(
-                        directiveMessage(
-                            context,
-                            "@submit",
-                            "Unsupported submit expression.",
-                        ),
-                    );
-                    continue;
+                    throw new Error("Unsupported submit expression.");
             }
 
             if (typeof submitFn !== "function") {
-                console.warn(
-                    directiveMessage(
-                        context,
-                        "@submit",
-                        `Submit handler "${
-                            submitExpr.name ?? submitExpr.key
-                        }" does not exist or is not a function.`,
-                    ),
+                throw new Error(
+                    `Submit handler "${
+						submitExpr.name ?? submitExpr.key
+					}" does not exist or is not a function.`
                 );
-                continue;
             }
 
             const controller = entry.controller;
@@ -3347,7 +3238,7 @@ function processSubmitDirective(nodes, vm, context, scope) {
 							}
 						}
 
-					} else { // sequential
+					} else { // sequential is the default
 						for (
 							let i = 0, length = validators.length;
 							i < length;
@@ -3456,9 +3347,9 @@ function processSubmitDirective(nodes, vm, context, scope) {
             elem.removeAttribute("@submit");
 
         } catch (err) {
-            console.warn(
-                directiveMessage(context, "@submit", `Invalid directive: ${err.message}`),
-            );
+            throw new Error(
+				directiveMessage(context, "@submit", err.message)
+			);
         }
     }
 }
@@ -3537,11 +3428,7 @@ function processForDirective(nodes, vm, context, scope) {
 		try {
 			if (isQuotedString(directive)) {
 				throw new Error(
-					directiveMessage(
-						context,
-						"@for",
-						"Expression must evaluate to an iterable, not a string literal.",
-					),
+					"Expression must evaluate to an iterable, not a string literal."
 				);
 			}
 
@@ -3553,11 +3440,7 @@ function processForDirective(nodes, vm, context, scope) {
 
 			if (tokens.length < 2 || tokens.length > 3) {
 				throw new Error(
-					directiveMessage(
-						context,
-						"@for",
-						'Expected "@for=\\"item items\\"" or "@for=\\"item index items\\"".',
-					),
+					'Expected "@for=\\"item items\\"" or "@for=\\"item index items\\"".'
 				);
 			}
 
@@ -3589,13 +3472,7 @@ function processForDirective(nodes, vm, context, scope) {
 				itemExpr.type !== EXPR_PATH ||
 				itemExpr.segments.length !== 1
 			) {
-				throw new Error(
-					directiveMessage(
-						context,
-						"@for",
-						"Item variable must be a single identifier.",
-					),
-				);
+				throw new Error("Item variable must be a single identifier.");
 			}
 
 			//------------------------------------------------------------------
@@ -3609,13 +3486,7 @@ function processForDirective(nodes, vm, context, scope) {
 					indexExpr.segments.length !== 1
 				)
 			) {
-				throw new Error(
-					directiveMessage(
-						context,
-						"@for",
-						"Index variable must be a single identifier.",
-					),
-				);
+				throw new Error("Index variable must be a single identifier.");
 			}
 
 			//------------------------------------------------------------------
@@ -3623,13 +3494,7 @@ function processForDirective(nodes, vm, context, scope) {
 			//------------------------------------------------------------------
 
 			if (iterableExpr.type === EXPR_LITERAL) {
-				throw new Error(
-					directiveMessage(
-						context,
-						"@for",
-						"Iterable expression cannot be a string literal.",
-					),
-				);
+				throw new Error("Iterable expression cannot be a string literal.");
 			}
 
 			const itemVar = itemExpr.segments[0];
@@ -3648,13 +3513,7 @@ function processForDirective(nodes, vm, context, scope) {
 				const keyExpr = rawKey.trim();
 
 				if (keyExpr === "") {
-					throw new Error(
-						directiveMessage(
-							context,
-							"@key",
-							"Expression cannot be empty.",
-						),
-					);
+					throw new Error("The @key expression cannot be empty.");
 				}
 
 				const keyInstructions = getOrCompileInstructions(
@@ -3664,13 +3523,7 @@ function processForDirective(nodes, vm, context, scope) {
 				const instruction = keyInstructions[0];
 
 				if (instruction.expr.type !== EXPR_PATH) {
-					throw new Error(
-						directiveMessage(
-							context,
-							"@key",
-							"Expression must be a valid path.",
-						),
-					);
+					throw new Error("The @key expression must be a valid path.");
 				}
 
 				keyExpression = instruction.expr;
@@ -3707,7 +3560,11 @@ function processForDirective(nodes, vm, context, scope) {
 			//------------------------------------------------------------------
 
 			const rendered = new Map();
+			const nextKeySet = new Set();
+			const nextRendered = new Map();
 			const warnedObjects = new WeakSet();
+			const fallbackKeyCache = new WeakMap();
+			const keyCtx = Object.create(null);
 
 			/**
 			 * Generates a fallback key when no @key directive is provided.
@@ -3729,16 +3586,24 @@ function processForDirective(nodes, vm, context, scope) {
 			 */
 			const getFallbackKey = (item, index) => {
 				if (typeof item === "object" && item !== null) {
+					const cached = fallbackKeyCache.get(item);
+					if (cached !== undefined) {
+						return cached;
+					}
+
+					let key = null;
+
 					if (item.id != null) {
-						return `id:${item.id}`;
+						key = `id:${item.id}`;
+					} else if (item._id != null) {
+						key = `_id:${item._id}`;
+					} else if (item.key != null) {
+						key = `key:${item.key}`;
 					}
 
-					if (item._id != null) {
-						return `_id:${item._id}`;
-					}
-
-					if (item.key != null) {
-						return `key:${item.key}`;
+					if (key !== null) {
+						fallbackKeyCache.set(item, key);
+						return key;
 					}
 
 					if (!warnedObjects.has(item)) {
@@ -3799,6 +3664,8 @@ function processForDirective(nodes, vm, context, scope) {
 			//------------------------------------------------------------------
 
 			const dispose = effect(() => {
+				nextKeySet.clear();
+				nextRendered.clear();
 
 				// Evaluate iterable using the compiled expression.
 				const array = vm.evaluate(iterableExpr, context);
@@ -3808,9 +3675,6 @@ function processForDirective(nodes, vm, context, scope) {
 					rendered.clear();
 					return;
 				}
-
-				const nextKeySet = new Set();
-				const nextRendered = new Map();
 
 				let prevNode = anchor;
 
@@ -3823,15 +3687,13 @@ function processForDirective(nodes, vm, context, scope) {
 						key = getFallbackKey(item, index);
 
 					} else {
-						const itemContext = {};
-
-						itemContext[itemVar] = item;
+						keyCtx[itemVar] = item;
 
 						if (indexVar !== null) {
-							itemContext[indexVar] = index;
+							keyCtx[indexVar] = index;
 						}
 
-						key = vm.evaluate(keyExpression, itemContext);
+						key = vm.evaluate(keyExpression, keyCtx);
 					}
 
 					if (key == null) {
@@ -4005,8 +3867,8 @@ function processForDirective(nodes, vm, context, scope) {
 			});
 
 		} catch (err) {
-			console.warn(
-				directiveMessage(context, "@for", err.message),
+			throw new Error(
+				directiveMessage(context, "@for", err.message)
 			);
 		}
 	}
@@ -4037,6 +3899,9 @@ function processForDirective(nodes, vm, context, scope) {
  * - the teleported element (if still connected)
  * - the internal teleport registration
  *
+ * Missing targets or parents are hard failures to avoid inconsistent
+ * DOM state.
+ *
  * @param {HTMLElement[]} nodes
  *   Elements containing the `@teleport` directive.
  * @param {Object} [context] - Component context for error reporting.
@@ -4049,43 +3914,42 @@ function processForDirective(nodes, vm, context, scope) {
  */
 function processTeleportDirective(nodes, context, scope) {
 	const cleanups = scope.cleanups;
+	const teleportMap = new Map();
 
 	for (let i = 0, nodesLength = nodes.length; i < nodesLength; i++) {
 		const elem = nodes[i];
-		const selector = elem.getAttribute("@teleport").trim();
+		const raw = elem.getAttribute("@teleport");
 
-		if (!selector) continue;
+		if (raw === null) {
+			continue;
+		}
+
+		const selector = raw.trim();
+
+		if (!selector) {
+			continue;
+		}
 
 		try {
-			let target;
-
-			if (selector === "overlay") {
-				target = ensureOverlayRoot();
-
-			} else {
-				target = document.querySelector(selector);
-			}
+			const target =
+				selector === "overlay"
+					? ensureOverlayRoot()
+					: document.querySelector(selector);
 
 			if (!target) {
-				console.warn(
-					directiveMessage(
-						context,
-						"@teleport",
-						`Target not found: ${selector}`,
-					),
-				);
-				continue;
+				throw new Error(`Target not found: ${selector}`);
 			}
 
-			// Prevent duplicate teleport registration.
 			if (teleportMap.has(elem)) {
-				continue;
+				throw new Error(
+					"Element is already teleported. Duplicate @teleport is not allowed.",
+				);
 			}
 
 			const parent = elem.parentNode;
 
 			if (!parent) {
-				continue;
+				throw new Error("Element has no parent node.");
 			}
 
 			const placeholder = document.createComment("@teleport");
@@ -4115,8 +3979,8 @@ function processTeleportDirective(nodes, context, scope) {
 			elem.removeAttribute("@teleport");
 
 		} catch (err) {
-			console.warn(
-				directiveMessage(context, "@teleport", `Invalid directive: ${err.message}`),
+			throw new Error(
+				directiveMessage(context, "@teleport", err.message)
 			);
 		}
 	}

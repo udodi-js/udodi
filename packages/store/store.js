@@ -251,26 +251,6 @@ function registerPersistence(key, controller) {
 }
 
 /**
- * Remove a persistence controller from tracking.
- *
- * @param {string} key
- * @param {Object} controller
- */
-function unregisterPersistence(key, controller) {
-	const controllers = persistence.get(key);
-
-	if (!controllers) {
-		return;
-	}
-
-	controllers.delete(controller);
-
-	if (controllers.size === 0) {
-		persistence.delete(key);
-	}
-}
-
-/**
  * Stop persistence controllers associated with a key.
  *
  * @param {string} key
@@ -387,6 +367,86 @@ export const store = {
 		}
 
 		return controller;
+	},
+
+	/**
+	 * Create a namespaced store helper.
+	 *
+	 * Internal helper used by store modules to keep local state and action
+	 * names isolated without exposing a standalone package-level export.
+	 *
+	 * @param {string} ns
+	 * @returns {object}
+	 */
+	createNamespace(ns) {
+		const k = (key) => `${ns}:${key}`;
+
+		const api = {
+			get: (key) => store.get(k(key)),
+
+			set: (key, value) => store.set(k(key), value),
+
+			update: (key, fn) => store.update(k(key), fn),
+
+			touch: (key) => store.touch(k(key)),
+
+			subscribe: (key, callback) => store.subscribe(k(key), callback),
+
+			dispatch: (action, payload, options) =>
+				store.dispatch(
+					`${ns}:${action}`,
+					payload,
+					options,
+				),
+
+			select: (selector, scope) =>
+				computed(
+					() => selector(api),
+					scope,
+				),
+
+			/**
+			 * Persist namespace keys.
+			 *
+			 * The caller uses local keys while the underlying store
+			 * persists the fully qualified namespace keys.
+			 *
+			 * @param {string|string[]} keys
+			 * @param {import("./persist.js").PersistOptions} [options]
+			 * @returns {import("./persist.js").PersistController}
+			 */
+			persist: (keys, options = {}) => {
+				const localKeys = Array.isArray(keys)
+					? keys
+					: [keys];
+
+				const controller = persistStore(
+					api,
+					localKeys,
+					{
+						...options,
+						_prefix: ns,
+					},
+				);
+
+				for (const key of localKeys) {
+					registerPersistence(
+						k(key),
+						controller,
+					);
+				}
+
+				return controller;
+			},
+
+			delete: (key) => store.delete(k(key)),
+
+			has: (key) => store.has(k(key)),
+
+			hasAction: (action) => store.hasAction(`${ns}:${action}`),
+		};
+
+		return api;
 	},
 
 	/**
@@ -616,80 +676,4 @@ export const store = {
 	},
 };
 
-/**
- * Create a namespaced store helper.
- *
- * @param {string} ns
- * @returns {object}
- */
-export function createNamespace(ns) {
-	const k = (key) => `${ns}:${key}`;
 
-	const api = {
-		get: (key) => store.get(k(key)),
-
-		set: (key, value) => store.set(k(key), value),
-
-		update: (key, fn) => store.update(k(key), fn),
-
-		touch: (key) => store.touch(k(key)),
-
-		subscribe: (key, callback) =>
-			store.subscribe(k(key), callback),
-
-		dispatch: (action, payload, options) =>
-			store.dispatch(
-				`${ns}:${action}`,
-				payload,
-				options,
-			),
-
-		select: (selector, scope) =>
-			computed(
-				() => selector(api),
-				scope,
-			),
-
-		/**
-		 * Persist namespace keys.
-		 *
-		 * The caller uses local keys while the underlying store
-		 * persists the fully qualified namespace keys.
-		 *
-		 * @param {string|string[]} keys
-		 * @param {import("./persist.js").PersistOptions} [options]
-		 * @returns {import("./persist.js").PersistController}
-		 */
-		persist: (keys, options = {}) => {
-			const localKeys = Array.isArray(keys)
-				? keys
-				: [keys];
-
-			const controller = persistStore(
-				api,
-				localKeys,
-				{
-					...options,
-					_prefix: ns,
-				},
-			);
-
-			for (const key of localKeys) {
-				registerPersistence(
-					k(key),
-					controller,
-				);
-			}
-
-			return controller;
-		},
-
-		delete: (key) => store.delete(k(key)),
-
-		has: (key) => store.has(k(key)),
-
-		hasAction: (action) => store.hasAction(`${ns}:${action}`),
-	};
-
-	return api;
-}
