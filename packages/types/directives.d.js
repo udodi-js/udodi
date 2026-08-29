@@ -16,6 +16,8 @@
  * @property {HTMLElement[]} ref - Elements containing the `@ref` directive.
  * @property {HTMLElement[]} teleport - Elements containing the `@teleport` directive.
  * @property {HTMLElement[]} validate - Elements containing the `@validate` directive.
+ * @property {HTMLElement[]} form - Elements containing the `@form` directive.
+ * @property {HTMLElement[]} submit - Elements containing the `@submit` directive.
  */
 
 export {};

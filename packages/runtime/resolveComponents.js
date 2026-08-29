@@ -3,34 +3,22 @@ import { mount } from "./mount.js";
 
 const COMPONENT_TAG = "udodi-component";
 
-const STRUCTURAL_ATTRIBUTES = ["@for", "@if", "@elseif", "@else"];
-const STRUCTURAL_ATTRIBUTES_LENGTH = STRUCTURAL_ATTRIBUTES.length;
-
 /**
- * Returns true when an element is inside a structural template boundary.
+ * Reads a component placeholder id.
  *
- * @param {Element} element - Element to inspect.
- * @param {Element} root - Traversal root.
- * @returns {boolean}
+ * @param {Element} element - Placeholder element.
+ * @returns {number|null}
  */
-function hasStructuralAncestor(element, root) {
-	let current = element.parentElement;
+function getPlaceholderId(element) {
+	const rawId = element.getAttribute("id");
 
-	while (current) {
-		for (let i = 0; i < STRUCTURAL_ATTRIBUTES_LENGTH; i++) {
-			if (current.hasAttribute(STRUCTURAL_ATTRIBUTES[i])) {
-				return true;
-			}
-		}
-
-		if (current === root) {
-			break;
-		}
-
-		current = current.parentElement;
+	if (rawId === null || rawId === "") {
+		return null;
 	}
 
-	return false;
+	const id = Number(rawId);
+
+	return Number.isInteger(id) ? id : null;
 }
 
 /**
@@ -51,31 +39,34 @@ function findNextComponent(customElements, root, skipStructural) {
 
 	for (let i = 0, length = customElements.length; i < length; i++) {
 		const element = customElements[i];
+		let current = element.parentElement;
+		let hasStructural = false;
 
-		if (!hasStructuralAncestor(element, root)) {
+		// Walk up the DOM tree to see if this placeholder is inside a structural template.
+		while (current) {
+			if (
+				current.hasAttribute("@for") ||
+				current.hasAttribute("@if") ||
+				current.hasAttribute("@elseif") ||
+				current.hasAttribute("@else")
+			) {
+				hasStructural = true;
+				break;
+			}
+
+			if (current === root) {
+				break;
+			}
+
+			current = current.parentElement;
+		}
+
+		if (!hasStructural) {
 			return element;
 		}
 	}
 
 	return null;
-}
-
-/**
- * Reads a component placeholder id.
- *
- * @param {Element} element - Placeholder element.
- * @returns {number|null}
- */
-function getPlaceholderId(element) {
-	const rawId = element.getAttribute("id");
-
-	if (rawId === null || rawId === "") {
-		return null;
-	}
-
-	const id = Number(rawId);
-
-	return Number.isInteger(id) ? id : null;
 }
 
 /**
@@ -165,7 +156,8 @@ export function resolveComponents(
 			continue;
 		}
 
-		const entry = definitions?.get(id) ?? getComponent(id);
+		const fromDefinitions = definitions?.get(id);
+		const entry = fromDefinitions ?? getComponent(id);
 
 		if (!entry) {
 			elem.remove();
@@ -188,7 +180,7 @@ export function resolveComponents(
 		// This absolutely guarantees customElements.length shrinks by 1
 		elem.remove();
 
-		if (removeFromRegistry && !definitions?.has(id)) {
+		if (removeFromRegistry && fromDefinitions === undefined) {
 			removeComponent(id);
 		}
 	}

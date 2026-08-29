@@ -159,6 +159,17 @@ export function createQueryPool(options = {}) {
 	 */
 	const scheduledRefreshes = new Map();
 
+	/**
+	 * Cached topological execution plans.
+	 *
+	 * Dependency edges are fixed at registration time and the
+	 * graph only grows, so plans remain valid for the lifetime
+	 * of the pool.
+	 *
+	 * @type {Map<string, Object[]>}
+	 */
+	const planCache = new Map();
+
 	const registry = options.registry || createQueryModuleRegistry();
 
 	let workerBridge = null;
@@ -193,12 +204,14 @@ export function createQueryPool(options = {}) {
 			throw new TypeError("[query-pool] Query dependsOn must be an array.");
 		}
 
+		const seen = new Set();
 		const result = [];
 
 		for (const key of value) {
 			validateKey(key);
 
-			if (!result.includes(key)) {
+			if (!seen.has(key)) {
+				seen.add(key);
 				result.push(key);
 			}
 		}
@@ -348,6 +361,9 @@ export function createQueryPool(options = {}) {
 	 *
 	 * Cyclic dependencies are rejected.
 	 *
+	 * Results are memoized in planCache because dependency edges
+	 * are fixed at registration time.
+	 *
 	 * @param {string} key
 	 * Query key.
 	 *
@@ -355,6 +371,12 @@ export function createQueryPool(options = {}) {
 	 * Ordered query entries.
 	 */
 	function buildExecutionPlan(key) {
+		const cached = planCache.get(key);
+
+		if (cached) {
+			return cached;
+		}
+
 		const visited = new Set();
 		const visiting = new Set();
 		const plan = [];
@@ -380,7 +402,7 @@ export function createQueryPool(options = {}) {
 
 			visiting.add(queryKey);
 
-			for (const dependency of entry.dependencies ?? []) {
+			for (const dependency of entry.dependencies) {
 				visit(dependency);
 			}
 
@@ -391,6 +413,8 @@ export function createQueryPool(options = {}) {
 
 		visit(key);
 
+		planCache.set(key, plan);
+
 		return plan;
 	}
 
@@ -400,7 +424,9 @@ export function createQueryPool(options = {}) {
 	 * Dependencies execute first.
 	 *
 	 * Independent dependency branches execute in parallel once
-	 * their own dependencies have completed.
+	 * their own dependencies have completed. Waves are advanced
+	 * with a single-pass indegree count (Kahn-style) so each
+	 * plan edge is processed a constant number of times.
 	 *
 	 * Each entry is driven through its internal runSelf() path.
 	 * Public query.refresh() is never called from the plan, which
@@ -440,36 +466,58 @@ export function createQueryPool(options = {}) {
 			? fullPlan.filter((entry) => entry.key !== key)
 			: fullPlan;
 
+		if (plan.length === 0) {
+			return skipRoot ? undefined : queries.get(key)?.query.data;
+		}
+
 		/**
-		 * Completed query keys for the current plan wave.
+		 * Kahn-style wave execution over the plan subgraph.
 		 *
-		 * @type {Set<string>}
+		 * Indegrees and in-plan reverse edges are computed once so
+		 * each wave is O(wave size + edges) instead of rescanning
+		 * the full plan on every iteration.
 		 */
+		const planKeys = new Set();
+		const indegree = new Map();
+		const dependentsInPlan = new Map();
+
+		for (const entry of plan) {
+			planKeys.add(entry.key);
+			indegree.set(entry.key, 0);
+			dependentsInPlan.set(entry.key, []);
+		}
+
+		for (const entry of plan) {
+			for (const dependency of entry.dependencies) {
+				if (planKeys.has(dependency)) {
+					indegree.set(entry.key, indegree.get(entry.key) + 1);
+					dependentsInPlan.get(dependency).push(entry);
+				}
+			}
+		}
+
+		let ready = [];
+
+		for (const entry of plan) {
+			if (indegree.get(entry.key) === 0) {
+				ready.push(entry);
+			}
+		}
+
 		const completed = new Set();
 
 		while (completed.size < plan.length) {
-			const ready = plan.filter((entry) => {
-				if (completed.has(entry.key)) {
-					return false;
-				}
-
-				for (const dependency of entry.dependencies ?? []) {
-					if (!completed.has(dependency)) {
-						return false;
-					}
-				}
-
-				return true;
-			});
-
 			if (ready.length === 0) {
 				throw new Error(
 					`[query-pool] Unable to progress dependency plan for "${key}".`,
 				);
 			}
 
+			const wave = ready;
+			ready = [];
+
 			await Promise.all(
-				ready.map(async (entry) => {
+				wave.map(async (entry) => {
 					try {
 						if (force || entry.needsExecution()) {
 							await entry.runSelf({
@@ -478,6 +526,15 @@ export function createQueryPool(options = {}) {
 						}
 
 						completed.add(entry.key);
+
+						for (const dependent of dependentsInPlan.get(entry.key)) {
+							const next = indegree.get(dependent.key) - 1;
+							indegree.set(dependent.key, next);
+
+							if (next === 0) {
+								ready.push(dependent);
+							}
+						}
 					} catch (error) {
 						/**
 						 * Only wrap upstream dependency failures.
@@ -676,7 +733,7 @@ export function createQueryPool(options = {}) {
 				return false;
 			}
 
-			return Date.now() - cache.timestamp < definition.cache.ttl;
+			return Date.now() < cache.expiresAt;
 		}
 
 		function setCache(data) {
@@ -687,7 +744,7 @@ export function createQueryPool(options = {}) {
 			cache = {
 				data,
 
-				timestamp: Date.now(),
+				expiresAt: Date.now() + definition.cache.ttl,
 
 				stale: false,
 			};
