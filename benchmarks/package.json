@@ -1,0 +1,23 @@
+{
+  "name": "udodi-benchmarks",
+  "private": true,
+  "version": "1.0.0",
+  "description": "performance suite",
+  "keywords": [
+    "performance",
+    "benchmarks"
+  ],
+  "license": "MIT",
+  "author": "Attamah Celestine .C",
+  "type": "module",
+  "scripts": {
+    "serve": "vite --host 127.0.0.1",
+    "benchmark:run": "node runner/benchmark.js",
+    "benchmark": "start-server-and-test serve http://127.0.0.1:5173/heap/udodi/ benchmark:run"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1",
+    "start-server-and-test": "^3.0.12",
+    "vite": "^8.2.2"
+  }
+}
