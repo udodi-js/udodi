@@ -12,6 +12,13 @@ async function run() {
         samples: [end - start],
         unit: "ms",
         warmupCount: 0,
+        workload: {
+            componentCount: 100,
+            selectorsPerComponent: 50,
+            totalSelectors: 5000,
+            declarationsPerSelector: 2,
+            totalDeclarations: 10000,
+        },
     };
 }
 

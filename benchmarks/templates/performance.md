@@ -670,6 +670,12 @@ Udodi supports component-scoped styles.
 
 The CSS benchmark separates cold and warm behaviour because style processing can have significantly different characteristics depending on whether the relevant runtime and browser paths have already been initialized.
 
+#### Workload
+
+The benchmark mounts 100 scoped components. Each component contains 50 scoped CSS selectors, with two declarations per selector. The resulting workload contains 5,000 scoped selectors and 10,000 CSS declarations.
+
+{{css-scope.workload}}
+
 #### Cold
 
 The cold benchmark measures component-scoped style processing under fresh or first-use conditions.

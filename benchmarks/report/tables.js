@@ -106,13 +106,15 @@ export function createHeapTable(result) {
 	);
 }
 
-export function createDslTable(stageResults, operations = "") {
+export function createDslTable(stageResults) {
 	const rows = stageResults.map(({ name, result }) => {
 		const stats = result.statistics ?? result.measurements?.statistics ?? {};
 		const warmup = result.environment?.warmupIterations ?? result.warmupCount ?? "";
+		const operationCount = result.batchSize ?? 1;
+		const operationLabel = operationCount === 1 ? "operation" : "operations";
 		return [
 			name,
-			operations,
+			`${operationCount.toLocaleString("en-US")} ${operationLabel} per sample`,
 			warmup === "" ? "" : `${warmup} iterations`,
 			formatDuration(stats.mean),
 			formatDuration(stats.median),
