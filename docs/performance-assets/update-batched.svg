@@ -1,0 +1,38 @@
+
+		<svg xmlns="http://www.w3.org/2000/svg" width="800" height="360" viewBox="0 0 800 360">
+			<rect width="100%" height="100%" fill="#ffffff" />
+			<line x1="60" x2="780" y1="55" y2="55" stroke="#e5e7eb" stroke-width="1" />
+<line x1="60" x2="780" y1="113.75" y2="113.75" stroke="#e5e7eb" stroke-width="1" />
+<line x1="60" x2="780" y1="172.5" y2="172.5" stroke="#e5e7eb" stroke-width="1" />
+<line x1="60" x2="780" y1="231.25" y2="231.25" stroke="#e5e7eb" stroke-width="1" />
+<line x1="60" x2="780" y1="290" y2="290" stroke="#94a3b8" stroke-width="1" />
+			<line x1="60" x2="780" y1="290" y2="290" stroke="#64748b" stroke-width="1.5" />
+			
+				<rect x="105" y="65.41493677388183" width="90" height="224.58506322611817" rx="5" fill="#3b82f6" />
+				<text x="150" y="57.414936773881834" font-size="10" text-anchor="middle" fill="#0f172a">10.83 ms</text>
+				<text x="150" y="310" font-size="10" text-anchor="middle" fill="#475569">Mean</text>
+			
+
+				<rect x="285" y="64.89626412737016" width="90" height="225.10373587262984" rx="5" fill="#3b82f6" />
+				<text x="330" y="56.89626412737016" font-size="10" text-anchor="middle" fill="#0f172a">10.85 ms</text>
+				<text x="330" y="310" font-size="10" text-anchor="middle" fill="#475569">Median</text>
+			
+
+				<rect x="465" y="59.70954458727434" width="90" height="230.29045541272566" rx="5" fill="#3b82f6" />
+				<text x="510" y="51.70954458727434" font-size="10" text-anchor="middle" fill="#0f172a">11.10 ms</text>
+				<text x="510" y="310" font-size="10" text-anchor="middle" fill="#475569">P95</text>
+			
+
+				<rect x="645" y="55" width="90" height="235" rx="5" fill="#3b82f6" />
+				<text x="690" y="47" font-size="10" text-anchor="middle" fill="#0f172a">11.33 ms</text>
+				<text x="690" y="310" font-size="10" text-anchor="middle" fill="#475569">P99</text>
+			
+			<text x="54" y="59" font-size="10" text-anchor="end" fill="#475569">11.33 ms</text>
+<text x="54" y="117.75" font-size="10" text-anchor="end" fill="#475569">8.50 ms</text>
+<text x="54" y="176.5" font-size="10" text-anchor="end" fill="#475569">5.66 ms</text>
+<text x="54" y="235.25" font-size="10" text-anchor="end" fill="#475569">2.83 ms</text>
+<text x="54" y="294" font-size="10" text-anchor="end" fill="#475569">0.00 ms</text>
+			<text x="400" y="353" font-size="12" fill="#334155" text-anchor="middle">Metric</text>
+			<text x="10" y="172.5" font-size="12" fill="#334155" text-anchor="middle" transform="rotate(-90 10 172.5)">Time (ms)</text>
+		</svg>
+	
