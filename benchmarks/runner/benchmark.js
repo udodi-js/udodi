@@ -43,6 +43,7 @@ try {
 			const result = rawResult.samples
 				? {
 						samples: rawResult.samples,
+						...(rawResult.workload ? { workload: rawResult.workload } : {}),
 						...(rawResult.batchSize
 							? {
 									batchSize: rawResult.batchSize,
