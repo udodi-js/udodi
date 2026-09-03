@@ -57,6 +57,25 @@ function createEnvironmentSummary(result) {
 	].join("\n");
 }
 
+function createCssWorkloadSummary(result) {
+	const workload = result.workload ?? {};
+	const rows = [
+		["Scoped components", workload.componentCount],
+		["Selectors per component", workload.selectorsPerComponent],
+		["Total scoped selectors", workload.totalSelectors],
+		["Declarations per selector", workload.declarationsPerSelector],
+		["Total CSS declarations", workload.totalDeclarations],
+	].filter(([, value]) => value !== undefined);
+
+	if (rows.length === 0) return "_Workload metadata unavailable in this result._";
+
+	return [
+		"| Workload | Value |",
+		"| --- | ---: |",
+		...rows.map(([name, value]) => `| ${name} | ${Number(value).toLocaleString("en-US")} |`),
+	].join("\n");
+}
+
 async function createTimingSummaryChart(result, fileName, chartName, unit = "ms") {
 	const stats = result.statistics ?? result.measurements?.statistics ?? {};
 	const labels = ["Mean", "Median", "P95", "P99"];
@@ -152,14 +171,15 @@ async function generateReport() {
 		"{{update-batched.chart}}": await createTimingSummaryChart(updateBatchedResult, "update-batched.svg", "Batched update benchmark"),
 		"{{heap.table}}": createHeapTable(heapResult),
 		"{{heap.chart}}": await createHeapChart(heapResult, "heap.svg", "Heap lifecycle benchmark"),
-		"{{dsl.table}}": createDslTable(dslResults, "1,000,000"),
+		"{{dsl.table}}": createDslTable(dslResults),
 		"{{dsl.chart}}": await createDslChart(dslResults, "dsl.svg", "DSL benchmark stages"),
-		"{{css-scope-cold.table}}": createTimingTable(cssScopeColdResult, "30"),
-		"{{css-scope-warm.table}}": createTimingTable(cssScopeWarmResult, "30"),
+		"{{css-scope-cold.table}}": createTimingTable(cssScopeColdResult, "1 scoped mount per sample"),
+		"{{css-scope-warm.table}}": createTimingTable(cssScopeWarmResult, "1 scoped mount per sample"),
 		"{{css-scope.chart}}": await createCssScopeChart(cssScopeColdResult, cssScopeWarmResult, "css-scope.svg", "CSS scope benchmark"),
 		"{{udodi.version}}": (mountResult.framework?.version ?? "unknown"),
 		"{{generated.at}}": new Date().toISOString().replace("T", " ").replace("Z", " UTC"),
 		"{{environment.summary}}": createEnvironmentSummary(mountResult),
+		"{{css-scope.workload}}": createCssWorkloadSummary(cssScopeColdResult),
 	};
 
 	let report = template;
