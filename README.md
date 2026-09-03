@@ -105,11 +105,17 @@ const Counter = createComponent({
 render(Counter(), document.getElementById("app"));
 ```
 
+## Performance
+
+Udodi publishes a reproducible benchmark suite and methodology so that its performance characteristics can be measured, inspected, and independently verified.
+
+See the [Performance](https://github.com/udodi-js/udodi/blob/main/docs/performance.md) report.
+
 ## Documentation
 
 For comprehensive guidance on building with Udodi, explore the master guides in this repository for an in-depth look at the framework, from everyday development to advanced runtime usage.
 
-[Explore the Comprehensive Documentation Suite](https://github.com/udodi-js/udodi/tree/main/docs/README.md)
+[Explore the Comprehensive Documentation Suite](https://github.com/udodi-js/udodi/blob/main/docs/README.md)
 
 ## Development
 
@@ -141,7 +147,7 @@ udodi/
 
 ## Testing
 
-Udodi uses **Vitest** to drive low-level framework runtime verification alongside real browser integration checks. Detailed specifications regarding testing setups can be viewed in our [Runtime Testing Guide](./docs/udodi-testing.md).
+Udodi uses **Vitest** to drive low-level framework runtime verification alongside real browser integration checks. Detailed specifications regarding testing setups can be viewed in our [Runtime Testing Guide](https://github.com/udodi-js/udodi/blob/main/docs/udodi-testing.md).
 
 | Target Suite | Purpose |
 | :--- | :--- |
