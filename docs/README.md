@@ -209,7 +209,7 @@ or libraries, or want to understand how Udodi's reactive system works internally
 Once you are comfortable with the fundamentals, explore Udodi's architecture, rendering model, performance characteristics, and advanced integration patterns.
 
 * [Architecture](./advanced/architecture.md)
-* [Performance](./advanced/performance.md)
+* [Performance](./performance.md)
 * [CSS Scoping](./advanced/css-scoping.md)
 * [DOM Rendering](./advanced/dom-rendering.md)
 * [Server Integration](./advanced/server-integration.md)
