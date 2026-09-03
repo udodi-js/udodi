@@ -3,6 +3,7 @@
  */
 
 import { chromium } from "playwright";
+import os from "node:os";
 
 /**
  * Launch Chromium for benchmarks.
@@ -64,10 +65,22 @@ export async function runBenchmark(browser, url) {
 }
 
 export function getBrowserMetadata(browser) {
+    const cpuInfo = os.cpus();
+    const cpuModel = cpuInfo[0]?.model?.trim() ?? "unknown";
+    const totalMemory = os.totalmem();
+
     return {
         browser: "Chromium",
         browserVersion: browser.version(),
         os: process.platform === "win32" ? "Windows" : process.platform,
+        osName: process.platform === "win32" ? `Microsoft ${os.version()}` : os.type(),
+        osVersion: os.release(),
+        architecture: process.arch,
+        cpu: cpuModel,
+        logicalCpuCount: cpuInfo.length,
+        ramBytes: totalMemory,
+        ramGiB: Number((totalMemory / (1024 ** 3)).toFixed(2)),
+        nodeVersion: process.version,
     };
 }
 
