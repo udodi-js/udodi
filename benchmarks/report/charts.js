@@ -58,6 +58,8 @@ function getScale(values, includeZero = false, yMin, yMax) {
 }
 
 function renderYAxis({ min, max, range, plotLeft, plotRight, plotTop, plotHeight, valueFormatter, ticks = 5 }) {
+	ticks = Math.max(2, ticks);
+
 	const grid = [];
 	const labels = [];
 

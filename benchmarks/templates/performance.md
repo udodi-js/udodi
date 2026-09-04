@@ -479,10 +479,12 @@ Batch-level results and per-update results should be interpreted separately. A f
 The heap benchmark measures V8 used JavaScript heap size across repeated:
 
 ```text
-mount
-  ↓
-update
-  ↓
+ mount
+   │
+   ▼
+ update
+   │
+   ▼
 destroy
 ```
 
@@ -612,17 +614,6 @@ Representative expressions exercise:
 - chained transforms;
 - conditional expressions;
 - combinations of nested paths and transforms.
-
-For example:
-
-```text
-name
-user.profile.email
-formatDate:createdAt:'yyyy-MM-dd'
-value | trim | upper
-isActive=>'active'
-user.name | trim | capitalise
-```
 
 This helps ensure that the micro-benchmarks measure representative DSL paths rather than only the cheapest possible expression.
 
