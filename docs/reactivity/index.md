@@ -4,8 +4,6 @@ Udodi uses **fine-grained reactivity**: when data changes, only the code that ac
 
 This page explains the model at a high level, such as the primitives, how dependencies are tracked, how updates are scheduled, and how the same system powers component state, computed values, watchers, and template bindings.
 
----
-
 ## The Idea
 
 In a coarse-grained system, a state change often re-runs a whole component (or a large subtree) and then reconciles the result.
@@ -14,19 +12,17 @@ In Udodi, reactive values form a dependency graph:
 
 ```text
 signal / property
-      │
-      │ read while an effect is active
-      ▼
-  effect / computed records the dependency
-      │
-      │ value changes
-      ▼
-  only that effect / computed is scheduled
+   │
+   │ read while an effect is active
+   ▼
+effect / computed records the dependency
+   │
+   │ value changes
+   ▼
+only that effect / computed is scheduled
 ```
 
 Updates are surgical. Unrelated effects do not re-run.
-
----
 
 ## Core Primitives
 
@@ -39,9 +35,7 @@ Updates are surgical. Unrelated effects do not re-run.
 | **Reactive collections** | Array / Map / Set wrappers that notify on structural mutation |
 | **`touch()`** | Explicitly notify after an in-place nested mutation |
 
-Higher-level APIs (`state()`, component `computed`, `watch`, template directives) are built on these.
-
----
+Higher-level APIs like `state()`, component `computed`, `watch`, template directives are built on these.
 
 ## Signals
 
@@ -59,13 +53,11 @@ effect(() => {
 setCount(1); // effect runs again
 ```
 
-- **get** — returns the current value and, if an effect is active, registers that effect as a subscriber.
-- **set** — updates the value when it is not equal to the previous one, then notifies subscribers.
-- **trigger** — notifies subscribers **without** changing the value (useful after in-place mutation of a nested structure held in the signal).
+- **get**: returns the current value and, if an effect is active, registers that effect as a subscriber.
+- **set**: updates the value when it is not equal to the previous one, then notifies subscribers.
+- **trigger**: notifies subscribers **without** changing the value (useful after in-place mutation of a nested structure held in the signal).
 
 Signals are the substrate under reactive objects and computed values.
-
----
 
 ## Effects
 
@@ -91,8 +83,6 @@ On each run the effect:
 4. Restores the previous active effect (nested effects are supported)
 
 Effects can be tied to a **scope** so they are disposed when the scope is cleaned up (components use this for lifecycle).
-
----
 
 ## Computed Values
 
@@ -121,8 +111,6 @@ Behavior:
 
 Computed values are used for component `computed: { ... }` options and anywhere a derived value should stay in sync without manual invalidation.
 
----
-
 ## Reactive Objects
 
 `reactive()` creates a **shallow** reactive proxy.
@@ -139,9 +127,9 @@ effect(() => {
   console.log(state.count);
 });
 
-state.count++;           // tracked
+state.count++;                  // tracked
 state.user = { name: "Grace" }; // tracked (property replaced)
-state.user.name = "Lin"; // not tracked automatically
+state.user.name = "Lin";        // not tracked automatically
 ```
 
 Important rules:
@@ -152,8 +140,6 @@ Important rules:
 - Optional **interceptors** can transform or cancel writes (return `undefined` to cancel).
 
 This keeps the dependency graph small and avoids the cost and surprise of deep proxies.
-
----
 
 ## Collections
 
@@ -186,8 +172,6 @@ state.items[0].name = "updated";
 touch(state, "items"); // explicit notification
 ```
 
----
-
 ## `touch()`
 
 Use `touch(proxy, key)` when you mutate nested data in place and still want dependents of a root reactive property to re-run.
@@ -209,8 +193,6 @@ touch(state, "user"); // effect runs
 
 `touch` does not change the stored reference; it only fires the property’s trigger. Prefer replacing the property when that is natural (`state.user = { ...state.user, name: "Grace" }`); use `touch` when in-place mutation is required.
 
----
-
 ## Scheduling
 
 Updates are **batched** and flushed in a **microtask**.
@@ -220,8 +202,6 @@ Updates are **batched** and flushed in a **microtask**.
 - Jobs scheduled while a flush is running are processed in follow-up passes until the queue is empty.
 
 You rarely schedule work yourself; `set`, collection mutations, and `touch()` drive the queue.
-
----
 
 ## How Components Use This
 
@@ -246,25 +226,12 @@ state / signals
       └── template bindings (effects)
 ```
 
-The same dependency rules apply everywhere: read while an effect is active → subscribe; write or `touch` → schedule dependents.
-
----
+The same dependency rules apply everywhere: reading reactive data while an effect is active records a dependency, while writing to reactive data or calling `touch` schedules its dependents.
 
 ## Mental Model Checklist
 
-1. **Read** reactive data inside an effect/computed/binding → dependency is recorded.  
-2. **Write** a reactive property (or mutate a tracked collection) → dependents are scheduled.  
-3. **Nested plain objects** are not auto-reactive → replace the property or call `touch`.  
-4. **Collections** notify on structural change; deep item fields still need `touch` or replacement.  
-5. **Jobs** run asynchronously in microtasks and are deduplicated per flush.
-
----
-
-## Next Steps
-
-* [Signals](./signals.md) — `createSignal` in detail  
-* [Effects](./effects.md) — tracking, nesting, and disposal  
-* [Reactive State](./state.md) — `reactive()` and interceptors  
-* [Reactive Collections](./collections.md) — array, Map and Set  
-* [Using `touch()`](./touch.md) — nested notification patterns  
-* [Read-only State](./readonly.md) — immutable views of reactive data  
+1. **Read** reactive data inside an effect, computed value, or binding to record a dependency.
+2. **Write** to a reactive property, or mutate a tracked collection, to schedule its dependents.
+3. **Nested plain objects** are not automatically reactive. Replace the property or call `touch`.
+4. **Collections** notify on structural changes, but deep item fields still require `touch` or replacement.
+5. **Jobs** run asynchronously in microtasks and are deduplicated within each flush.

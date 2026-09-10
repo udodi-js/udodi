@@ -18,8 +18,6 @@ Every result published here is generated from benchmark code in the repository. 
 
 The numbers should therefore be treated as **evidence about specific workloads**, not as universal performance guarantees.
 
----
-
 ## Performance philosophy
 
 Udodi's performance work follows the same principles as the runtime itself:
@@ -44,8 +42,6 @@ It is to answer practical questions such as:
 - What is the difference between cold and cached compilation?
 - What happens when component-scoped CSS is injected for the first time?
 - How does the runtime behave after the relevant caches and browser paths are warm?
-
----
 
 ## Methodology
 
@@ -176,42 +172,6 @@ No single statistic should be interpreted in isolation.
 Heap benchmarks measure allocation behaviour and memory retention across complete application lifecycles.
 
 Measurements use V8's used JavaScript heap size after garbage collection at defined lifecycle checkpoints.
-
-A typical lifecycle is:
-
-```text
-Forced GC
-    │
-    ▼
-before
-    │
-    ▼
-Mount application
-    │
-    ▼
-Forced GC
-    │
-    ▼
-afterMount
-    │
-    ▼
-Perform updates
-    │
-    ▼
-Forced GC
-    │
-    ▼
-afterUpdate
-    │
-    ▼
-Destroy application
-    │
-    ▼
-Forced GC
-    │
-    ▼
-afterDestroy
-```
 
 The checkpoints are:
 
@@ -348,8 +308,6 @@ Report generator
 
 Re-running the benchmark suite and report generator refreshes the published results.
 
----
-
 ## Why these benchmarks?
 
 Udodi is a fine-grained reactive UI runtime. Its important performance characteristics are therefore not limited to one synthetic operation.
@@ -382,8 +340,6 @@ Together, these workloads exercise the paths that matter most for Udodi's archit
 - component lifecycle cleanup;
 - memory retention;
 - scoped style processing.
-
----
 
 ## Results
 
@@ -733,8 +689,6 @@ Factors include:
 
 These results should therefore be interpreted as measurements of the published benchmark workload rather than a universal cost for all CSS.
 
----
-
 ## Interpreting the numbers
 
 Performance results are easiest to misinterpret when reduced to a single ranking.
@@ -830,8 +784,6 @@ Likewise, framework comparisons are meaningful only when:
 - warmup methodology is equivalent;
 - the benchmark code is publicly available.
 
----
-
 ## What these benchmarks do not prove
 
 These benchmarks do not prove that Udodi is the fastest framework for every application.
@@ -853,8 +805,6 @@ For example, benchmark results may not directly represent:
 Performance depends on the application.
 
 The benchmark suite provides evidence about specific runtime characteristics under defined workloads.
-
----
 
 ## Reproducing the results
 
@@ -947,8 +897,6 @@ A history of results across releases is more useful.
 
 As the measurement infrastructure matures, representative workloads can be incorporated into automated regression checks where practical.
 
----
-
 ## Reporting performance honestly
 
 The preferred interpretation of this page is:
@@ -970,8 +918,6 @@ If a result cannot be reproduced, the methodology should be investigated.
 If a future version regresses, the regression should be visible rather than hidden.
 
 That is the purpose of publishing the methodology and raw measurements.
-
----
 
 ## Version
 

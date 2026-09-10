@@ -62,7 +62,7 @@ Learn how to express UI structure, bind reactive data, respond to events, condit
 
 **Guides**
 
-* [Template Overview](./templates/overview.md)
+* [Template Overview](./templates/index.md)
 * [Template DSL](./templates/dsl.md)
 * [`@text`](./templates/text.md)
 * [`@bind`](./templates/bind.md)
@@ -90,7 +90,7 @@ The form system supports both synchronous and asynchronous validation, with flex
 
 **Guides**
 
-* [Forms Overview](./forms/overview.md)
+* [Forms Overview](./forms/index.md)
 * [Creating a Form](./forms/creating.md)
 * [Working with Fields](./forms/fields.md)
 * [Validation](./forms/validation.md)
@@ -117,7 +117,7 @@ The Store system covers three core areas:
 
 **Guides**
 
-* [Store Overview](./store/overview.md)
+* [Store Overview](./store/index.md)
 * [Creating Stores](./store/creating.md)
 * [Store Registry](./store/registry.md)
 * [Persistent Stores](./store/persistence.md)
@@ -134,7 +134,7 @@ Queries expose reactive state such as **`data`**, **`loading`**, **`error`**, an
 
 **Guides**
 
-* [Query Pool Overview](./query-pool/overview.md)
+* [Query Pool Overview](./query-pool/index.md)
 * [Queries](./query-pool/queries.md)
 * [Query Lifecycle](./query-pool/lifecycle.md)
 * [Query Registry](./query-pool/registry.md)
@@ -170,7 +170,7 @@ The Overlay system is part of Udodi's core runtime and is designed to handle com
 
 **Guides**
 
-* [Overlay Overview](./overlay/overview.md)
+* [Overlay Overview](./overlay/index.md)
 * [Opening Overlays](./overlay/opening.md)
 * [Closing Overlays](./overlay/closing.md)
 * [Overlay Options](./overlay/options.md)
@@ -193,7 +193,7 @@ or libraries, or want to understand how Udodi's reactive system works internally
 
 **Guides**
 
-- [Reactivity Overview](./reactivity/overview.md)
+- [Reactivity Overview](./reactivity/index.md)
 - [Signals](./reactivity/signals.md)
 - [Effects](./reactivity/effects.md)
 - [Reactive State](./reactivity/state.md)
@@ -222,7 +222,7 @@ These guides go beyond the everyday API to explain **how Udodi works, why it beh
 
 Use the API reference when you already know what you need and want precise details about a specific API.
 
-* [API Reference Overview](./api/overview.md)
+* [API Reference Overview](./api/index.md)
 * [Component API](./api/component.md)
 * [Reactivity API](./api/reactivity.md)
 * [Form API](./api/form.md)
@@ -277,10 +277,10 @@ Use the guide below to jump directly to the part of Udodi that matches what you 
 | I want to…                                   | Go here                                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------- |
 | **Get started with Udodi**                   | [Quick Start](./quick-start.md)                                                         |
-| **Understand Udodi's reactivity model**      | [Reactivity Overview](./reactivity/overview.md)                                         |
+| **Understand Udodi's reactivity model**      | [Reactivity Overview](./reactivity/index.md)                                         |
 | **Build a UI with templates and directives** | [Templates and Directives](./templates/README.md)                                                |
 | **Reference a DOM element from a component** | [`@ref`](./templates/ref.md)                                                            |
-| **Build and validate forms**                 | [Forms Overview](./forms/overview.md)                                                   |
+| **Build and validate forms**                 | [Forms Overview](./forms/index.md)                                                   |
 | **Manage shared application state**          | [Udodi Store](./store/README.md)                                                                 |
 | **Manage asynchronous data and mutations**   | [Query Pool](./query-pool/README.md)                                                             |
 | **Build modals, dialogs, and layered UI**    | [Overlay](./overlay/README.md)                                                                   |

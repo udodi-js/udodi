@@ -4,8 +4,6 @@ An **effect** runs a function immediately, tracks every reactive value read duri
 
 Effects are the mechanism behind template bindings, watchers, and any side effect that should stay in sync with reactive state.
 
----
-
 ## Creating an Effect
 
 ```js
@@ -22,8 +20,6 @@ dispose();     // stop tracking; further changes do nothing
 ```
 
 `effect(fn, scope?)` returns a **dispose** function. Calling it unsubscribes the effect from all current dependencies so it will not run again.
-
----
 
 ## Dependency Tracking
 
@@ -56,8 +52,6 @@ On every run the effect:
 
 That is why conditional reads stay precise.
 
----
-
 ## Nested Effects
 
 Effects may nest. Udodi keeps an effect stack so the inner effect becomes the “current” effect while it runs, then the outer effect is restored:
@@ -73,8 +67,6 @@ effect(() => {
 ```
 
 Each effect has its own dependency set. Disposing the outer effect does not automatically dispose the inner one unless you wire that up yourself (or use a shared scope).
-
----
 
 ## Scopes
 
@@ -95,8 +87,6 @@ for (const stop of scope.effects) {
 
 Component instances use scopes so effects created for bindings, computed values, and watchers are disposed when the component unmounts. Application code can use the same pattern for manual lifetimes.
 
----
-
 ## What Runs Inside an Effect
 
 Typical uses:
@@ -109,8 +99,6 @@ Typical uses:
 | Derived bookkeeping | maintain a non-reactive cache or index |
 
 Effects should be **idempotent** with respect to their dependencies: running them again with the same inputs should produce the same outcome. Avoid launching unbounded async work on every run without cancellation.
-
----
 
 ## Effects vs Computed
 
@@ -134,8 +122,6 @@ const fullName = computed(() => `${state.first} ${state.last}`);
 
 If you need a value for other code to read, use `computed`. If you need something to *happen*, use `effect`.
 
----
-
 ## Batching and Scheduling
 
 When a dependency changes, the effect is **scheduled**, not run synchronously in the middle of the write.
@@ -151,8 +137,6 @@ state.b = 2;
 ```
 
 You do not flush the queue manually; writes, collection mutations, and `touch()` drive scheduling.
-
----
 
 ## Disposal
 
@@ -172,8 +156,6 @@ Disposal:
 After disposal, further changes to those values do not resurrect the effect. Create a new effect if you need tracking again.
 
 When a scope is provided, the dispose function is also pushed onto `scope.effects` so bulk cleanup can run it later.
-
----
 
 ## Component Watchers
 
@@ -197,8 +179,6 @@ createComponent({
 ```
 
 For ad-hoc reactions outside the watcher API, use `effect` directly.
-
----
 
 ## Common Patterns
 
@@ -231,8 +211,6 @@ state.user.name = "Grace";
 touch(state, "user"); // effect re-runs
 ```
 
----
-
 ## API Summary
 
 ```js
@@ -248,8 +226,6 @@ const dispose = effect(fn, scope?);
 |--------|-------------|
 | `dispose` | Function that unsubscribes the effect |
 
----
-
 ## Constraints
 
 | Behavior | Detail |
@@ -260,12 +236,3 @@ const dispose = effect(fn, scope?);
 | Nested effects | Supported via an effect stack |
 | Disposal | Required to stop tracking; scopes help automate this |
 | No return value used | Use `computed` when you need a derived value |
-
----
-
-## Next Steps
-
-* [Signals](./signals.md) — the values effects subscribe to  
-* [Reactive State](./reactive-state.md) — `reactive()` and interceptors  
-* [Using `touch()`](./touch.md) — notifying after nested mutations  
-* [Reactivity Overview](./overview.md) — how effects fit the full model  

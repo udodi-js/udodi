@@ -19,8 +19,6 @@ For form-level sequential and parallel execution, see [Sequential and Parallel V
 
 For asynchronous validators, `AbortSignal`, cancellation, and race-condition safety, see [Async Validation](./async.md).
 
----
-
 ## Declaring Validators
 
 `@validate` accepts one or more validator names separated by whitespace:
@@ -74,9 +72,9 @@ Arguments can be supplied after the validator name using `:`:
 Conceptually, these become:
 
 ```text
-@validate="required"       → required(value, ctx)
-@validate="min:8"          → min(value, 8, ctx)
-@validate="between:18:120" → between(value, 18, 120, ctx)
+@validate="required"        →  required(value, ctx)
+@validate="min:8"           →  min(value, 8, ctx)
+@validate="between:18:120"  →  between(value, 18, 120, ctx)
 ```
 
 Arguments are evaluated according to Udodi's directive argument rules before being passed to the validator.
@@ -94,8 +92,6 @@ Use the validator identifier directly:
 <!-- Valid -->
 <input @validate="required" />
 ```
-
----
 
 ## Validation Triggers
 
@@ -120,7 +116,7 @@ It runs when one of the field's configured validation triggers occurs.
 />
 ```
 
-Text-like controls are validated as their value changes. Checkbox, radio, and select controls use their appropriate change event.
+Text-like controls are validated as their value changes. The checkbox, radio, and select controls use their appropriate change event.
 
 ### Lazy Validation
 
@@ -156,15 +152,15 @@ Multiple triggers can be specified:
 <input
   name="email"
   @validate="required email"
-  @trigger="live lazy"
+  @trigger="live lazy submit"
 />
 ```
 
-The field then validates on both input/change and blur.
+The field then validates on both input/change, blur, and submit.
 
 If `@trigger` is omitted, `live` is used.
 
-Unknown trigger tokens produce a warning and are ignored.
+Unknown trigger tokens causes the runtime to throw an error.
 
 ### Triggers and Validation Modes
 
@@ -193,8 +189,6 @@ For example:
 The field triggers control interactive validation, while the form's validation mode controls full-form validation such as validation initiated by `@submit`.
 
 See [Sequential and Parallel Validation](./sequential-parallel.md).
-
----
 
 ## Writing Validators
 
@@ -373,9 +367,9 @@ These validators can then be composed declaratively:
 />
 ```
 
-Udodi does not provide built-in `required`, `email`, `min`, or similar validators. They are application-defined component methods.
+Udodi does not provide built-in `required`, `email`, `min`, or similar validators. They are application-defined component methods. 
 
----
+Those methods can perform the checks themselves or delegate to a schema validation library of your choice.
 
 ## Validation Context
 
@@ -471,8 +465,6 @@ async uniqueEmail(value, ctx) {
 
 See [Async Validation](./async.md) for the complete asynchronous validation model.
 
----
-
 ## Errors on the Form Controller
 
 When a named field fails validation, its error is stored on the form controller:
@@ -484,8 +476,8 @@ ud.forms.login.errors.email;
 The value is:
 
 ```text
-""                       → no validation error
-"This field is required" → validation failed
+""                        →  no validation error
+"This field is required"  →  validation failed
 ```
 
 For example:
@@ -551,8 +543,6 @@ These methods change the error state without executing validators and are useful
 
 See [Form Controllers](./controllers.md).
 
----
-
 ## Multiple Validators on One Field
 
 A field can declare multiple validators:
@@ -574,17 +564,17 @@ They always execute in declaration order:
 For example, if `required` fails:
 
 ```text
-required       → failure
-min:8          → skipped
-strongPassword → skipped
+required        →  failure
+min:8           →  skipped
+strongPassword  →  skipped
 ```
 
 If `required` succeeds but `min:8` fails:
 
 ```text
-required       → success
-min:8          → failure
-strongPassword → skipped
+required        →  success
+min:8           →  failure
+strongPassword  →  skipped
 ```
 
 This ordering is independent of the form's validation mode.
@@ -596,7 +586,7 @@ The distinction is important:
 **Within one field:**
 
 ```text
-validator 1 → validator 2 → validator 3
+validator 1  →  validator 2  →  validator 3
 ```
 
 is always sequential.
@@ -612,8 +602,6 @@ username
 can be validated sequentially or in parallel depending on the form's validation mode.
 
 See [Sequential and Parallel Validation](./sequential-parallel.md).
-
----
 
 ## Values Passed to Validators
 
@@ -657,8 +645,6 @@ This separation allows validation to work even when `@bind` is not present:
 ```
 
 In that case, the application can use `FormData` during submission or access the control through the form controller.
-
----
 
 ## Missing or Invalid Validators
 
@@ -710,8 +696,6 @@ methods: {
   @validate="required"
 />
 ```
-
----
 
 ## Minimal Example
 
@@ -776,7 +760,7 @@ const ContactForm = createComponent({
       </label>
 
       <p @show="ud.forms.contact.validating">
-        Validating…
+        Validating...
       </p>
 
       <p @show="ud.forms.contact.valid">
@@ -798,19 +782,3 @@ In this example:
 * The first failing validator determines the field's error.
 * Errors are exposed reactively through `ud.forms.contact.errors`.
 * `validating` and `valid` can be consumed directly from the reactive form controller.
-
----
-
-## Next Steps
-
-| Goal | Guide |
-| --- | --- |
-| Understand sequential vs parallel form validation | [Sequential and Parallel Validation](./sequential-parallel.md) |
-| Handle `@submit` and automatic validation | [Form Submission](./submission.md) |
-| Understand field state and `getField()` | [Working with Fields](./fields.md) |
-| Use the controller API (`errors`, `setError`, etc.) | [Form Controllers](./controllers.md) |
-| Build async validators and handle cancellation | [Async Validation](./async.md) |
-
-For registering a form and choosing its validation mode, see [Creating a Form](./creating.md).
-
-For the overall form architecture, see [Forms Overview](./overview.md).

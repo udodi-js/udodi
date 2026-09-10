@@ -4,8 +4,6 @@ The `@text` directive sets an element's `textContent` from a template expression
 
 Use `@text` when the text displayed by an element comes from component state, computed values, props, or a template helper.
 
----
-
 ## Basic Usage
 
 ```html
@@ -28,7 +26,7 @@ const Greeting = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <p>Hello, <span @text="userName"></span></p>
   `,
 });
@@ -39,8 +37,6 @@ render(Greeting(), "#app");
 When `userName` changes, the `@text` binding updates the element's text content.
 
 Only the dependencies read by the expression are tracked, so a change elsewhere in the component does not cause this binding to update.
-
----
 
 ## Static Text
 
@@ -59,8 +55,6 @@ A quoted literal can also be used with `@text`:
 A quoted literal represents a fixed value and does not create a reactive dependency.
 
 For ordinary static markup, however, `@text` is unnecessary. Use it when the text is being supplied through the template binding system.
-
----
 
 ## Expressions
 
@@ -100,7 +94,7 @@ const Greeting = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <p @text="userName | capitalise"></p>
   `,
 });
@@ -109,8 +103,6 @@ const Greeting = createComponent({
 The expression first resolves `userName` and then passes its value to the `capitalise` helper.
 
 See [Template DSL](./dsl.md) for the expression syntax supported by templates.
-
----
 
 ## Null and Undefined
 
@@ -136,8 +128,6 @@ This prevents values such as `null` and `undefined` from being displayed literal
 
 Other values are converted to text before being assigned to the element.
 
----
-
 ## Reactive Updates
 
 When an expression reads reactive data, `@text` tracks those reads.
@@ -158,7 +148,7 @@ const Counter = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <p @text="message"></p>
   `,
 });
@@ -167,8 +157,6 @@ const Counter = createComponent({
 When `count` changes, the computed value changes and the `@text` binding updates accordingly.
 
 The binding is fine-grained: the runtime does not need to re-render the entire component just to update this text node.
-
----
 
 ## Computed Values and Props
 
@@ -198,8 +186,6 @@ When `title` is supplied as a component prop, the binding displays its current v
 
 See [Computed Values](../fundamentals/computed.md) and [Props](../fundamentals/props.md) for more information.
 
----
-
 ## Text, Not HTML
 
 `@text` always writes text content. It does not interpret the resulting value as HTML.
@@ -228,8 +214,6 @@ Use normal HTML elements when you need markup:
 
 This makes `@text` safe for displaying values that may contain HTML-like characters.
 
----
-
 ## Complete Example
 
 ```js
@@ -251,7 +235,7 @@ const Profile = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <article>
       <h1 @text="headline"></h1>
       <p>Signed in as <span @text="userName"></span></p>
@@ -270,8 +254,6 @@ Here:
 - `title | capitalise` uses a template helper through a pipeline  
 
 Each binding updates independently when its reactive dependencies change.
-
----
 
 ## When to Use `@text`
 
@@ -293,8 +275,6 @@ For example:
 <span>Hello, Ada</span>
 ```
 
----
-
 ## Behavior
 
 `@text`:
@@ -309,8 +289,6 @@ For example:
 
 The directive is intended for text content only. Use other directives or normal HTML elements for attributes, classes, styles, events, and DOM structure.
 
----
-
 ## Syntax Summary
 
 | Form | Behavior |
@@ -322,15 +300,3 @@ The directive is intended for text content only. Use other directives or normal 
 | `@text="'Hello'"` | Displays a static quoted value |
 | `null` / `undefined` | Clears `textContent` |
 | Other values | Converted to text |
-
----
-
-## Next Steps
-
-* [Template DSL](./dsl.md) — expression syntax, paths, calls, pipelines, and conditionals  
-* [`@bind`](./bind.md) — bind form controls to component state  
-* [`@if`](./if.md) — conditionally create DOM  
-* [`@show`](./show.md) — conditionally show or hide an element  
-* [`@class`](./class.md) — manage static and reactive classes  
-* [`@style`](./style.md) — manage inline styles  
-* [Template Overview](./overview.md) — understand how templates and directives fit together  

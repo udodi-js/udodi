@@ -11,9 +11,7 @@ The pool also clears its in-flight reference and updates the reactive lifecycle 
 
 Cancellation is cooperative. The underlying `source`, mutation `execute`, or worker execution can stop promptly only when it observes the supplied `AbortSignal`.
 
-For lifecycle states, see [Query Lifecycle](./lifecycle.md). For dependency plans, shared upstream work, in-flight reuse, and `force`, see [Query Dependencies](./dependencies.md).
-
----
+For lifecycle states, see [Query Lifecycle](./lifecycle.md). For dependency plans, shared upstream work, in-flight reuse, and `force` option, see [Query Dependencies](./dependencies.md).
 
 ## Why Cancellation Exists
 
@@ -47,8 +45,6 @@ This gives the Query Pool an important invariant:
 > Only the **current** execution may commit query or mutation state.
 
 Cancellation is therefore useful both for explicitly abandoning work and for protecting state when newer work supersedes older work.
-
----
 
 ## Cancel a Query
 
@@ -107,8 +103,6 @@ The implementation increments the execution **ID** before aborting the controlle
 
 Calling `cancel()` when there is no active execution does not start or create any new work.
 
----
-
 ## Cancellation Does Not Clear Data
 
 Cancellation is deliberately different from resetting a query.
@@ -151,8 +145,6 @@ previous success
 
 This allows a UI to stop an unnecessary request while continuing to display the last known result.
 
----
-
 ## The Returned Promise
 
 Cancellation does not magically turn the promise returned by `fetch()` or `refresh()` into a successful result.
@@ -183,8 +175,6 @@ This distinction is useful:
 - the **handle state** tells the UI the current lifecycle state.
 
 The runtime also converts late results from superseded executions into `AbortError` so an obsolete execution cannot accidentally appear successful.
-
----
 
 ## Cancel a Mutation
 
@@ -233,8 +223,6 @@ Mutation cancellation:
 - preserves previous mutation data.
 
 A mutation that fails normally is different. A normal failure becomes `"error"` and invokes `onError`; cancellation is represented separately as `"cancelled"`.
-
----
 
 ## Always Use the Signal
 
@@ -296,8 +284,6 @@ underlying operation
 
 The query runtime passes its controller signal directly to local `source` functions, and mutation execution receives it in the context object.
 
----
-
 ## Worker Cancellation
 
 Worker-backed queries and mutations also receive the run's `AbortSignal` through the worker bridge.
@@ -321,8 +307,6 @@ aborts the current worker execution through the Query Pool's worker infrastructu
 Worker executions also carry the current execution identity. Consequently, even if a worker result arrives after the execution has been superseded, it cannot commit to the old run.
 
 For the worker architecture, see [Query Pool and Workers](./workers.md).
-
----
 
 ## cancel() vs reset()
 
@@ -351,8 +335,6 @@ Use:
 
 - **`cancel()`** when the work is no longer needed but its previous result remains useful.
 - **`reset()`** when the query or mutation should return to an unused state.
-
----
 
 ## Cancellation vs Error
 
@@ -388,8 +370,6 @@ const label = computed(() => {
   return `Users: ${(users.data ?? []).length}`;
 });
 ```
-
----
 
 ## Superseding an Execution
 
@@ -436,8 +416,6 @@ This distinction is useful:
 - **`cancel()`** means “stop the current work.”
 - A **superseding** execution means “this newer work replaces the current work.”
 
----
-
 ## Cancellation and In-Flight Deduplication
 
 Cancellation is closely related to in-flight deduplication, but they are not the same operation.
@@ -476,8 +454,6 @@ fetch B ───────┼──► same in-flight execution
 Cancellation therefore stops the handle from treating that promise as its current active work.
 
 In-flight reuse, `force`, and plan membership are covered together in [Query Dependencies](./dependencies.md).
-
----
 
 ## Plans and Multiple Queries
 
@@ -519,8 +495,6 @@ Practical guidance:
 
 See [Query Dependencies](./dependencies.md).
 
----
-
 ## Streaming
 
 Cancellation also applies to streaming executions.
@@ -540,24 +514,22 @@ The lifecycle is:
 loading = true
 streaming = true
 chunks = []
-        │
-        ├── chunk → chunks
-        ├── chunk → chunks
-        └── chunk → chunks
-                │
-             cancel()
-                │
-                ▼
-       loading = false
-       streaming = false
-       status = "cancelled"
+   │
+   ├── chunk → chunks
+   ├── chunk → chunks
+   └── chunk → chunks
+         │
+      cancel()
+         │
+         ▼
+      loading = false
+      streaming = false
+      status = "cancelled"
 ```
 
 Chunks from a superseded execution are ignored because each chunk is checked against the current execution **ID** before being committed.
 
 The same protection exists for streaming mutations.
-
----
 
 ## Cancellation and Optimistic Mutations
 
@@ -613,7 +585,7 @@ This is an important distinction:
 normal failure
       │
       ▼
-  status = error
+   status = error
       │
       ▼
    onError()
@@ -622,14 +594,12 @@ normal failure
 cancellation
       │
       ▼
-status = cancelled
+   status = cancelled
       │
       └── not the normal onError path
 ```
 
 See [Mutations](./mutations.md).
-
----
 
 ## pool.terminate()
 
@@ -661,8 +631,6 @@ pool.terminate();
 
 when the entire pool is being disposed.
 
----
-
 ## Reactive UI
 
 Cancellation is already represented by the query's reactive lifecycle.
@@ -692,8 +660,6 @@ const label = computed(() => {
 ```
 
 Because the query handle exposes reactive `loading`, `status`, `error`, and `data`, components and computed values automatically react to cancellation as part of the normal Query Pool lifecycle.
-
----
 
 ## Complete Example
 
@@ -743,14 +709,12 @@ fetch("/api/users", { signal });
 
 That allows cancellation to propagate all the way to the network request.
 
----
-
 ## Cancellation Flow
 
 The complete query cancellation path can be viewed as:
 
 ```text
-             query.cancel()
+              query.cancel()
                     │
                     ▼
           advance execution ID
@@ -758,15 +722,15 @@ The complete query cancellation path can be viewed as:
                     ▼
        current run becomes obsolete
                     │
-                    ├───────────────┐
-                    ▼               ▼
-        AbortController.abort()   clear inFlight
+                    ├───────────────────┐
+                    ▼                   ▼
+         AbortController.abort()   clear inFlight
                     │
                     ▼
-             AbortSignal
+               AbortSignal
                     │
                     ▼
-       source / worker execution
+        source / worker execution
                     │
              ┌──────┴──────┐
              │             │
@@ -793,8 +757,6 @@ The complete query cancellation path can be viewed as:
 
 This is the key cancellation guarantee: aborting the underlying work is cooperative, but preventing obsolete work from corrupting reactive state is enforced by the Query Pool itself.
 
----
-
 ## API Summary
 
 | Surface | Role |
@@ -808,18 +770,5 @@ This is the key cancellation guarantee: aborting the underlying work is cooperat
 | `force` | Supersedes an existing execution and starts newer work |
 | Execution **ID** | Prevents late results and chunks from committing |
 | `pool.terminate()` | Tear down worker infrastructure and cancel in-flight mutations |
-
----
-
-## Next Steps
-
-| Topic | Guide |
-| --- | --- |
-| Status and lifecycle state | [Query Lifecycle](./lifecycle.md) |
-| Dependency plans, shared work, in-flight reuse, and force | [Query Dependencies](./dependencies.md) |
-| Creating queries | [Queries](./queries.md) |
-| Mutations and optimistic updates | [Mutations](./mutations.md) |
-| Worker execution | [Query Pool and Workers](./workers.md) |
-| Query Pool architecture | [Query Pool Overview](./overview.md) |
 
 For exact signatures, see the [Query Pool API Reference](../api/query-pool.md).

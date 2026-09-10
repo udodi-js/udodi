@@ -6,8 +6,6 @@ Directive values are parsed by the template expression runtime and evaluated aga
 
 Individual directives build on this shared expression syntax and may impose additional rules on the value they accept. For example, `@on` defines event-handler syntax, `@for` defines list-rendering syntax, and `@attr` accepts multiple attribute bindings.
 
----
-
 ## Where Expressions Appear
 
 Directive attributes contain values that are interpreted according to the directive.
@@ -35,8 +33,6 @@ Some directives also support static values:
 ```
 
 The exact value format depends on the directive. See the individual directive guides for directive-specific syntax.
-
----
 
 ## Values and Literals
 
@@ -70,8 +66,6 @@ Boolean literals are written as `true` and `false`:
 ```
 
 Whether a literal is meaningful depends on the directive consuming the expression.
-
----
 
 ## Paths
 
@@ -113,16 +107,19 @@ Paths can therefore access values exposed by the component, such as state, compu
 
 See [Context](../fundamentals/context.md) for the values available to templates.
 
----
-
 ## Function Calls
 
-Udodi uses colon syntax for function calls rather than JavaScript’s parenthesized call syntax.
+Udodi supports two ways to invoke a function from a template expression.
+
+### Call with arguments (colon syntax)
+
+Use `:` to pass arguments:
 
 ```text
 formatDate:createdAt
 formatDate:createdAt:'MMM DD'
 add:a:b
+save:message
 ```
 
 Roughly equivalent to:
@@ -131,33 +128,58 @@ Roughly equivalent to:
 formatDate(createdAt)
 formatDate(createdAt, 'MMM DD')
 add(a, b)
+save(message)
 ```
 
 The name before the first `:` identifies the function. Each subsequent `:` supplies an argument.
 
-For example:
+Arguments can themselves be paths or literals.
+
+### Call without arguments (bare name)
+
+A bare name that resolves to a function is automatically invoked:
+
+```text
+save
+increment
+refresh
+```
+
+This looks identical to a path, but the runtime checks the resolved value:
+
+- If the value is a function, it is called with no arguments.
+- If the value is not a function, it is treated as a normal path (the value itself is used).
+
+Roughly equivalent to:
+
+```js
+// when `save` is a function on the context
+context.save()
+
+// when `label` is a plain value
+context.label
+```
+
+This is the form commonly used for event handlers that take no arguments:
 
 ```html
-<span @text="formatDate:createdAt:'yyyy-MM-dd'"></span>
+<button @on="click=save"></button>
 ```
 
-Arguments can themselves be values supported by the expression syntax, such as paths or literals.
+| Form | Meaning | Example |
+|------|---------|---------|
+| `name` | Call the function with no arguments or read the path value | `save`, `label` |
+| `name:arg` | Call the function with one argument | `save:message` |
+| `name:arg1:arg2` | Call the function with multiple arguments | `formatDate:date:'MMM'` |
 
-Do **not** write function calls using JavaScript syntax:
+Do not write function calls using JavaScript parentheses:
 
-```text
+```js
 formatDate(createdAt)   // incorrect in templates
-```
-
-Use:
-
-```text
-formatDate:createdAt
+save()                  // incorrect in templates
 ```
 
 Function calls are primarily useful with component methods and template standard-library helpers.
-
----
 
 ## Pipelines
 
@@ -186,8 +208,6 @@ For example:
 The expression is evaluated from left to right. The result produced by one step becomes the input to the following step.
 
 Pipelines are particularly useful for small formatting operations that do not justify a component method.
-
----
 
 ## Conditional Expressions
 
@@ -224,8 +244,6 @@ Here:
 
 Conditional syntax is directive-dependent. It is most commonly used for class composition.
 
----
-
 ## Bindings
 
 Some directives accept multiple named bindings using `=`:
@@ -256,8 +274,6 @@ Bindings are separated according to the directive’s syntax.
 
 The `=` character therefore has a directive-level meaning in forms such as `@attr` and `@on`; it should not be interpreted as a general JavaScript assignment operator.
 
----
-
 ## Event Expressions
 
 `@on` uses a specialized binding syntax:
@@ -273,11 +289,9 @@ For example:
 <form @on="submit.prevent=save"></form>
 ```
 
-The left side identifies the event and optional modifiers.
+The left side identifies the event and optional modifiers, and the right side identifies the handler expression.
 
-The right side identifies the handler expression.
-
-A handler can reference a component method:
+A handler can reference a component method with no arguments:
 
 ```html
 <button @on="click=increment">
@@ -288,10 +302,10 @@ A handler can reference a component method:
 Roughly equivalent to:
 
 ```js
-element.addEventListener('click', () => context.increment())
+element.addEventListener('click', (event) => context.increment())
 ```
 
-It can also use the call syntax supported by the DSL:
+It can also use the call syntax with arguments:
 
 ```html
 <button @on="click=save:message">
@@ -302,12 +316,10 @@ It can also use the call syntax supported by the DSL:
 Roughly equivalent to:
 
 ```js
-element.addEventListener('click', () => context.save(context.message))
+element.addEventListener('click', (event) => context.save(context.message))
 ```
 
 Event handling has additional restrictions and modifier syntax. See [`@on`](./on.md).
-
----
 
 ## Directive-Specific Syntax
 
@@ -347,8 +359,6 @@ while `@text` normally takes a single expression:
 
 See the individual directive documentation for the complete rules.
 
----
-
 ## Static Values vs Reactive Expressions
 
 A directive may distinguish between a literal value and an expression that reads from the component context.
@@ -381,8 +391,6 @@ to update when the value it depends on changes.
 
 Not every directive is reactive in the same way. Event handlers, refs, and structural directives have their own runtime behavior.
 
----
-
 ## Evaluation Context
 
 Template expressions are evaluated against the component’s template context.
@@ -407,7 +415,7 @@ const Greeting = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <p @text="userName | capitalise"></p>
   `,
 });
@@ -421,8 +429,6 @@ Here:
 The pipeline then passes the value of `userName` to `capitalise`.
 
 See [Context](../fundamentals/context.md) for the component values available to templates.
-
----
 
 ## No Arbitrary JavaScript
 
@@ -443,8 +449,6 @@ save:message
 Likewise, template expressions are not general-purpose JavaScript statements. They are limited to the expression forms supported by Udodi’s template runtime.
 
 This restriction keeps templates predictable and allows the runtime to parse and evaluate expressions without embedding arbitrary JavaScript execution into directive values.
-
----
 
 ## Parsing and Evaluation
 
@@ -487,8 +491,6 @@ directive operation
 The application normally interacts only with the template syntax.
 
 Tokenization, parsing, compilation, and evaluation are handled by the framework runtime.
-
----
 
 ## Expression Examples
 
@@ -552,8 +554,6 @@ Tokenization, parsing, compilation, and evaluation are handled by the framework 
 <form @on="submit.prevent=save"></form>
 ```
 
----
-
 ## Common Mistakes
 
 ### Using JavaScript call syntax
@@ -606,8 +606,6 @@ while `@text` normally represents one value:
 
 Always consult the directive-specific guide when in doubt.
 
----
-
 ## Mental Model
 
 The DSL can be understood as a small language between HTML and the runtime:
@@ -620,19 +618,19 @@ HTML template
      └── @directive="expression"
                     │
                     ▼
-              DSL parser
+               DSL parser
                     │
                     ▼
-             compiled expression
+           compiled expression
                     │
                     ▼
-          component context
+            component context
                     │
                     ▼
              directive logic
                     │
                     ▼
-                  DOM
+                   DOM
 ```
 
 The important distinction is:
@@ -654,35 +652,14 @@ For example:
 - `@text` defines the text binding  
 - `save` and `label` are DSL expressions resolved by the template runtime  
 
----
-
 ## Constraints
 
 | Rule | Description |
 |------|-------------|
 | Limited expression language | Templates do not evaluate arbitrary JavaScript |
-| Function calls | Use `:` rather than JavaScript parentheses |
+| Function calls | Use `name` for a function with no arguments, or `name:arg1:arg2` for a function with arguments. Parentheses are not supported. |
 | Pipelines | Use `\|` to pass one result into the next expression |
 | Conditionals | Use `=>` where supported by the directive |
 | Bindings | Directives such as `@attr` and `@on` use `=` for named bindings |
 | Directive-specific syntax | Each directive can impose additional parsing and evaluation rules |
 | Context-based resolution | Expressions resolve against the component template context |
-
----
-
-## Next Steps
-
-* [Template Overview](./overview.md) — understand how templates and directives fit together  
-* [`@text`](./text.md) — bind text content  
-* [`@bind`](./bind.md) — bind form controls  
-* [`@on`](./on.md) — handle DOM events  
-* [`@ref`](./ref.md) — reference DOM elements  
-* [`@if`](./if.md) — conditionally render content  
-* [`@show`](./show.md) — toggle visibility  
-* [`@for`](./for.md) — render lists  
-* [`@class`](./class.md) — manage classes  
-* [`@style`](./style.md) — manage inline styles  
-* [`@attr`](./attr.md) — bind attributes  
-* [`@teleport`](./teleport.md) — render into another DOM target  
-* [Context](../fundamentals/context.md) — understand what templates can resolve  
-* [Reactivity Overview](../reactivity/overview.md) — understand reactive dependency tracking  

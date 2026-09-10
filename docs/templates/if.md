@@ -4,9 +4,7 @@ The `@if` directive conditionally renders an element based on a reactive express
 
 When the condition is truthy, the element is mounted. When the condition becomes falsy, the element is removed. `@if` also supports `@elseif` and `@else` for conditional branches.
 
-Use `@if` when content should be **created and removed** as its condition changes. When the element should remain mounted and only its visibility should change, use [`@show`](./show.md).
-
----
+Use `@if` when content should be **created** and **removed** as its condition changes. When the element should remain mounted and only its visibility should change, use [`@show`](./show.md).
 
 ## Basic Usage
 
@@ -19,8 +17,6 @@ When `loading` is truthy, the element is present in the DOM.
 When `loading` becomes falsy, the element is removed.
 
 Because the condition is reactive, the DOM is updated automatically when its dependencies change.
-
----
 
 ## Conditional Chains
 
@@ -54,8 +50,6 @@ If `loading` is falsy and `error` is truthy, only the `@elseif` branch is render
 
 If neither condition is truthy, the `@else` branch is rendered.
 
----
-
 ## Branch Adjacency
 
 Branches belonging to the same chain must be adjacent element siblings.
@@ -79,8 +73,6 @@ An intervening element breaks the chain:
 `@elseif` and `@else` must therefore directly follow the branch they belong to.
 
 Whitespace and other non-element nodes do not break the chain; discovery walks `nextElementSibling`.
-
----
 
 ## Expressions
 
@@ -126,8 +118,6 @@ Quoted string literals are not valid conditions.
 
 See [Template DSL](./dsl.md) for expression syntax and supported expressions.
 
----
-
 ## Example
 
 ```js
@@ -159,7 +149,7 @@ const Panel = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <section>
       <div @if="loading">
         Loading...
@@ -181,8 +171,6 @@ render(Panel(), "#app");
 
 Only one branch is present at a time.
 
----
-
 ## How Branch Mounting Works
 
 For each branch in the chain, Udodi keeps a **template clone** of the branch markup (without the conditional attribute).
@@ -200,8 +188,6 @@ When the active branch changes or becomes inactive:
 2. The instance is removed from the DOM.  
 
 If the same branch remains selected, the DOM is left unchanged. This means each activation of a branch starts from a clean instance.
-
----
 
 ## `@if` vs `@show`
 
@@ -237,8 +223,6 @@ Use `@show` when the content should remain mounted while being hidden.
 
 See [`@show`](./show.md) for visibility-only behavior.
 
----
-
 ## Nested Content
 
 The content of an `@if` branch can contain normal template markup and other directives:
@@ -266,8 +250,6 @@ This also applies to nested components:
 
 The nested component is mounted when the branch becomes active and cleaned up when the branch becomes inactive.
 
----
-
 ## Refs in Conditional Branches
 
 `@ref` registers an element when that element is processed as part of a mounted branch instance.
@@ -291,8 +273,6 @@ methods: {
 When the branch is not active, do not assume the ref points at a connected element. Prefer optional chaining, and when necessary check `isConnected` before imperative DOM calls.
 
 See [`@ref`](./ref.md) for more information.
-
----
 
 ## Branch Switching
 
@@ -333,8 +313,6 @@ loading = false, error = false
 
 Only the branch selected by the current conditions is rendered. Switching always unmounts the previous instance before mounting the next.
 
----
-
 ## Behavior
 
 `@if`:
@@ -349,8 +327,6 @@ Only the branch selected by the current conditions is rendered. Switching always
 - Uses a comment anchor as the insertion point  
 - Removes conditional attributes during setup  
 - Disposes the chain effect and anchor when the owning component scope is disposed  
-
----
 
 ## Syntax Summary
 
@@ -385,8 +361,6 @@ Example:
 | DOM behavior | Inactive branches are removed; active branches are fresh instances |
 | Quoted conditions | Invalid |
 
----
-
 ## Minimal Example
 
 ```js
@@ -407,7 +381,7 @@ const Gate = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div>
       <button @on="click=toggle">
         Toggle
@@ -426,15 +400,3 @@ const Gate = createComponent({
 
 render(Gate(), "#app");
 ```
-
----
-
-## Next Steps
-
-* [`@show`](./show.md) — keep elements mounted while controlling visibility  
-* [`@for`](./for.md) — render lists reactively  
-* [`@ref`](./ref.md) — reference elements inside conditional content  
-* [`@bind`](./bind.md) — bind form controls inside conditional branches  
-* [Template DSL](./dsl.md) — template expression syntax  
-* [Template Overview](./overview.md) — understand the template system  
-* [Lifecycle](../fundamentals/lifecycle.md) — component and subtree cleanup  

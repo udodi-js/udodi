@@ -33,7 +33,7 @@ const Counter = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <main class="counter">
       <p class="value"><span @text="count"></span></p>
       <p><span @text="displayValue"></span></p>
@@ -46,8 +46,6 @@ render(Counter(), "#app");
 ```
 
 When `count` changes, the computed values that depend on it are invalidated. Reading those values produces their current result, and bindings that consume them update reactively.
-
----
 
 ## Defining Computed Values
 
@@ -70,8 +68,6 @@ The context gives the computed function access to the component's reactive state
 Computed functions should normally be **pure**: derive and return a value rather than performing side effects.
 
 For operations that perform actions, mutate state, respond to events, or perform asynchronous work, use a method instead.
-
----
 
 ## Reading Computed Values
 
@@ -101,8 +97,6 @@ methods: {
 ```
 
 Treat computed properties as **read-only values**, not functions to invoke.
-
----
 
 ## Dependency Tracking
 
@@ -140,8 +134,6 @@ computed: {
 
 Here, `enabled` is always read. `value` is tracked when the enabled branch is evaluated.
 
----
-
 ## Computed Values Can Depend on Other Computed Values
 
 A computed can read another computed through the context:
@@ -166,17 +158,15 @@ The dependency chain is tracked automatically:
 
 ```text
 price ─────┐
-           ├─> subtotal ──┐
-quantity ──┘              │
-                          ├─> total
-taxRate ─────> tax ───────┘
+           ├──► subtotal ──┐
+quantity ──┘               │
+                           ├──► total
+taxRate ──────► tax ───────┘
 ```
 
 Changing `price` or `quantity` invalidates `subtotal`, which in turn invalidates values that depend on it.
 
 There is no need to manually recompute dependent values.
-
----
 
 ## Lazy Evaluation and Caching
 
@@ -192,12 +182,12 @@ Conceptually:
 first read
     │
     ▼
-evaluate ──> cache result
+evaluate ──► cache result
     │
     ▼
 subsequent reads
     │
-    └──> return cached result
+    └──► return cached result
 
 dependency changes
     │
@@ -211,8 +201,6 @@ next read evaluates again
 This makes computed values useful for derived calculations that may be consumed by multiple parts of a component without repeatedly executing the same calculation.
 
 Lazy evaluation also means that an unused computed does not incur the cost of evaluating its function merely because it was declared.
-
----
 
 ## Reactive Updates
 
@@ -243,8 +231,8 @@ const Cart = createComponent({
     },
   },
 
-  template: () => html`
-    <p>Total: $<span @text="total"></span></p>
+  template: html`
+    <p>Total: <span @text="total"></span></p>
     <button @on="click=increase">+</button>
   `,
 });
@@ -266,8 +254,6 @@ the DOM receives the new value
 ```
 
 You do not need to manually assign the computed result back into state.
-
----
 
 ## Nested State
 
@@ -316,8 +302,6 @@ methods: {
 
 See [Using `touch()`](../reactivity/touch.md) for the complete API.
 
----
-
 ## Computed Values Are Read-Only
 
 Computed properties represent derived data. They are not writable state.
@@ -352,8 +336,6 @@ this.quantity = 2;
 ```
 
 The computed value then reflects the new inputs automatically.
-
----
 
 ## Root-Level Uniqueness
 
@@ -392,8 +374,6 @@ The component cannot expose two different root-level meanings for `total`.
 
 Namespace validation happens when the component is created, so invalid definitions fail early rather than producing ambiguous runtime behavior.
 
----
-
 ## Component Lifetime and Cleanup
 
 Computed values are associated with the component's reactive scope.
@@ -401,8 +381,6 @@ Computed values are associated with the component's reactive scope.
 When the component is destroyed, the reactive resources associated with its computed values are cleaned up with that scope.
 
 This means computed definitions do not require manual teardown from component code.
-
----
 
 ## Computed vs Methods
 
@@ -436,8 +414,6 @@ methods: {
 ```
 
 See [Methods](./methods.md).
-
----
 
 ## Complete Example
 
@@ -481,7 +457,7 @@ const OrderSummary = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div class="summary">
       <p @text="displayTotal"></p>
     </div>
@@ -494,17 +470,14 @@ render(OrderSummary(), "#app");
 The dependency chain is:
 
 ```text
-price ────────┐
-              ▼
-           subtotal ─────┐
-quantity ─────┘          │
-                         ▼
-taxRate ────────> tax ──> total ──> displayTotal
+price ─────┐
+           ├──► subtotal ──┐
+quantity ──┘               │
+                           ├──► total ──► displayTotal
+taxRate ──────► tax ───────┘
 ```
 
 Changing `price`, `quantity`, or `taxRate` propagates through the relevant computed values and ultimately updates the `displayTotal` binding.
-
----
 
 ## Constraints
 
@@ -518,16 +491,3 @@ Changing `price`, `quantity`, or `taxRate` propagates through the relevant compu
 | Nested mutations       | Use `touch()` when an in-place nested mutation needs an explicit root-level notification |
 | Cleanup                | Computed reactive resources are cleaned up with the component scope                      |
 | Side effects           | Computed functions should normally remain pure                                           |
-
----
-
-## Next Steps
-
-* [Components](./components.md) — component structure and root-level namespace rules
-* [State](./state.md) — reactive state used by computed values
-* [Methods](./methods.md) — actions and imperative logic
-* [Watchers](./watch.md) — reacting to changes for side effects
-* [Interceptors](./interceptors.md) — transforming root state writes
-* [Context](./context.md) — the public component context
-* [Using `touch()`](../reactivity/touch.md) — notifying the reactive system after nested mutations
-* [Reactivity Overview](../reactivity/overview.md) — Udodi's reactive primitives

@@ -7,7 +7,7 @@ Internally, Udodi also maintains an **internal context** used by the runtime and
 The two surfaces are connected by a Proxy membrane:
 
 ```text
-                         Component
+                        Component
                             │
               ┌─────────────┴─────────────┐
               │                           │
@@ -24,13 +24,10 @@ The two surfaces are connected by a Proxy membrane:
               │                           ├── cleanup
               │                           │
               ▼                           ▼
-       Runtime / VM                Component application code
-       / bindDOM
+    Runtime / VM / bindDOM        Component application code
 ```
 
 `createComponent()` creates both contexts. `mount()` uses the internal context for runtime DOM binding and exposes the public context as the mounted instance's `context`.
-
----
 
 ## Public Context
 
@@ -54,8 +51,6 @@ console.log(instance.context.count);
 ```
 
 State writes through `instance.context` follow the same public-context rules as writes made through `this` inside a method.
-
----
 
 ## Internal Context
 
@@ -81,8 +76,6 @@ The user's application code does not access the internal context.
 | ------- | ------- |
 | Public context | Component/application API |
 | Internal context | Runtime and VM implementation surface |
-
----
 
 ## How Context Is Exposed
 
@@ -152,8 +145,6 @@ const Counter = createComponent({
 
 All of these component-facing APIs operate on the public context.
 
----
-
 ## Mounted Instance Context
 
 `render()` returns a mounted instance containing:
@@ -194,8 +185,6 @@ instance.context.someUnknownKey = true;
 
 is rejected.
 
----
-
 ## What the Public Context Exposes
 
 The public context provides the following root-level surfaces:
@@ -212,8 +201,6 @@ The public context provides the following root-level surfaces:
 | `cleanup` | Register unmount cleanup |
 
 The public membrane controls these values rather than exposing the internal context directly.
-
----
 
 ## Reading from Context
 
@@ -249,8 +236,6 @@ context key
 The exact precedence is implemented by the public context membrane.
 
 Unknown properties are not dynamically appended to the component context.
-
----
 
 ## State
 
@@ -317,8 +302,6 @@ does not itself constitute a root-state assignment.
 
 When a nested mutation needs to be surfaced to the component's reactivity system, use the appropriate reactivity mechanism, such as `touch()`.
 
----
-
 ## Computed Values
 
 Computed values are exposed as readable properties on the public context.
@@ -361,8 +344,6 @@ computed: {
 
 This keeps computed functions on the same controlled context surface as methods and lifecycle hooks.
 
----
-
 ## Methods
 
 Methods are exposed as callable root properties.
@@ -394,8 +375,6 @@ this.increment = null; // throws
 
 The runtime binds methods to the public context so method code does not receive the unrestricted internal context as `this`.
 
----
-
 ## Props
 
 Props share the component's root namespace with state, computed properties, and methods.
@@ -425,8 +404,6 @@ Without `bindProp()`, a normal prop is a value passed to the child rather than a
 Props are readable through the public context but are not writable through normal public-context assignment. Public root assignment is reserved for registered state keys.
 
 See [Props](./props.md).
-
----
 
 ## `refs`
 
@@ -463,8 +440,6 @@ Prefer declarative bindings where possible.
 
 `refs` is a runtime-managed object and is not part of the component's state namespace.
 
----
-
 ## `ud`
 
 `ud` is Udodi's framework-owned namespace.
@@ -495,8 +470,6 @@ Application state should live in:
 
 rather than inside `ud`.
 
----
-
 ## Standard Library Helpers
 
 The internal context includes Udodi's standard-library helpers.
@@ -518,8 +491,6 @@ Common helpers include:
 They are intended for lightweight formatting and value manipulation, particularly in template resolution.
 
 Component root keys take precedence where they overlap with available helper names.
-
----
 
 ## `cleanup`
 
@@ -549,8 +520,6 @@ Before mount, the cleanup hook has not yet been injected.
 
 See [Lifecycle](./lifecycle.md).
 
----
-
 ## `touch()` and Context
 
 `touch()` can accept a component's public context.
@@ -571,8 +540,6 @@ This allows a nested mutation to explicitly notify the reactive system that the 
 The public context can therefore be used directly with `touch()`; application code does not need to access the component's internal runtime context.
 
 See [Using `touch()`](../reactivity/touch.md).
-
----
 
 ## Watchers
 
@@ -597,8 +564,6 @@ The watcher system tracks declared dependencies and invokes the handler when the
 Because component state is shallow at the root, nested mutations are not independently represented as root dependency changes. Use `touch()` when a nested mutation needs to trigger the corresponding root-level dependency.
 
 See [Watchers](./watch.md).
-
----
 
 ## Lifecycle Hooks
 
@@ -629,8 +594,6 @@ The runtime invokes the component lifecycle machinery and supplies the public co
 
 See [Lifecycle](./lifecycle.md).
 
----
-
 ## Templates and Context
 
 Function templates receive the public context:
@@ -657,8 +620,6 @@ ctx.name;
 The template runtime itself operates against the internal context when binding and evaluating the compiled template.
 
 This distinction lets the template system access runtime metadata and wiring without making that implementation surface the public component API.
-
----
 
 ## Public Context Writes
 
@@ -715,8 +676,6 @@ this.ud = {};
 
 Reserved and framework-owned properties cannot be overwritten.
 
----
-
 ## Reserved Keywords
 
 The following names are reserved by the component model:
@@ -753,8 +712,6 @@ createComponent({
 throws a collision error.
 
 The same rule prevents component definitions from accidentally replacing framework-level component properties.
-
----
 
 ## Namespace Collision Model
 
@@ -800,8 +757,6 @@ ctx.title;
 
 cannot ambiguously mean state in one place and computed data in another.
 
----
-
 ## Runtime Context vs Public Context
 
 The distinction matters most at the DOM/runtime boundary.
@@ -831,8 +786,6 @@ instance.context
 is the public context, while the context supplied internally to runtime DOM binding is the internal context.
 
 Application code does not depend on the internal runtime context.
-
----
 
 ## Context Lifecycle
 
@@ -865,8 +818,6 @@ createComponent()
 ```
 
 The public context is therefore the stable component-facing surface, while mount-time facilities such as `cleanup` become available as the component enters the mounted lifecycle.
-
----
 
 ## Context and Reactivity
 
@@ -919,8 +870,6 @@ this.user.label = "Grace";
 touch(this, "user");
 ```
 
----
-
 ## Context API Summary
 
 | Property | Read | Write | Notes |
@@ -934,8 +883,6 @@ touch(this, "user");
 | `ud` | Yes | No | Readonly framework namespace |
 | `cleanup` | Yes, after mount | No | Cleanup registrar |
 | Unknown keys | `undefined` | No | Cannot append to context |
-
----
 
 ## Minimal Example
 
@@ -1000,38 +947,22 @@ instance.context.count;     // mounted instance
 
 all address the public context.
 
----
-
 ## Design Invariants
 
 The component context maintains these invariants:
 
-1. The public context is a Proxy membrane.
-2. `instance.context` is the public context.
-3. The internal context is used by runtime systems such as the VM and DOM binding.
-4. State keys are the normal writable root properties.
-5. Computed values are readable but not writable.
-6. Methods are callable but not replaceable through the public context.
-7. Props share the root namespace with state, computed values, and methods.
-8. Root namespace collisions are rejected.
-9. Reserved framework names cannot be registered as component keys.
-10. `ud` is framework-owned and readonly through the public context.
-11. `cleanup` becomes available through the public context after mount injects the cleanup registrar.
-12. Component state is shallowly reactive at the top level.
-13. Unknown root properties cannot be appended to the public context.
-14. Component-facing callbacks receive the public context rather than the unrestricted internal context.
-15. The internal context remains a runtime implementation surface and should not be treated as application API.
-
----
-
-## Related Documentation
-
-* [Components](./components.md) — component definitions and mounted instances
-* [State](./state.md) — component state and reactivity
-* [Methods](./methods.md) — methods and `this`
-* [Computed Values](./computed.md) — computed functions and `ctx`
-* [Props](./props.md) — component inputs and `bindProp()`
-* [Lifecycle](./lifecycle.md) — mounting, unmounting, and cleanup
-* [Watchers](./watch.md) — state dependency watchers
-* [Using `touch()`](../reactivity/touch.md) — surfacing nested state changes
-* [Udodi Store](../store/README.md) — application-level shared state
+- The public context is a Proxy membrane.
+- `instance.context` is the public context.
+- The internal context is used by runtime systems such as the VM and DOM binding.
+- State keys are the normal writable root properties.
+- Computed values are readable but not writable.
+- Methods are callable but not replaceable through the public context.
+- Props share the root namespace with state, computed values, and methods.
+- Root namespace collisions are rejected.
+- Reserved framework names cannot be registered as component keys.
+- `ud` is framework-owned and readonly through the public context.
+- `cleanup` becomes available through the public context after mount injects the cleanup registrar.
+- Component state is shallowly reactive at the top level.
+- Unknown root properties cannot be appended to the public context.
+- Component-facing callbacks receive the public context rather than the unrestricted internal context.
+- The internal context remains a runtime implementation surface and should not be treated as application API.
