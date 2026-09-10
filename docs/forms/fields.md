@@ -20,8 +20,6 @@ This guide covers:
 * The relationship between `@bind` and `@validate`
 * Field registration and cleanup
 
----
-
 ## When a Control Becomes a Field
 
 A control participates in the form system when it is a validated control inside a registered form:
@@ -57,8 +55,6 @@ Likewise, a control inside a native `<form>` without `@form` does not become a t
 
 The control may still participate in directive processing, but it does not receive form field state or appear in a form controller.
 
----
-
 ## Validation Does Not Run on Mount
 
 Registering a field does not immediately execute its validators.
@@ -72,8 +68,6 @@ A newly registered field starts with:
 Validation begins when one of the field's configured triggers occurs.
 
 See [Validation](./validation.md) for trigger behavior.
-
----
 
 ## The `name` Attribute
 
@@ -124,8 +118,6 @@ For form fields that need controller access or validation errors, use a stable n
 ```
 
 The same name can intentionally be shared by grouped controls such as radio buttons or checkbox sets.
-
----
 
 ## Field State
 
@@ -181,8 +173,6 @@ field.value !== field.initialValue
 
 using strict equality.
 
----
-
 ## Touched and Dirty State
 
 Field interaction state is updated automatically.
@@ -222,8 +212,6 @@ controller.dirty
 
 is `true` when any registered field is dirty.
 
----
-
 ## Grouped Fields
 
 Multiple controls can intentionally share the same name. This is common for radio groups and checkbox groups:
@@ -258,8 +246,6 @@ Controller methods therefore have group-aware behavior:
 | **`resetError("plan")`** | Clears the shared `errors.plan` entry. |
 
 When the final field with a particular name is unregistered, its error entry is removed from the form controller.
-
----
 
 ## Reading Field State
 
@@ -303,7 +289,7 @@ Reactive controller properties can be consumed directly in templates:
 </p>
 
 <p @show="ud.forms.login.validating">
-  Checking…
+  Checking...
 </p>
 ```
 
@@ -328,8 +314,6 @@ The computed value can then be used declaratively:
 ```
 
 This keeps template expressions declarative while allowing component logic to use controller methods such as `getField()` and `getValue()`.
-
----
 
 ## Updating Field Values
 
@@ -395,8 +379,6 @@ Resetting a field also:
 
 The method returns `true` when the field exists and `false` otherwise.
 
----
-
 ## Managing Field Errors
 
 Errors can be managed directly through the form controller:
@@ -412,7 +394,7 @@ ud.forms.login.resetError("email");
 
 These operations update `controller.errors` and therefore affect the form's reactive `valid` state.
 
-They do not execute validators.
+> **Note**: They do not execute validators.
 
 This is useful when a server returns an error after a successful client-side validation pass:
 
@@ -430,8 +412,6 @@ The error can then be displayed declaratively:
 ```
 
 See [Form Controllers](./controllers.md) for the complete error API.
-
----
 
 ## Relationship to `@bind`
 
@@ -469,8 +449,6 @@ A control can therefore use `@validate` without `@bind`:
 
 In that case, the application can rely on the form's `FormData` during submission or access the field through the controller.
 
----
-
 ## Field Lifecycle
 
 A field follows the lifecycle of its associated DOM control:
@@ -486,8 +464,6 @@ A field follows the lifecycle of its associated DOM control:
 | **`controller.reset()`** | Resets all fields, clears interaction and validation state, refreshes initial values, and clears errors. |
 
 If a field is removed while asynchronous validation is still running, the associated validation is cancelled during cleanup.
-
----
 
 ## Example: Field State in the UI
 
@@ -563,19 +539,3 @@ Here the field's value is owned by component state through `@bind`, while the fo
 * Whether validation produced an error.
 
 The `displayNameDirty` computed property derives the field's dirty state from the form controller so the template does not directly invoke `getField()`.
-
----
-
-## Next Steps
-
-| Goal | Guide |
-| --- | --- |
-| Write validators and configure `@trigger` | [Validation](./validation.md) |
-| Understand sequential and parallel validation | [Sequential and Parallel Validation](./sequential-parallel.md) |
-| Handle submit handlers and the submission lifecycle | [Form Submission](./submission.md) |
-| Use the complete controller API | [Form Controllers](./controllers.md) |
-| Build asynchronous validators and handle cancellation | [Async Validation](./async.md) |
-
-For form registration and validation modes, see [Creating a Form](./creating.md).
-
-For the high-level architecture of the entire form system, see [Forms Overview](./overview.md).

@@ -6,8 +6,6 @@ The mode controls how different fields participate in a full-form validation pas
 
 It does **not** change the order of validators attached to a single field. Validators declared in `@validate` always execute from left to right and stop at the first failure. See [Validation](./validation.md).
 
----
-
 ## Setting the Mode
 
 The optional second token of `@form` selects the validation mode:
@@ -29,11 +27,9 @@ The selected mode is exposed through the form controller:
 ud.forms.login.validationMode; // "sequential" | "parallel"
 ```
 
-Only `sequential` and `parallel` are valid modes. An unknown mode produces a warning and prevents the form from being registered.
+Only `sequential` and `parallel` are valid modes. An unknown mode throws an error.
 
 See [Creating a Form](./creating.md).
-
----
 
 ## What the Mode Controls
 
@@ -74,8 +70,6 @@ Instead:
 ```
 
 controls how `email`, `password`, `username`, etc. are coordinated when the form performs a full validation.
-
----
 
 ## Sequential Mode
 
@@ -146,8 +140,6 @@ Sequential mode is a good fit when:
 
 It can also be preferable when later checks depend conceptually on earlier fields being valid.
 
----
-
 ## Parallel Mode
 
 Parallel validation validates all registered fields concurrently during a full validation pass.
@@ -174,12 +166,12 @@ Parallel validation validates all registered fields concurrently during a full v
 The runtime starts validation for all fields without waiting for one field to finish before starting the next.
 
 ```text
-email ────────────────┐
-username ─────────────┼──► wait for all
-password ─────────────┘        │
-                               ├── all valid → submit
-                               │
-                               └── any invalid → focus first invalid
+email ────────┐
+username ─────┼──► wait for all
+password ─────┘        │
+                       ├── all valid → submit
+                       │
+                       └── any invalid → focus first invalid
 ```
 
 The runtime:
@@ -202,8 +194,6 @@ Parallel mode is particularly useful when:
 * remote validations can execute concurrently;
 * waiting for the slowest validation is preferable to sequential early exit.
 
----
-
 ## Focus Behavior
 
 Both modes focus the first invalid field when a full form validation fails.
@@ -216,8 +206,6 @@ Both modes focus the first invalid field when a full form validation fails.
 Registration order is determined by the order in which validated controls are registered with the form, which normally corresponds to document order for static markup.
 
 Parallel validation therefore does not focus whichever asynchronous validator happens to finish first.
-
----
 
 ## Async Validators
 
@@ -250,9 +238,9 @@ If a field fails, later fields are skipped.
 All fields begin validation without waiting for one another:
 
 ```text
-field A ──────────┐
-field B ──────────┼──► wait for all
-field C ──────────┘
+field A ─────┐
+field B ─────┼──► wait for all
+field C ─────┘
 ```
 
 The form waits until every field's validation cycle has completed before deciding whether submission can continue.
@@ -268,8 +256,6 @@ ud.forms.login.validating
 ```
 
 remains `true`.
-
----
 
 ## Interactive Validation vs Full Validation
 
@@ -323,8 +309,6 @@ How should fields be coordinated during full validation?
 
 A field using `@trigger="live"` is therefore not excluded from submit validation.
 
----
-
 ## Field Validators Remain Sequential
 
 The form mode should not be confused with validator ordering.
@@ -352,7 +336,7 @@ required
          ├── failure → stop
          │
          └── success
-               ↓
+                ↓
           strongPassword
 ```
 
@@ -365,8 +349,6 @@ Even when the form uses:
 the fields are parallelized; the validators within each field are not.
 
 This distinction keeps validator composition deterministic while allowing independent fields to execute concurrently.
-
----
 
 ## Choosing a Mode
 
@@ -390,8 +372,6 @@ The choice is local to each form. A component can contain multiple forms with di
 ```
 
 Each form maintains its own controller, field registry, and validation mode.
-
----
 
 ## Example
 
@@ -482,8 +462,6 @@ can contain errors after the submit attempt. Focus then moves to the first inval
 
 **Sequential mode** stops at the first invalid field. The later field is not validated during that submit cycle, so its error may remain empty until the earlier failure is corrected and the form is submitted again.
 
----
-
 ## Key Takeaway
 
 The distinction can be summarized as:
@@ -507,17 +485,3 @@ The distinction can be summarized as:
 ```
 
 Sequential and parallel modes control field-level scheduling during full-form validation; they do not alter validator ordering within an individual field.
-
----
-
-## Next Steps
-
-| Goal | Guide |
-| --- | --- |
-| Field triggers and validator composition | [Validation](./validation.md) |
-| Submit validation and handler lifecycle | [Form Submission](./submission.md) |
-| Async validators and cancellation | [Async Validation](./async.md) |
-| Form controller state and `validationMode` | [Form Controllers](./controllers.md) |
-| Registering a form | [Creating a Form](./creating.md) |
-
-For the overall form architecture, see [Forms Overview](./overview.md).

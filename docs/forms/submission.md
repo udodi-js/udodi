@@ -17,8 +17,6 @@ This guide covers:
 
 For validation modes, see [Sequential and Parallel Validation](./sequential-parallel.md). For writing validators, see [Validation](./validation.md).
 
----
-
 ## Requirements
 
 `@submit` must be used on a native `<form>` that also declares `@form`:
@@ -29,7 +27,7 @@ For validation modes, see [Sequential and Parallel Validation](./sequential-para
 </form>
 ```
 
-If `@form` is missing, the runtime logs a warning and does not bind the submit handler.
+If `@form` is missing, the runtime throws an error and does not bind the submit handler.
 
 `@submit` does not replace the native submit mechanism. Use a submit control or call `form.requestSubmit()` so the form's native submit event is dispatched.
 
@@ -40,8 +38,6 @@ For example:
 ```
 
 Udodi listens for that native event and runs its submission pipeline.
-
----
 
 ## Declaring the Submit Handler
 
@@ -84,9 +80,7 @@ Quoted string literals are also not valid:
 <form @form="login" @submit="'login'">
 ```
 
-If the handler does not resolve to a function, the runtime logs a warning and does not bind submission.
-
----
+If the handler does not resolve to a function, the runtime throws an error.
 
 ## Submission Lifecycle
 
@@ -132,13 +126,7 @@ The browser therefore does not navigate away or perform a native form submission
 
 ### 2. Prevent overlapping submissions
 
-If:
-
-```js
-controller.submitting === true
-```
-
-when another submit event occurs, the new submission is ignored.
+If the `controller.submitting` is equal to `true`, when another submit event occurs, the new submission is ignored.
 
 This prevents multiple concurrent submit handlers from being started accidentally.
 
@@ -173,8 +161,6 @@ If the handler calls `controller.reset()`, the reset state is preserved rather t
 `controller.submitting` is cleared when the submission pipeline finishes, including when the handler throws or rejects.
 
 Handler errors are logged as warnings; they do not leave the form permanently stuck in the submitting state.
-
----
 
 ## Submit Context
 
@@ -250,8 +236,6 @@ controller.getValue("email");
 
 See [Form Controllers](./controllers.md).
 
----
-
 ## Validation on Submit
 
 Submitting a form performs a full-form validation pass.
@@ -305,8 +289,6 @@ controller.valid
 
 reflects the current validation state.
 
----
-
 ## `submitting` and `submitted`
 
 The form controller exposes two submission lifecycle flags:
@@ -336,7 +318,7 @@ It returns to `false` when the pipeline exits, including validation failure or h
 </button>
 
 <p @show="ud.forms.login.submitting">
-  Signing in…
+  Signing in...
 </p>
 ```
 
@@ -369,8 +351,6 @@ That is useful when a successful submission should return the form immediately t
 
 See [Form Controllers](./controllers.md).
 
----
-
 ## Synchronous Handlers
 
 Submit handlers may perform synchronous work:
@@ -386,8 +366,6 @@ methods: {
 ```
 
 The runtime treats completion of the synchronous handler as successful handler completion.
-
----
 
 ## Asynchronous Handlers
 
@@ -423,8 +401,6 @@ If the handler rejects or throws:
 * the error is logged as a warning;
 * `submitting` is cleared;
 * `submitted` is not marked successful.
-
----
 
 ## Server Errors After Validation
 
@@ -467,8 +443,6 @@ The template can display the error normally:
 `setError()` updates the controller's error state without executing the field's validators again.
 
 See [Form Controllers](./controllers.md).
-
----
 
 ## Minimal Example
 
@@ -546,7 +520,7 @@ const LoginForm = createComponent({
       </button>
 
       <p @show="ud.forms.login.submitting">
-        Signing in…
+        Signing in...
       </p>
     </form>
   `,
@@ -580,23 +554,19 @@ async login({ formData, controller }) {
 
 which handles the successful submission.
 
----
-
 ## Common Mistakes
 
 | Mistake | Result |
 | --- | --- |
-| `@submit` without `@form` on the same `<form>` | Warning; submission is not bound |
-| `@submit="user.login"` | Warning; nested handler paths are not supported |
-| `@submit="'login'"` | Warning; quoted handler expressions are invalid |
-| Handler does not resolve to a function | Warning; submission is not bound |
+| `@submit` without `@form` on the same `<form>` | Fails with an error, and submission is not bound |
+| `@submit="user.login"` | Fails with an error because nested handler paths are not supported |
+| `@submit="'login'"` | Fails with an error because quoted handler expressions are invalid |
+| Handler does not resolve to a function | Fails with an error, and submission is not bound |
 | Expecting native form navigation | Default submission is prevented |
 | Assuming only `@trigger="submit"` fields validate on submit | All registered validators participate in full-form validation |
 | Starting another submit while `submitting` is true | The new submit event is ignored |
 | Expecting `submitted` after a failed handler | `submitted` remains `false` |
 | Expecting `submitted` to override `controller.reset()` | An explicit reset remains authoritative |
-
----
 
 ## Submission Model
 
@@ -604,10 +574,10 @@ The complete relationship between the form directives is:
 
 ```text
 <form @form="login" @submit="login">
-       │                  │
-       │                  └── submission pipeline
-       │
-       └── form controller
+        │              │
+        │              └── submission pipeline
+        │
+        └── form controller
                 │
                 ├── @validate fields
                 │       │
@@ -627,17 +597,3 @@ The complete relationship between the form directives is:
 The key rule is:
 
 **`@submit` does not merely call a method.** It is the entry point to the complete form submission pipeline: prevent default → validate → focus on failure → invoke the handler → track submission state.
-
----
-
-## Next Steps
-
-| Goal | Guide |
-| --- | --- |
-| Sequential vs parallel submit validation | [Sequential and Parallel Validation](./sequential-parallel.md) |
-| Field validators and triggers | [Validation](./validation.md) |
-| Form controller API | [Form Controllers](./controllers.md) |
-| Async validators and cancellation | [Async Validation](./async.md) |
-| Field state and `FormData` | [Working with Fields](./fields.md) |
-
-For registering the form itself, see [Creating a Form](./creating.md). For the overall form architecture, see [Forms Overview](./overview.md).

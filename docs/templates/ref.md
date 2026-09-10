@@ -4,8 +4,6 @@ The `@ref` directive gives a component a direct reference to a DOM element throu
 
 Use `@ref` when application logic needs access to the actual DOM element for an imperative operation such as focusing an input, measuring an element, scrolling, or integrating with a DOM-based library.
 
----
-
 ## Basic Usage
 
 Assign a name to an element with `@ref`:
@@ -25,8 +23,6 @@ methods: {
 ```
 
 Refs are available through `this.refs` in methods and `ctx.refs` in lifecycle hooks.
-
----
 
 ## Ref Names
 
@@ -71,9 +67,7 @@ It does **not** mean:
 this.refs[this.inputRef];
 ```
 
-If the ref name is empty, Udodi warns and does not register the element.
-
----
+If the ref name is empty, Udodi throws an error, which stop the mounting, or initialization process.
 
 ## Accessing Refs
 
@@ -107,8 +101,6 @@ onMount(root, ctx) {
 
 `onMount` runs after the template has been bound and mounted, so refs registered by the component template are available at that point.
 
----
-
 ## Example
 
 ```js
@@ -138,7 +130,7 @@ const Search = createComponent({
     ctx.refs.input?.focus();
   },
 
-  template: () => html`
+  template: html`
     <div>
       <input @ref="input" @bind="query" />
 
@@ -163,8 +155,6 @@ ctx.refs.input;
 ```
 
 and can be used by methods or lifecycle logic.
-
----
 
 ## Multiple Refs
 
@@ -201,8 +191,6 @@ methods: {
 },
 ```
 
----
-
 ## Duplicate Ref Names
 
 Ref names are keys in the component's `refs` object.
@@ -223,8 +211,6 @@ this.refs.field;
 refers to the element registered last.
 
 For predictable behavior, give each element that requires a ref its own name.
-
----
 
 ## Refs and Conditional Content
 
@@ -258,8 +244,6 @@ if (input?.isConnected) {
 }
 ```
 
----
-
 ## Refs Are Not Reactive
 
 `@ref` does not create a reactive effect.
@@ -292,8 +276,6 @@ Here:
 - `@ref` provides imperative access to the DOM node.  
 - `@bind` synchronizes the input with component state.  
 
----
-
 ## When to Use `@ref`
 
 Use `@ref` when you need an actual DOM element.
@@ -325,8 +307,6 @@ Whereas changing an element's class based on state should normally use `@class`:
 ```
 
 Use `@ref` as an imperative escape hatch, not as the primary mechanism for expressing reactive UI behavior.
-
----
 
 ## Refs and Lifecycle
 
@@ -367,8 +347,6 @@ onMount(root, ctx) {
 
 The lifecycle hook receives the component root as its first argument and the public component context as its second argument.
 
----
-
 ## Ref Registration
 
 Conceptually, the runtime performs the equivalent of:
@@ -393,8 +371,6 @@ The runtime then removes the `@ref` attribute from the live DOM.
 
 The directive therefore does not remain as a custom attribute after it has been processed.
 
----
-
 ## Behavior
 
 `@ref`:
@@ -402,14 +378,12 @@ The directive therefore does not remain as a custom attribute after it has been 
 - Reads the directive value as a literal ref name.  
 - Accepts either a bare name or a quoted string.  
 - Stores the element in `context.refs` under that name.  
-- Warns when the ref name is empty.  
+- Throws when the ref name is empty.  
 - Removes the `@ref` attribute after successful registration.  
 - Does not create a reactive effect.  
 - Does not evaluate the ref name against component state.  
 
 The operation is intentionally simple: it establishes a named reference from the component context to a DOM element.
-
----
 
 ## `@ref` vs DOM Queries
 
@@ -436,8 +410,6 @@ this.refs.searchInput;
 This keeps the DOM relationship inside the component rather than coupling application logic to global selectors.
 
 It also avoids relying on class names or other presentation-oriented attributes as DOM lookup identifiers.
-
----
 
 ## `@ref` vs `@bind`
 
@@ -474,8 +446,6 @@ handles imperative DOM access while:
 
 handles value synchronization.
 
----
-
 ## `@ref` vs `@on`
 
 `@ref` provides access to an element; `@on` responds to events.
@@ -505,8 +475,6 @@ methods: {
 
 Use `@on` when the application needs to react to an event. Use `@ref` when application logic needs the DOM element itself.
 
----
-
 ## Syntax Summary
 
 | Form | Behavior |
@@ -514,11 +482,9 @@ Use `@on` when the application needs to react to an event. Use `@ref` when appli
 | `@ref="input"` | Registers the element as `refs.input` |
 | `@ref="'input'"` | Registers the element as `refs.input` |
 | `@ref="someState"` | Uses `"someState"` literally; it does not evaluate the state value |
-| Empty ref name | Warning; element is not registered |
+| Empty ref name | Throws; element is not registered |
 | Duplicate name | Later registration replaces the previous ref |
 | `@ref` after processing | Attribute is removed from the element |
-
----
 
 ## Constraints
 
@@ -528,12 +494,10 @@ Use `@on` when the application needs to react to an event. Use `@ref` when appli
 | Bare or quoted | Both `@ref="input"` and `@ref="'input'"` are supported |
 | Reactive | `@ref` does not create a reactive effect |
 | Duplicate names | The last registration wins |
-| Empty names | Warned and ignored |
+| Empty names | Throws an error |
 | Conditional elements | The referenced element may not exist |
 | DOM access | Use `refs` for imperative DOM operations |
 | Runtime attribute | `@ref` is removed after successful registration |
-
----
 
 ## Minimal Example
 
@@ -549,7 +513,7 @@ const Search = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div>
       <input @ref="input" />
       <button @on="click=focus">
@@ -567,15 +531,3 @@ The component can access the input directly through:
 ```js
 this.refs.input;
 ```
-
----
-
-## Next Steps
-
-* [`@on`](./on.md) — respond to DOM events  
-* [`@bind`](./bind.md) — synchronize form controls with state  
-* [`@if`](./if.md) — conditionally mount DOM content  
-* [`@show`](./show.md) — conditionally show or hide an element  
-* [Lifecycle](../fundamentals/lifecycle.md) — work with `onMount` and `onUnmount`  
-* [Context](../fundamentals/context.md) — understand `refs` on the component context  
-* [Template Overview](./overview.md) — understand how directives fit into the template system  

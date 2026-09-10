@@ -18,12 +18,12 @@ The Store is intended for **application state**. For server state fetching, cach
 
 | Guide | Description |
 | --- | --- |
-| **[Store Overview](./overview.md)** | Understand the store model, reactivity, modules, and when to use each layer. |
+| **[Store Overview](./index.md)** | Understand the store model, reactivity, modules, and when to use each layer. |
 | **[Creating Stores](./creating.md)** | Work with the global `store`, actions, selectors, subscriptions, and batching. |
 | **[Store Registry](./registry.md)** | Define reusable modules with `defineStore()`, retrieve them with `useStore()`, and destroy them with `destroyStore()`. |
 | **[Persistent Stores](./persistence.md)** | Persist selected store keys to IndexedDB, hydrate them on startup, and control synchronization. |
 
-**Start here → [Store Overview](./overview.md)**
+**Start here → [Store Overview](./index.md)**
 
 ---
 
@@ -709,7 +709,7 @@ A store action can call asynchronous application code, but that does not make th
 
 ## Related Documentation
 
-* **[Store Overview](./overview.md)** — The conceptual model of global state, modules, and reactivity.
+* **[Store Overview](./index.md)** — The conceptual model of global state, modules, and reactivity.
 * **[Creating Stores](./creating.md)** — Detailed store usage and state operations.
 * **[Store Registry](./registry.md)** — Module registration, access, actions, and lifecycle.
 * **[Persistent Stores](./persistence.md)** — IndexedDB persistence, hydration, and controllers.

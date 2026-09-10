@@ -9,7 +9,7 @@ Caching is:
 - **TTL-based**: cache freshness is determined by the configured time-to-live.
 - **In-memory**: cache entries belong to the Query Pool instance and are not persisted.
 - **Separate from reactive state**: `query.data` always represents the latest committed result, regardless of whether the cached result is still fresh.
-- **Separate from application state**: client-owned application state belongs in [Udodi Store](../store/README.md).
+- **Separate from application state**: client-owned application state belongs in [Udodi Store](../store/index.md).
 - **Separate from mutations**: mutation results are not cached by TTL.
 
 Caching determines whether a query needs to execute. It does not replace the query lifecycle, dependency graph, or reactive state system.
@@ -17,8 +17,6 @@ Caching determines whether a query needs to execute. It does not replace the que
 For stale marking, mutation-driven refresh, execution plans, force, and in-flight reuse, see [Invalidation](./invalidation.md).
 
 Query caching allows the Query Pool to reuse successful query results for a limited period, avoiding repeated execution of the query's `source` or worker module when the same query is executed again.
-
----
 
 ## Enabling Cache
 
@@ -55,8 +53,6 @@ const liveMetrics = pool.query("liveMetrics", {
 ```
 
 When `liveMetrics` executes again, the pool runs the source unless another execution mechanism, such as in-flight deduplication, prevents a new execution.
-
----
 
 ## What Is Cached?
 
@@ -103,8 +99,6 @@ successful run
 Errors and cancellations do not create a new successful cache entry.
 
 Importantly, an error or cancellation also does not automatically erase previously successful data. That is query lifecycle behavior, not cache behavior. See [Query Lifecycle](./lifecycle.md).
-
----
 
 ## Freshness
 
@@ -168,8 +162,6 @@ After the TTL expires, the entry is no longer fresh and the next execution that 
 
 TTL expiry does **not** proactively execute the query. It only means the existing entry can no longer satisfy a future execution.
 
----
-
 ## Cache Hits Do Not Change the Dependency Plan
 
 Caching operates inside query execution. It does not replace dependency scheduling.
@@ -223,8 +215,6 @@ This distinction is important:
 
 See [Query Dependencies](./dependencies.md).
 
----
-
 ## Cache Hit Example
 
 ```js
@@ -265,8 +255,6 @@ console.log(users.data);
 ```
 
 The cache hit is therefore not a second network request. It is a successful query execution satisfied by the cached result.
-
----
 
 ## TTL Expiration
 
@@ -316,8 +304,6 @@ const config = pool.query("config", {
 After five minutes, the cached entry becomes unusable for a new execution plan. Nothing runs merely because those five minutes elapsed.
 
 A later `fetch()`, `refresh()`, or dependency execution that requires the query will detect that the entry is no longer fresh and execute the query.
-
----
 
 ## invalidate() vs TTL Expiration
 
@@ -383,8 +369,6 @@ After the mutation succeeds, the `users` query can be invalidated and refreshed 
 
 See [Invalidation](./invalidation.md).
 
----
-
 ## force and Cache
 
 A forced execution tells the Query Pool that a fresh cache entry should not be sufficient to satisfy the run.
@@ -401,13 +385,13 @@ Conceptually:
 
 ```text
 normal execution
-      │
-      ▼
- fresh cache?
+       │
+       ▼
+  fresh cache?
    │       │
   yes      no
    │       │
- reuse    execute
+ reuse   execute
 
 
 forced execution
@@ -425,8 +409,6 @@ forced execution
 - `force` requests execution without relying on a fresh cache entry.
 
 `force` also participates in the Query Pool's in-flight execution rules. See [Query Dependencies](./dependencies.md).
-
----
 
 ## Cache and In-Flight Deduplication
 
@@ -462,13 +444,13 @@ If both executions reach the query while the first is already running, the secon
 ```text
 fetch()
   │
-  ├── first execution ──► source
-  │                         │
-  │                         ▼
-  │                      promise
-  │                         ▲
-  │                         │
-  └── second execution ─── reuse
+  ├── first execution ──►  source
+  │                          │
+  │                          ▼
+  │                       promise
+  │                          ▲
+  │                          │
+  └── second execution ──► reuse
 ```
 
 After the successful execution completes, the result can also be placed in the TTL cache.
@@ -476,7 +458,7 @@ After the successful execution completes, the result can also be placed in the T
 So the two mechanisms operate at different times:
 
 ```text
-                 Query execution
+                Query execution
                        │
              ┌─────────┴─────────┐
              │                   │
@@ -495,8 +477,6 @@ So the two mechanisms operate at different times:
 ```
 
 See [Query Dependencies](./dependencies.md).
-
----
 
 ## Input and Cache Identity
 
@@ -592,8 +572,6 @@ This is an important architectural distinction:
 
 > The query key identifies the cache slot. Input does not create additional cache slots.
 
----
-
 ## Cached Input and refresh()
 
 The query also tracks the last input associated with a successful execution path so that `refresh()` can repeat that query with the appropriate input.
@@ -641,8 +619,6 @@ cache[serializedInput] = result
 
 Instead, there is one query result cache plus separately tracked input for subsequent refresh behavior.
 
----
-
 ## Transferable Input
 
 Transferable transport requires additional care.
@@ -680,8 +656,6 @@ If the same input must remain available for subsequent execution, use the defaul
 
 See [Transferable Data](./transfers.md).
 
----
-
 ## Cache and Reactive data
 
 The cache is not the source of truth for what the UI currently displays.
@@ -697,16 +671,16 @@ That value represents the latest successful result committed to the query.
 Suppose a query succeeds:
 
 ```text
-data = users
+data  = users
 cache = users
 ```
 
 Then the next execution fails:
 
 ```text
-data = previous users
-cache = previous successful cache
-error = failure
+data   = previous users
+cache  = previous successful cache
+error  = failure
 status = "error"
 ```
 
@@ -728,8 +702,6 @@ query cache
 ```
 
 See [Query Lifecycle](./lifecycle.md).
-
----
 
 ## Cache and setQueryData()
 
@@ -774,8 +746,6 @@ const createUser = pool.mutation("createUser", {
 ```
 
 See [Mutations](./mutations.md).
-
----
 
 ## Reset and Cache
 
@@ -824,8 +794,6 @@ when the query should return to an uninitialized state.
 
 See [Query Lifecycle](./lifecycle.md).
 
----
-
 ## Cache Does Not Persist Across Pool Instances
 
 Query cache belongs to the Query Pool instance:
@@ -840,12 +808,12 @@ These pools do not share query cache.
 ```text
 poolA
  └── "users"
-      └── cache A
+       └── cache A
 
 
 poolB
  └── "users"
-      └── cache B
+       └── cache B
 ```
 
 The same query key in another pool does not refer to the same cache entry.
@@ -853,8 +821,6 @@ The same query key in another pool does not refer to the same cache entry.
 Cache also does not survive a page reload or process restart.
 
 If durable client-owned data is required, use Udodi Store with its persistence facilities rather than Query Pool's execution cache.
-
----
 
 ## Cache Is Not Persistent Storage
 
@@ -878,8 +844,6 @@ Should this query execute again?
 ```
 
 That separation keeps Query Pool focused on asynchronous work while Store handles client-owned application state.
-
----
 
 ## Common Caching Patterns
 
@@ -950,8 +914,6 @@ notifications refreshed
 ```
 
 This is generally the preferred pattern when the application knows a write has made previously cached data stale.
-
----
 
 ## Complete Example
 
@@ -1027,8 +989,6 @@ users.reset();
 // status becomes "idle"
 ```
 
----
-
 ## Cache Decision Model
 
 A useful way to think about Query Pool caching is:
@@ -1064,8 +1024,6 @@ This makes the role of cache precise:
 
 > Caching is a short-circuit inside query execution. It does not control whether the query belongs to a dependency plan, whether an execution is currently in flight, or whether the query's reactive state exists.
 
----
-
 ## API Summary
 
 | Surface | Role |
@@ -1080,8 +1038,6 @@ This makes the role of cache precise:
 | `setQueryData()` | Updates reactive query data without executing the query. |
 | `reset()` | Clears query state, cached input, and cache. |
 | `cancel()` | Stops in-flight work without clearing the cache or previous data. |
-
----
 
 ## Key Distinctions
 
@@ -1099,19 +1055,5 @@ The following distinctions are central to understanding Query Pool caching:
 | Mutation | Performs asynchronous writes and can invalidate queries |
 
 The distinction between these mechanisms is what allows the Query Pool to remain an asynchronous execution runtime, rather than becoming a general-purpose state store.
-
----
-
-## Next Steps
-
-| Topic | Guide |
-| --- | --- |
-| Mark queries stale and refresh them | [Invalidation](./invalidation.md) |
-| Understand execution, combine caching with dependencies plans and force | [Query Dependencies](./dependencies.md) |
-| Understand status and data preservation | [Query Lifecycle](./lifecycle.md) |
-| Perform writes that invalidate queries | [Mutations](./mutations.md) |
-| Create and execute queries | [Queries](./queries.md) |
-| Understand the overall architecture | [Query Pool Overview](./overview.md) |
-| Transfer large values through workers | [Transferable Data](./transfers.md) |
 
 For exact types, signatures, and option details, see the [Query Pool API Reference](../api/query-pool.md).

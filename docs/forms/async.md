@@ -15,8 +15,6 @@ This guide covers:
 
 For validator syntax and return values, see [Validation](./validation.md). For form-level scheduling, see [Sequential and Parallel Validation](./sequential-parallel.md). For submission behavior, see [Form Submission](./submission.md).
 
----
-
 ## What Makes a Validator Asynchronous?
 
 A validator is asynchronous when it returns a Promise:
@@ -55,8 +53,6 @@ It may return:
 
 Udodi waits for the Promise before completing that field's validation cycle.
 
----
-
 ## The Validation Context
 
 Every validator receives a context object as its final argument:
@@ -91,8 +87,6 @@ async uniqueUsername(value, ctx) {
 
 This allows a newer validation cycle to cancel work that is no longer relevant.
 
----
-
 ## Why Cancellation Matters
 
 Consider a field using the default `live` trigger:
@@ -119,8 +113,8 @@ That can produce several validation cycles before the first network request fini
 Without cancellation or stale-result protection, an older request could finish after the newest request and incorrectly replace the current error:
 
 ```text
-alice      → valid
-alic       → invalid
+alice    →  valid
+alic     →  invalid
 ```
 
 If the `alic` request finishes last, the UI could incorrectly report the current value as invalid.
@@ -128,8 +122,6 @@ If the `alic` request finishes last, the UI could incorrectly report the current
 Udodi prevents this class of race condition by treating each validation cycle as current only while it remains active. Superseded validation cannot commit its result over a newer cycle.
 
 Cancellation is therefore both a performance mechanism and a correctness mechanism.
-
----
 
 ## AbortSignal and Fetch
 
@@ -171,8 +163,6 @@ fetch(url, { signal: ctx.signal });
 
 The runtime owns the lifecycle of `ctx.signal`.
 
----
-
 ## Handling Aborted Work
 
 An aborted asynchronous operation should normally not become a validation error.
@@ -211,8 +201,6 @@ The important distinction is:
 
 In most cases, returning `true` for an aborted cycle is only a defensive fallback. The runtime already prevents a superseded validation result from becoming the current field result.
 
----
-
 ## Non-Fetch Asynchronous Work
 
 `AbortSignal` is useful beyond `fetch`.
@@ -245,8 +233,6 @@ This does not stop `doAsyncWork()` itself, but it prevents obsolete work from be
 
 If you control the asynchronous API, prefer making it accept an `AbortSignal` so the underlying operation can actually be cancelled.
 
----
-
 ## Validation State While Async Work Is Pending
 
 While an asynchronous validation cycle is running:
@@ -276,8 +262,6 @@ For example:
 ```
 
 For field-specific UI, use a computed value rather than calling `getField()` directly from a reactive template expression.
-
----
 
 ## Async Validation and Triggers
 
@@ -327,8 +311,6 @@ On full-form validation, the field participates regardless of whether its intera
 
 See [Form Submission](./submission.md).
 
----
-
 ## Multiple Async Validators
 
 Validators on one field always execute in declaration order and stop at the first failure:
@@ -363,8 +345,6 @@ required
 If `uniqueEmail` is asynchronous, the field remains validating until that validator settles.
 
 Form-level `parallel` mode does **not** make these validators run concurrently. Parallel mode coordinates different fields; validators within one field remain sequential.
-
----
 
 ## Async Validation with Sequential Forms
 
@@ -401,8 +381,6 @@ This is useful when:
 - early exit is valuable;
 - later checks are expensive;
 - validation order has UX significance.
-
----
 
 ## Async Validation with Parallel Forms
 
@@ -441,8 +419,6 @@ ud.forms.signup.errors.username
 
 The first invalid field in registration order receives focus.
 
----
-
 ## Overlapping Validation Cycles
 
 A field can have multiple validation cycles over its lifetime.
@@ -474,8 +450,6 @@ This is particularly important with:
 - asynchronous validators that cannot be physically cancelled
 
 Cancellation reduces unnecessary work; validation-cycle tracking provides the stale-result safety.
-
----
 
 ## Async Validation and Form Submission
 
@@ -522,8 +496,6 @@ wait for validation
 ```
 
 The submit handler is not called until all required validation work for the submit pass has completed successfully.
-
----
 
 ## Async Validation Errors
 
@@ -581,8 +553,6 @@ async uniqueEmail(value, ctx) {
 
 Do not expose raw network or implementation errors to users as validation messages.
 
----
-
 ## Avoiding Race Conditions
 
 A common incorrect pattern is to maintain your own global request state:
@@ -620,8 +590,6 @@ async uniqueEmail(value, ctx) {
 ```
 
 Each validation cycle receives its own cancellation context.
-
----
 
 ## Practical Example
 
@@ -747,8 +715,6 @@ render(SignupForm(), "#app");
 
 With `parallel` mode, the email and username checks can execute concurrently during submit. With `lazy`, they also run independently when their respective controls lose focus.
 
----
-
 ## Cancellation and Component Cleanup
 
 Validation belongs to the form field's lifecycle.
@@ -770,8 +736,6 @@ If the control is removed while a remote validator is pending, the old validatio
 
 You therefore do not need to manually unregister validators or cancel a field's validation from application code.
 
----
-
 ## Recommendations
 
 For production asynchronous validators:
@@ -786,8 +750,6 @@ For production asynchronous validators:
 8. **Return user-facing validation messages**, not raw transport or exception messages.
 9. **Let the runtime manage validation-cycle lifetime and stale-result protection.**
 
----
-
 ## Common Mistakes
 
 | Mistake | Result |
@@ -799,17 +761,3 @@ For production asynchronous validators:
 | Assuming `@trigger="submit"` is the only validation run during submit | All registered fields participate in full-form submit validation |
 | Updating component state from stale async results | Can create application-level race conditions |
 | Showing raw request errors to users | Produces poor and potentially unsafe validation messages |
-
----
-
-## Next Steps
-
-| Goal | Guide |
-| --- | --- |
-| Validator syntax and triggers | [Validation](./validation.md) |
-| Sequential vs parallel field scheduling | [Sequential and Parallel Validation](./sequential-parallel.md) |
-| Submit lifecycle and async handlers | [Form Submission](./submission.md) |
-| Controller state and helpers | [Form Controllers](./controllers.md) |
-| Field registration and state | [Working with Fields](./fields.md) |
-
-For registering the form itself, see [Creating a Form](./creating.md). For the overall architecture, see [Forms Overview](./overview.md).

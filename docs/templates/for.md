@@ -4,8 +4,6 @@ The `@for` directive renders repeated content from an array.
 
 The element declaring `@for` is used as a template. Udodi clones it for each item, creates a per-item context, binds the cloned subtree, and reconciles the rendered items when the array changes.
 
----
-
 ## Basic Usage
 
 ```html
@@ -39,8 +37,6 @@ state() {
 }
 ```
 
----
-
 ## Example
 
 ```js
@@ -65,7 +61,7 @@ const TodoList = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div>
       <button @on="click=add">Add</button>
 
@@ -83,8 +79,6 @@ render(TodoList(), "#app");
 ```
 
 Here, `@for` and `@key` define the repeating template. The `@text` directives are descendants of that template and are therefore bound separately for each item.
-
----
 
 ## Syntax Rules
 
@@ -108,8 +102,6 @@ Invalid:
 <li @for="'a' 'b'"></li>
 ```
 
----
-
 ## `@key`
 
 `@key` provides stable identity during reconciliation:
@@ -128,8 +120,6 @@ When `@key` is omitted, Udodi derives a fallback key. Objects use `id`, `_id`, o
 
 For lists that can be reordered, inserted into, or removed from, prefer an explicit `@key`.
 
----
-
 ## Iteration Context
 
 Each rendered item receives a child context containing:
@@ -147,8 +137,6 @@ Each rendered item receives a child context containing:
 ```
 
 Parent state, methods, computed values, and props remain available through the inherited context.
-
----
 
 ## Template Root
 
@@ -170,21 +158,17 @@ Put bindings on descendants instead:
 
 This restriction applies to all directives on the repeating root, not only `@text`.
 
----
-
 ## Reconciliation
 
 When the array changes, Udodi reconciles the rendered records by key:
 
-1. **Create** — clone the template, create an item scope, and bind the cloned subtree.  
-2. **Reuse** — update the item and index signals while preserving the existing DOM and bindings.  
-3. **Reorder** — move existing DOM nodes into the new array order.  
-4. **Remove** — unmount records whose keys are no longer present.  
-5. **Cleanup** — dispose all item scopes when the parent component is destroyed.  
+1. **Create**: clone the template, create an item scope, and bind the cloned subtree.  
+2. **Reuse**: update the item and index signals while preserving the existing DOM and bindings.  
+3. **Reorder**: move existing DOM nodes into the new array order.  
+4. **Remove**: unmount records whose keys are no longer present.  
+5. **Cleanup**: dispose all item scopes when the parent component is destroyed.  
 
 An internal comment anchor preserves the list's insertion position.
-
----
 
 ## Nested Content
 
@@ -199,8 +183,6 @@ Normal template content and nested components can be used inside an `@for` item:
 
 Nested structural directives can also be processed within the cloned subtree, allowing constructs such as nested `@for` and `@if`.
 
----
-
 ## Behavior
 
 `@for`:
@@ -213,8 +195,6 @@ Nested structural directives can also be processed within the cloned subtree, al
 - Reorders DOM nodes to match the array order.  
 - Unmounts removed records and cleans up their scopes.  
 - Replaces the original template element with an internal anchor.  
-
----
 
 ## Minimal Example
 
@@ -230,7 +210,7 @@ const Names = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <ul>
       <li @for="name names">
         <span @text="name"></span>
@@ -241,13 +221,3 @@ const Names = createComponent({
 
 render(Names(), "#app");
 ```
-
----
-
-## Next Steps
-
-* [`@if`](./if.md) — conditional rendering  
-* [Reactive Collections](../reactivity/collections.md) — array reactivity  
-* [Using `touch()`](../reactivity/touch.md) — notifying deep mutations  
-* [Template DSL](./dsl.md) — expression syntax  
-* [Template Overview](./overview.md) — directive fundamentals  

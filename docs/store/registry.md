@@ -13,9 +13,7 @@ A module builds on the global Store and namespace system by combining:
 
 A module does not create a separate reactive store. Its state and actions remain backed by Udodi's global Store, while the registry gives them a stable namespace, a scoped API, and a lifecycle.
 
-For the global Store API, batching, and lightweight namespaces, see [Creating Stores](./creating.md). For persistence details, see [Persistent Stores](./persistence.md).
-
----
+For the global Store API, batching, and so on, see [Creating Stores](./creating.md). For persistence details, see [Persistent Stores](./persistence.md).
 
 ## Importing the Registry
 
@@ -34,8 +32,6 @@ import {
 | `destroyStore(name)` | Destroy a registered module and release its resources. |
 
 The registry is intentionally small: `defineStore()` establishes the module, `useStore()` accesses it, and `destroyStore()` removes it.
-
----
 
 ## Defining a Module
 
@@ -128,8 +124,6 @@ cleanup(moduleApi) {
 
 It runs when the module is destroyed. Errors from the cleanup hook are ignored so that module destruction can continue releasing the rest of its resources.
 
----
-
 ## Registration Is Idempotent
 
 A module name identifies one registered module.
@@ -165,8 +159,6 @@ export const cart = defineStore("cart", {
 
 Other parts of the application can then retrieve the same module with `useStore("cart")`.
 
----
-
 ## How Modules Map to the Global Store
 
 A module named `auth` owns the `auth:` namespace:
@@ -182,17 +174,17 @@ Conceptually:
 
 ```text
 defineStore("auth", ...)
-        │
-        ├── state
-        │     ├── user  → auth:user
-        │     └── token → auth:token
-        │
-        └── actions
-              ├── login  → auth:login
-              └── logout → auth:logout
+      │
+      ├── state
+      │     ├── user   →  auth:user
+      │     └── token  →  auth:token
+      │
+      └── actions
+            ├── login   →  auth:login
+            └── logout  →  auth:logout
 ```
 
-Under the hood, modules use the same namespace mechanism exposed by `createNamespace()`.
+Under the hood, modules use the namespace mechanism.
 
 There is therefore:
 
@@ -202,8 +194,6 @@ There is therefore:
 * one persistence path.
 
 The registry adds organization and lifecycle, not another reactive runtime.
-
----
 
 ## Module API
 
@@ -240,8 +230,6 @@ cart.dispatch("cart:addItem");
 ```
 
 The module API applies the namespace automatically.
-
----
 
 ## Using a Module
 
@@ -298,8 +286,6 @@ console.log(cart.state.items);
 `useStore(name)` returns `undefined` when the module is not registered.
 
 This makes the registry suitable for feature code that is loaded or unloaded independently of the application shell.
-
----
 
 ## The `state` Proxy
 
@@ -379,8 +365,6 @@ defineStore("profile", {
 
 For actions, `ctx.state` is often the most convenient way to work with several related properties.
 
----
-
 ## Module Actions
 
 Module actions use the same `(ctx, payload)` convention as global actions, but their context is scoped to the module:
@@ -453,8 +437,6 @@ Missing-action behavior is the same as the global Store:
 * warn and return `undefined` by default;
 * use `{ throwOnMissing: true }` or `{ strict: true }` to throw.
 
----
-
 ## Selectors
 
 Module selectors derive values from module state:
@@ -518,8 +500,6 @@ actions: {
 }
 ```
 
----
-
 ## Persistence
 
 Modules inherit the Store's namespace-aware persistence API.
@@ -542,8 +522,8 @@ await controller.ready;
 The module translates the local keys into fully qualified Store keys:
 
 ```text
-token → auth:token
-user  → auth:user
+token  →  auth:token
+user   →  auth:user
 ```
 
 Persistence therefore remains isolated between modules without requiring application code to manage prefixes manually.
@@ -562,8 +542,6 @@ See [Persistent Stores](./persistence.md) for:
 Deleting a module key follows the normal Store deletion path and stops persistence for that key.
 
 Destroying the module removes its tracked state and therefore releases persistence associated with those keys.
-
----
 
 ## Destroying a Module
 
@@ -614,8 +592,6 @@ defineStore("auth", {
 ```
 
 The new registration is a fresh module.
-
----
 
 ## Full Example
 
@@ -700,13 +676,13 @@ The important lifecycle is:
 defineStore("cart", ...)
         │
         ▼
-   registered module
+registered module
         │
         ├── state
         ├── actions
         ├── selectors
         ├── subscriptions/persistence
-        └── reactive state proxy
+        ├── reactive state proxy
         │
         ▼
 useStore("cart")
@@ -724,45 +700,17 @@ destroyStore("cart")
         └── unregister
 ```
 
----
-
-## Modules vs Namespaces vs Global Store
+## Global Store vs Modules
 
 | Approach | Use when |
 | --- | --- |
 | **Global store** | You have a small number of shared keys with no feature boundary. |
-| **`createNamespace()`** | You want prefix isolation and scoped operations without module registration or lifecycle. |
-| **`defineStore()`** | A feature needs initial state, scoped actions, selectors, persistence, and explicit cleanup. |
-
-A useful rule is:
-
-```text
-Small cross-cutting value
-        ↓
-      store
-
-Small scoped group of values/actions
-        ↓
-  createNamespace()
-
-Feature with ownership + lifecycle
-        ↓
-   defineStore()
-```
+| **`defineStore()`** | A feature needs initial state, namespace, scoped actions, selectors, persistence, and explicit cleanup. |
 
 For example:
 
 * `theme` or `locale` may be appropriate global state.
-* `ui.sidebarOpen` may fit a lightweight namespace.
+* `ui.sidebarOpen` may fit a define store namespace.
 * `auth`, `cart`, or a feature with setup/teardown work is a good module boundary.
 
 Modules are still backed by the same global Store. Choose them because the feature needs a lifecycle and organizational boundary, not because they require a separate reactive engine.
-
----
-
-## Next Steps
-
-* **[Creating Stores](./creating.md)** — Global state, actions, batching, selectors, subscriptions, and namespaces.
-* **[Persistent Stores](./persistence.md)** — IndexedDB persistence, hydration, and persistence controllers.
-* **[Store Overview](./overview.md)** — Store mental model and state ownership.
-* **[Store API Reference](../api/store.md)** — Exact signatures, options, and return values.

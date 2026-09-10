@@ -4,8 +4,6 @@ The `@style` directive applies **inline CSS** to an element from static declarat
 
 Use `@style` when individual CSS properties depend on component state. For reusable presentation and layout rules, prefer component `style` / scoped CSS and use [`@class`](./class.md) to switch between styles.
 
----
-
 ## Basic Usage
 
 ```html
@@ -31,8 +29,6 @@ Multiple bindings can be combined:
 
 Bindings are evaluated from left to right. When multiple bindings produce the same property, the **later binding wins**.
 
----
-
 ## Static Styles
 
 A fully quoted declaration string is treated as static and applied once:
@@ -51,8 +47,6 @@ Component CSS is generally preferable when the styles are part of the component'
 
 Static `@style` is useful when a declaration needs to pass through the directive system.
 
----
-
 ## Dynamic Results
 
 Reactive bindings can produce CSS in several forms:
@@ -62,7 +56,7 @@ Reactive bindings can produce CSS in several forms:
 | String                      | `"color:red;padding:8px"`                | Parsed as CSS declarations   |
 | Object                      | `{ color: "red", padding: "8px" }`       | Property/value map           |
 | Array of pairs              | `[["color", "red"], ["padding", "8px"]]` | Ordered property/value pairs |
-| `null` / `undefined` / `""` | `null \| undefined \| ""`                | Contributes no properties    |
+| `null` / `undefined` / `""` |                 | Contributes no properties    |
 
 For example:
 
@@ -98,8 +92,6 @@ If both bindings produce `color`, the value from `emphasisStyles` takes preceden
 
 Empty property names and empty values do not contribute styles.
 
----
-
 ## Multiple Bindings
 
 Each space-separated expression represents a separate style binding:
@@ -113,23 +105,21 @@ Udodi evaluates the bindings in order and merges their results.
 For example:
 
 ```text
-layoutStyles
-      │
-      ▼
-themeStyles
-      │
-      ▼
-stateStyles
-      │
-      ▼
- final style map
+     layoutStyles
+          │
+          ▼
+     themeStyles
+          │
+          ▼
+     stateStyles
+          │
+          ▼
+   final style map
 ```
 
 A property produced by a later binding replaces the value produced by an earlier binding.
 
 This makes it possible to define general styles first and override individual properties conditionally.
-
----
 
 ## Base Styles
 
@@ -166,8 +156,6 @@ When the binding stops producing `margin`, the original `0` is restored.
 
 This prevents `@style` from permanently destroying inline styles that were already present.
 
----
-
 ## Reactive Diffing
 
 Dynamic styles are reconciled whenever their reactive dependencies change.
@@ -175,7 +163,7 @@ Dynamic styles are reconciled whenever their reactive dependencies change.
 Conceptually:
 
 ```text
-      previous properties
+     previous properties
               │
               ▼
       evaluate bindings
@@ -184,10 +172,10 @@ Conceptually:
       normalize results
               │
               ▼
-      merge in binding order
+    merge in binding order
               │
               ▼
-      compare with previous styles
+  compare with previous styles
       ┌───────┼───────┐
       ▼       ▼       ▼
     restore  set    remove
@@ -203,8 +191,6 @@ On each reactive update, Udodi:
 6. Leaves unchanged properties untouched.
 
 Only properties managed by `@style` participate in this dynamic reconciliation.
-
----
 
 ## Example
 
@@ -236,7 +222,7 @@ const Box = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div @style="boxStyle" @on="click=toggle">
       Click to resize
     </div>
@@ -249,8 +235,6 @@ render(Box(), "#app");
 The `border` and `width` properties are controlled by `@style`.
 
 When `accent` changes, only `border` needs to be updated. When `wide` changes, `width` changes between `12rem` and `100%`.
-
----
 
 ## `@style` vs Component CSS
 
@@ -274,7 +258,7 @@ style: css`
   }
 `,
 
-template: () => html`
+template: html`
   <article class="card" @class="featured=>'featured'">
     ...
   </article>
@@ -293,8 +277,6 @@ Use `@style` when the actual CSS value is dynamic:
 ```
 
 See [Component Styles](../fundamentals/styles.md) and [`@class`](./class.md).
-
----
 
 ## When to Use `@style`
 
@@ -317,8 +299,6 @@ Examples include:
 
 For stable component presentation, prefer component CSS.
 
----
-
 ## Behavior
 
 `@style`:
@@ -335,8 +315,6 @@ For stable component presentation, prefer component CSS.
 * Removes the `@style` attribute after binding.
 * Disposes its reactive effect with the component scope.
 
----
-
 ## Syntax Summary
 
 | Form                        | Behavior                                  |
@@ -348,8 +326,6 @@ For stable component presentation, prefer component CSS.
 | Object result               | CSS property/value map                    |
 | Pair-array result           | Ordered property/value pairs              |
 | `null` / `undefined` / `""` | Contributes no properties                 |
-
----
 
 ## Constraints
 
@@ -363,8 +339,6 @@ For stable component presentation, prefer component CSS.
 | Empty values      | Ignored                                                         |
 | Runtime attribute | `@style` is removed after binding                               |
 | Template DSL      | Expressions use the template expression syntax                  |
-
----
 
 ## Minimal Example
 
@@ -388,7 +362,7 @@ const Label = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <span @style="textStyle">
       Hello
     </span>
@@ -399,13 +373,3 @@ render(Label(), "#app");
 ```
 
 When `color` changes, the inline `color` property is updated reactively.
-
----
-
-## Next Steps
-
-* [`@class`](./class.md) — reactive CSS classes
-* [Component Styles](../fundamentals/styles.md) — scoped component CSS
-* [Template DSL](./dsl.md) — template expression syntax
-* [`@attr`](./attr.md) — reactive attributes
-* [Template Overview](./overview.md) — how directives work together

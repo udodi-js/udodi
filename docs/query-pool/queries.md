@@ -36,8 +36,6 @@ console.log(users === sameUsers); // true
 
 Calling `pool.query()` again with an existing key returns the existing query rather than replacing its definition.
 
----
-
 ## Query Definitions
 
 A query definition must provide exactly one execution mechanism:
@@ -73,12 +71,10 @@ fetch(input)
 Worker Module
      │
      ▼
-query.data
+ query.data
 ```
 
 `module` cannot be combined with `source` or `compute`.
-
----
 
 ## Local Queries
 
@@ -147,8 +143,6 @@ const users = pool.query("users", {
 
 The source may return either a value or a Promise.
 
----
-
 ## Transforming Results with compute
 
 Use `compute` when the value returned by `source` is not the final value that the query should expose.
@@ -184,7 +178,7 @@ source(signal, input)
 compute(raw response)
         │
         ▼
-   query.data
+    query.data
 ```
 
 `compute` receives only the value returned by `source`. It does not receive the `AbortSignal` or query input.
@@ -202,8 +196,6 @@ const users = pool.query("users", {
 ```
 
 For ordinary synchronous transformations, a normal function is preferable.
-
----
 
 ## Query Input
 
@@ -281,8 +273,6 @@ await users.refresh();
 // Uses { page: 2 }
 ```
 
----
-
 ## fetch()
 
 `fetch()` performs an explicit execution of the query.
@@ -355,8 +345,6 @@ await users.fetch({
 
 A successful `fetch()` also schedules queries that depend on this query according to the pool's dependent-refresh mechanism.
 
----
-
 ## refresh()
 
 `refresh()` runs the query's dependency execution plan.
@@ -368,12 +356,12 @@ await users.refresh();
 For a query with dependencies:
 
 ```text
-session
-   │
-   ▼
-profile
-   │
-   ▼
+ session
+    │
+    ▼
+ profile
+    │
+    ▼
 dashboard
 ```
 
@@ -411,8 +399,6 @@ await pool.refresh("users", {
 });
 ```
 
----
-
 ## fetch() vs refresh()
 
 The distinction is important:
@@ -435,8 +421,6 @@ await users.fetch({
 // Re-run using the cached input.
 await users.refresh();
 ```
-
----
 
 ## Query State
 
@@ -491,8 +475,6 @@ const label = computed(() => {
 
 A change to `users.loading` does not require manually notifying the consumer.
 
----
-
 ## Initial Execution
 
 Registering a query starts its initial execution plan automatically.
@@ -535,8 +517,6 @@ console.log(users.status);
 
 When dependencies are declared, the initial execution also respects the dependency graph.
 
----
-
 ## In-Flight Deduplication
 
 The Query Pool reuses an existing in-flight execution when the same query is executed again without `force`.
@@ -562,8 +542,6 @@ const second = users.refresh({
 ```
 
 The forced execution supersedes the active execution.
-
----
 
 ## Cancellation
 
@@ -603,16 +581,14 @@ new execution
       ▼
    loading
       │
-    cancel()
+   cancel()
       │
       ▼
- cancelled
-data remains available
+  cancelled
+  data remains available
 ```
 
 Always pass the provided `signal` to APIs that support cancellation.
-
----
 
 ## Resetting a Query
 
@@ -648,8 +624,6 @@ reset()
   └── status → idle
 ```
 
----
-
 ## Caching
 
 Caching is optional and configured through the query definition:
@@ -676,12 +650,12 @@ On a later execution, the pool can reuse the cached result when the entry is fre
                     │
              ┌──────┴──────┐
              │             │
-          fresh?          stale?
+          fresh?         stale?
              │             │
             yes            no
              │             │
              ▼             ▼
-        reuse data      execute query
+        reuse data    execute query
 ```
 
 Freshness is based on the configured TTL and the entry's timestamp.
@@ -689,8 +663,6 @@ Freshness is based on the configured TTL and the entry's timestamp.
 A query with no cache configuration does not reuse a previous result through the Query Pool cache.
 
 See [Caching](./caching.md) for the complete cache model.
-
----
 
 ## Invalidating a Query
 
@@ -703,7 +675,7 @@ users.invalidate();
 It does not start a new execution by itself.
 
 ```text
-invalidate()
+ invalidate()
       │
       ▼
 cache marked stale
@@ -711,9 +683,9 @@ cache marked stale
       ├── no immediate request
       │
       └── next execution
-             │
-             ▼
-        source/module runs
+              │
+              ▼
+      source/module runs
 ```
 
 To invalidate and then explicitly refresh:
@@ -724,8 +696,6 @@ await users.refresh();
 ```
 
 Invalidation is especially useful after mutations. See [Invalidation](./invalidation.md).
-
----
 
 ## Dependent Queries
 
@@ -811,8 +781,6 @@ Cycles in `dependsOn` are rejected when the execution plan is built.
 
 See [Query Dependencies](./dependencies.md).
 
----
-
 ## Worker Module Queries
 
 A query can execute inside the Compute Worker Pool instead of using a local `source`.
@@ -879,8 +847,6 @@ The module must be registered before the query is created.
 
 See [Query Registry](./registry.md) and [Query Pool and Workers](./workers.md).
 
----
-
 ## Streaming Queries
 
 Streaming is available only for worker-module queries.
@@ -936,8 +902,6 @@ streaming = false
 
 See [Query Pool and Workers](./workers.md) for worker execution details.
 
----
-
 ## Transferable Input
 
 Worker queries use structured cloning by default.
@@ -984,8 +948,6 @@ When `transfer` is false, the latest input can be cached and reused by subsequen
 
 See [Transferable Data](./transfers.md).
 
----
-
 ## Query Data Outside a Handle
 
 The pool also provides `data()` for reading the current result by key:
@@ -1011,8 +973,6 @@ const userCount = pool.query("userCount", {
 ```
 
 `pool.data()` reads the current reactive query data. It does not execute the query.
-
----
 
 ## Writing Query Data
 
@@ -1060,8 +1020,6 @@ pool.setQueryData("users", [
 
 It changes the reactive query data; it does not execute the query's asynchronous work.
 
----
-
 ## Reactive Usage
 
 Query handles can be consumed directly by Udodi's reactive primitives.
@@ -1093,8 +1051,6 @@ effect(() => {
 Templates can also read query state directly when the query handle is exposed through the component context.
 
 The important point is that request state does not need to be copied into component state merely to make it reactive.
-
----
 
 ## Complete Example
 
@@ -1164,8 +1120,6 @@ users.cancel();
 users.reset();
 ```
 
----
-
 ## Query API Summary
 
 ### Definition
@@ -1208,22 +1162,5 @@ users.reset();
 | `pool.data(key)` | Read the current query data. |
 | `pool.setQueryData(key, value \| fn)` | Update query data without executing the query. |
 | `pool.refresh(key, options?)` | Execute a query through its dependency plan. |
-
----
-
-## Next Steps
-
-| Goal | Guide |
-| --- | --- |
-| Understand query lifecycle and status | [Query Lifecycle](./lifecycle.md) |
-| Understand execution order, and connect queries with dependencies | [Query Dependencies](./dependencies.md) |
-| Configure TTL caching | [Caching](./caching.md) |
-| Invalidate and refresh queries | [Invalidation](./invalidation.md) |
-| Cancel asynchronous work | [Query Cancellation](./cancellation.md) |
-| Register worker modules | [Query Registry](./registry.md) |
-| Execute queries in workers | [Query Pool and Workers](./workers.md) |
-| Transfer large binary input | [Transferable Data](./transfers.md) |
-
-For the conceptual model behind queries, see [Query Pool Overview](./overview.md).
 
 For exact signatures and option types, see the [Query Pool API Reference](../api/query-pool.md).

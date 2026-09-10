@@ -4,8 +4,6 @@ The `reactive()` creates a **shallow reactive object**: each own property is bac
 
 Component `state()` is built on top of `reactive()`.
 
----
-
 ## Creating Reactive State
 
 ```js
@@ -25,8 +23,6 @@ state.name = "Lin"; // effect re-runs
 ```
 
 Only properties present on the initial object (and later managed through the proxy’s reactive path) participate as tracked fields. Nested plain objects are not made reactive automatically.
-
----
 
 ## Shallow Reactivity
 
@@ -59,8 +55,6 @@ touch(state, "user");
 
 This keeps the dependency graph small and avoids the cost and surprises of deep proxies.
 
----
-
 ## Reading and Writing
 
 ```js
@@ -69,8 +63,6 @@ state.count = n + 1;    // notify if value changed (Object.is)
 ```
 
 Writes use the same equality rule as signals: `Object.is`. Assigning an identical value does not notify.
-
----
 
 ## Interceptors
 
@@ -105,8 +97,6 @@ Interceptors receive the incoming value only. They are per-property functions on
 
 Component `interceptors` in `createComponent` use the same mechanism.
 
----
-
 ## Collections on Reactive State
 
 When you assign an array, `Map`, or `Set` to a reactive property, Udodi wraps it so **structural** mutations notify the owning property.
@@ -131,8 +121,6 @@ state.items = [{ id: 2 }];
 
 Deep mutations inside collection elements still need `touch` or replacement of the element/property. See [Reactive Collections](./collections.md).
 
----
-
 ## Identity and the Proxy
 
 `reactive()` returns a **proxy**. The proxy is what effects and the rest of the system should hold.
@@ -146,8 +134,6 @@ effect(() => {
 ```
 
 Do not dig out an internal target object and mutate that; writes must go through the proxy (or through APIs that call `touch` on the proxy).
-
----
 
 ## Component State
 
@@ -186,8 +172,6 @@ Rules of thumb:
 - Root keys from state, computed, methods, and props must not collide.  
 - Nested plain objects follow the same shallow rules as standalone `reactive()`.
 
----
-
 ## `touch()` for Nested Data
 
 When in-place nested mutation is intentional:
@@ -208,8 +192,6 @@ state.user = {
 
 Both patterns notify dependents of `user`. `touch` avoids allocating a new object when mutation is required. Details: [Using `touch()`](./touch.md).
 
----
-
 ## What Is Not Reactive
 
 | Value | Behavior |
@@ -218,8 +200,6 @@ Both patterns notify dependents of `user`. `touch` avoids allocating a new objec
 | Properties added only on the raw target (bypassing the proxy) | Not reactive |
 | Non-object primitives held in signals | Fully tracked via get/set |
 | Objects marked `__udodi_reactive__` | Not wrapped again |
-
----
 
 ## API Summary
 
@@ -239,8 +219,6 @@ const state = reactive(initialState?, options?);
 
 Returns a proxy. Use that proxy for all reads and writes.
 
----
-
 ## Mental Model
 
 ```text
@@ -253,13 +231,3 @@ reactive({ count: 0, user: { name: "Ada" } })
                      └── user.name  → not a signal
                                       (use replace or touch)
 ```
-
----
-
-## Next Steps
-
-* [Signals](./signals.md) — the per-property primitive under `reactive()`  
-* [Effects](./effects.md) — how reads become subscriptions  
-* [Reactive Collections](./collections.md) — arrays, Map and Set  
-* [Using `touch()`](./touch.md) — nested notification  
-* [Reactivity Overview](./overview.md) — full model  

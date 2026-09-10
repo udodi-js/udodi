@@ -21,8 +21,6 @@ For opening, closing, and configuration, see:
 * [Closing Overlays](./closing.md)
 * [Overlay Options](./options.md)
 
----
-
 ## The Overlay Stack
 
 Every call to `openModal()` creates an overlay entry and pushes it onto the internal stack.
@@ -30,12 +28,12 @@ Every call to `openModal()` creates an overlay entry and pushes it onto the inte
 Closing an overlay removes that entry.
 
 ```text
-  openModal()
-      │
-      ▼
-  push entry
-      │
-      ▼
+    openModal()
+         │
+         ▼
+     push entry
+         │
+         ▼
 ┌─────────────────┐
 │ Overlay C       │ ← top-most
 ├─────────────────┤
@@ -43,26 +41,26 @@ Closing an overlay removes that entry.
 ├─────────────────┤
 │ Overlay A       │ ← first opened
 └─────────────────┘
-      │
-      ▼
-  close path
-      │
-      ▼
-  remove entry
+         │
+         ▼
+     close path
+         │
+         ▼
+    remove entry
 ```
 
 Conceptually, the stack is ordered from the first opened overlay at the bottom to the most recently opened overlay at the top:
 
 ```text
 ┌─────────────────────────────┐
-│ Overlay C  ← top-most       │
+│ Overlay C  ←  top-most      │
 │            Escape           │
 │            focus trap       │
 │            closeTopModal()  │
 ├─────────────────────────────┤
 │ Overlay B                   │
 ├─────────────────────────────┤
-│ Overlay A  ← first opened   │
+│ Overlay A  ←  first opened  │
 └─────────────────────────────┘
 ```
 
@@ -74,8 +72,6 @@ Conceptually, the stack is ordered from the first opened overlay at the bottom t
 
 The stack is global to the page. All overlays opened through `openModal()` share the same stack and the same `#udodi-overlay-root`.
 
----
-
 ## Opening Nested Overlays
 
 An overlay can open another overlay while it remains open.
@@ -86,7 +82,7 @@ This creates a nested stack:
 ParentDialog
      │
      ▼
-NestedDialog  ← top-most
+NestedDialog  ←  top-most
 ```
 
 For example:
@@ -107,7 +103,7 @@ const NestedDialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div class="dialog">
       <p>Nested confirmation</p>
 
@@ -144,7 +140,7 @@ const ParentDialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div class="dialog">
       <p>Parent dialog</p>
 
@@ -173,20 +169,18 @@ Instead:
 ```text
 Before nested open:
 
-ParentDialog  ← top-most
+ParentDialog  ←  top-most
 
 
 After nested open:
 
 ParentDialog
-NestedDialog  ← top-most
+NestedDialog  ←  top-most
 ```
 
 Both entries remain in the stack.
 
 The parent remains mounted while the nested overlay is active.
-
----
 
 ## The Top-Most Rule
 
@@ -201,16 +195,14 @@ The **top-most entry owns**:
 Underlying overlays remain open, but they do not compete for these interactions.
 
 ```text
-┌─────────────────────────┐
-│ NestedDialog            │ ← owns top-level interactions
-├─────────────────────────┤
-│ ParentDialog            │ ← remains mounted
-└─────────────────────────┘
+┌────────────────┐
+│ NestedDialog   │ ← owns top-level interactions
+├────────────────┤
+│ ParentDialog   │ ← remains mounted
+└────────────────┘
 ```
 
 This prevents a key press or global dismissal action from accidentally affecting several overlays at once.
-
----
 
 ## Escape
 
@@ -229,7 +221,7 @@ For example:
 
 ```text
 Overlay A
-Overlay B  ← top-most
+Overlay B  ←  top-most
 
 Escape
   │
@@ -255,16 +247,14 @@ Only after B closes does A become eligible to respond to a subsequent Escape pre
 Before:
 
 Overlay A
-Overlay B  ← top-most
+Overlay B  ←  top-most
 
 After B closes:
 
-Overlay A  ← top-most
+Overlay A  ←  top-most
 ```
 
 A's own `closeOnEscape` option is then evaluated independently.
-
----
 
 ## Focus Trapping
 
@@ -274,7 +264,7 @@ When `focusTrap` is enabled, the runtime manages keyboard focus for the overlay'
 
 ```text
 Overlay A
-Overlay B  ← active focus trap
+Overlay B  ←  active focus trap
 ```
 
 While B is open:
@@ -287,7 +277,7 @@ While B is open:
 When B closes:
 
 ```text
-Overlay A  ← focus trap becomes active
+Overlay A  ←  focus trap becomes active
 ```
 
 A can then resume control of keyboard focus according to its own `focusTrap` option.
@@ -295,8 +285,6 @@ A can then resume control of keyboard focus according to its own `focusTrap` opt
 This is what allows nested dialogs to behave as independent modal layers rather than several simultaneously active focus traps.
 
 See [Accessibility](./accessibility.md) for the complete focus model.
-
----
 
 ## `closeTopModal()`
 
@@ -313,7 +301,7 @@ Given:
 ```text
 Overlay A
 Overlay B
-Overlay C  ← top-most
+Overlay C  ←  top-most
 ```
 
 calling:
@@ -328,7 +316,7 @@ The stack becomes:
 
 ```text
 Overlay A
-Overlay B  ← now top-most
+Overlay B  ←  now top-most
 ```
 
 B then owns Escape, focus trapping, and subsequent `closeTopModal()` calls.
@@ -354,8 +342,6 @@ If a particular overlay must be closed directly, use its `close()` helper or `cl
 
 See [Closing Overlays](./closing.md).
 
----
-
 ## Closing a Nested Overlay
 
 Closing the top overlay removes **only that entry**.
@@ -365,14 +351,14 @@ Suppose the stack is:
 ```text
 Overlay A
 Overlay B
-Overlay C  ← top-most
+Overlay C  ←  top-most
 ```
 
 Closing C produces:
 
 ```text
 Overlay A
-Overlay B  ← top-most
+Overlay B  ←  top-most
 ```
 
 B does not reopen. It was never closed.
@@ -395,8 +381,6 @@ C closes
 ```
 
 This distinction matters when using nested overlays: **closing a child returns control to the existing parent; it does not restart the parent.**
-
----
 
 ## Each Overlay Has Its Own Lifecycle
 
@@ -444,8 +428,6 @@ Inner Promise ────── pending ──► resolved         │
 
 Closing the inner overlay therefore does not resolve the outer Promise.
 
----
-
 ## Returning to the Underlying Overlay
 
 Consider a parent overlay that opens a confirmation overlay:
@@ -454,19 +436,19 @@ Consider a parent overlay that opens a confirmation overlay:
 ParentDialog
      │
      ▼
-ConfirmDialog  ← top-most
+ConfirmDialog  ←  top-most
 ```
 
 When `ConfirmDialog` closes:
 
 ```text
 ConfirmDialog
-     │
-     ▼
-removed
-     │
-     ▼
-ParentDialog  ← top-most again
+      │
+      ▼
+   removed
+      │
+      ▼
+ ParentDialog  ←  top-most again
 ```
 
 The parent remains mounted throughout.
@@ -493,8 +475,6 @@ if (confirmed) {
 ```
 
 The parent overlay itself remains open while awaiting the nested Promise.
-
----
 
 ## Scroll Lock Across Nested Overlays
 
@@ -562,8 +542,6 @@ Likewise, closing A while B remains open does not unlock the document if another
 
 See [Overlay Options](./options.md).
 
----
-
 ## Host Order and DOM Stacking
 
 All overlays are mounted under the shared:
@@ -618,8 +596,6 @@ C host appears after B
 
 Thus, the most recently opened overlay normally appears above earlier overlays.
 
----
-
 ## `zIndex`
 
 The runtime gives overlay hosts a default structural `z-index` of `9999`.
@@ -656,8 +632,6 @@ For normal nested overlays, the default stacking behavior is usually sufficient.
 
 See [Overlay Options](./options.md).
 
----
-
 ## Nested vs Sequential Overlays
 
 Nested and sequential overlays are different interaction patterns.
@@ -668,9 +642,9 @@ The second overlay opens while the first remains open:
 
 ```text
 Parent
-   │
-   ▼
-Child  ← top-most
+  │
+  ▼
+Child  ←  top-most
 ```
 
 Use this when the parent should remain mounted and visible underneath the child.
@@ -733,8 +707,6 @@ The stack contains only one overlay at a time.
 
 The distinction is about **stack lifetime**, not merely visual appearance.
 
----
-
 ## Pattern: Confirmation on Top of a Form
 
 A common nested flow is a form dialog that opens a confirmation dialog before completing a destructive operation:
@@ -764,7 +736,7 @@ const FormDialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div class="dialog">
       <!-- form fields -->
 
@@ -791,18 +763,18 @@ The stack changes like this:
 ```text
 Initial:
 
-FormDialog  ← top-most
+FormDialog  ←  top-most
 
 
 After Submit:
 
 FormDialog
-ConfirmDialog  ← top-most
+ConfirmDialog  ←  top-most
 
 
 After ConfirmDialog closes:
 
-FormDialog  ← top-most
+FormDialog  ←  top-most
 ```
 
 While the confirmation dialog is open:
@@ -815,8 +787,6 @@ While the confirmation dialog is open:
 
 Once the confirmation closes, the form resumes top-most ownership.
 
----
-
 ## Pattern: Nested Picker
 
 Another common pattern is a dialog that opens a secondary picker:
@@ -825,7 +795,7 @@ Another common pattern is a dialog that opens a secondary picker:
 SettingsDialog
       │
       ▼
-ColorPickerDialog  ← top-most
+ColorPickerDialog  ←  top-most
 ```
 
 The picker can return its selection:
@@ -845,8 +815,6 @@ if (color) {
 The settings dialog remains open while the picker is active.
 
 This is useful whenever the child interaction is conceptually part of the parent workflow but needs its own modal surface.
-
----
 
 ## Pattern: Sequential Steps
 
@@ -889,8 +857,6 @@ There is no underlying Step 1 overlay to resume.
 
 Use this pattern when keeping the previous overlay mounted would provide no benefit.
 
----
-
 ## What the Stack Owns vs What You Own
 
 | Runtime                             | Application                                        |
@@ -907,12 +873,10 @@ Use this pattern when keeping the previous overlay mounted would provide no bene
 
 The runtime owns **stack mechanics**. The application owns **workflow semantics**.
 
----
-
 ## Common Mistakes
 
-| Mistake                                                                          | Result                                                                                                                 |
-| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Mistake       | Result                               |
+| ------------- | ------------------------------------ |
 | Expecting Escape to close every open overlay                                     | Only the top-most overlay can respond to Escape.                                                                       |
 | Expecting a lower overlay to receive focus while a higher one is open            | The top-most focus trap keeps keyboard focus in the active layer.                                                      |
 | Assuming closing the top overlay always unlocks scrolling                        | Scroll locking is reference-counted; another locking overlay may remain.                                               |
@@ -923,8 +887,6 @@ The runtime owns **stack mechanics**. The application owns **workflow semantics*
 | Assuming nested overlays inherit `zIndex`                                        | Each host has its own stacking configuration.                                                                          |
 | Assuming DOM order alone overrides explicit `zIndex` values                      | Explicit host `zIndex` values can change the visual stacking relationship.                                             |
 | Treating the overlay stack as application state                                  | The stack is runtime infrastructure; application state should represent application-level data and workflow decisions. |
-
----
 
 ## A Useful Mental Model
 
@@ -964,27 +926,13 @@ It does not merge the sessions.
 When C closes:
 
 ```text
-C → removed
-      │
-      ▼
-B → becomes top-most
-      │
-      ▼
-A → remains underneath
+C  →  removed
+        │
+        ▼
+B  →  becomes top-most
+        │
+        ▼
+A  →  remains underneath
 ```
 
 That simple rule explains the behavior of nested overlays, Escape, focus trapping, `closeTopModal()`, and returning to an underlying dialog.
-
----
-
-## Next Steps
-
-| Goal                                                              | Guide                                   |
-| ----------------------------------------------------------------- | --------------------------------------- |
-| Open overlays and work with the Promise                           | **[Opening Overlays](./opening.md)**    |
-| Close overlays and return results                                 | **[Closing Overlays](./closing.md)**    |
-| Configure Escape, backdrop, scroll lock, focus trap, and `zIndex` | **[Overlay Options](./options.md)**     |
-| Understand focus management and accessibility                     | **[Accessibility](./accessibility.md)** |
-| Review the complete Overlay model                                 | **[Overlay Overview](./overview.md)**   |
-
-For precise public API signatures, see the **[Overlay API Reference](../api/overlay.md)**.
