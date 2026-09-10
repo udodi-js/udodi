@@ -4,8 +4,6 @@ The `@class` directive applies CSS classes to an element from static values or r
 
 Use `@class` when class membership depends on component state. For classes that never change, use the normal HTML `class` attribute.
 
----
-
 ## Basic Usage
 
 ```html
@@ -21,8 +19,6 @@ Multiple bindings can be combined:
 ```
 
 Each binding contributes its class tokens to the element's dynamic class set.
-
----
 
 ## Static Classes
 
@@ -41,8 +37,6 @@ For ordinary static classes, prefer the standard HTML form:
 ```
 
 Static `@class` is useful when the class value needs to remain within the directive system.
-
----
 
 ## Dynamic Classes
 
@@ -81,8 +75,6 @@ The resulting values are normalized into class tokens.
 
 See [Template DSL](./dsl.md) for expression syntax.
 
----
-
 ## Conditional Classes
 
 Use the `=>` conditional syntax to add a class only when a condition is truthy:
@@ -110,8 +102,6 @@ If `primary` is truthy, `btn-primary` is included. If `disabled` is falsy, `is-d
 <div @class="{ active: isActive }"></div>
 ```
 
----
-
 ## Base Classes
 
 Classes declared with the normal `class` attribute are treated as **base classes**.
@@ -133,8 +123,6 @@ This also means that a class can safely appear in both the base and dynamic clas
 ```
 
 The directive will not remove `card` when the condition becomes false because it belongs to the element's original class list.
-
----
 
 ## Reactive Diffing
 
@@ -168,8 +156,6 @@ Udodi:
 
 Only the classes managed by `@class` participate in this diff.
 
----
-
 ## Example
 
 ```js
@@ -186,7 +172,7 @@ const Button = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <button
       class="btn"
       @class="primary=>'btn-primary' disabled=>'is-disabled' size"
@@ -207,8 +193,6 @@ btn btn-primary md
 
 If `primary` becomes false, `btn-primary` is removed. If `disabled` becomes true, `is-disabled` is added. The base class `btn` remains throughout.
 
----
-
 ## `@class` and Component Styles
 
 `@class` works independently from component-scoped CSS.
@@ -226,7 +210,7 @@ style: css`
   }
 `,
 
-template: () => html`
+template: html`
   <article class="card" @class="featured=>'featured'">
     ...
   </article>
@@ -234,8 +218,6 @@ template: () => html`
 ```
 
 See [Component Styles](../fundamentals/styles.md) for scoped component CSS.
-
----
 
 ## Behavior
 
@@ -251,8 +233,6 @@ See [Component Styles](../fundamentals/styles.md) for scoped component CSS.
 * Removes the `@class` attribute after binding.
 * Disposes its reactive effect with the component scope.
 
----
-
 ## Syntax Summary
 
 | Form                           | Behavior                                 |
@@ -265,8 +245,6 @@ See [Component Styles](../fundamentals/styles.md) for scoped component CSS.
 | Array result                   | Add tokens from each string entry        |
 | `null` / `undefined` / `""`    | Contribute no classes                    |
 
----
-
 ## Constraints
 
 | Rule               | Detail                                                    |
@@ -278,8 +256,6 @@ See [Component Styles](../fundamentals/styles.md) for scoped component CSS.
 | Expressions        | Uses the Template DSL                                     |
 | Conditional syntax | Use `=>` for conditional classes                          |
 | Runtime attribute  | `@class` is removed after binding                         |
-
----
 
 ## Minimal Example
 
@@ -301,7 +277,7 @@ const Badge = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <button
       class="badge"
       @class="active=>'active'"
@@ -316,14 +292,3 @@ render(Badge(), "#app");
 ```
 
 When `active` is `true`, the button has both `badge` and `active`. When it becomes `false`, only the base `badge` class remains.
-
----
-
-## Next Steps
-
-* [`@style`](./style.md) — reactive inline styles
-* [Component Styles](../fundamentals/styles.md) — scoped component CSS
-* [Template DSL](./dsl.md) — expressions and conditionals
-* [`@show`](./show.md) — reactive visibility
-* [`@if`](./if.md) — conditional mounting
-* [Template Overview](./overview.md) — template directive fundamentals

@@ -2,14 +2,12 @@
 
 The `@bind` directive creates a **two-way binding** between a form control and a writable path in the component context.
 
-The binding has two directions:
+The binding keeps the control and component state synchronized:
 
-- **Context → DOM** — the control reflects the current value of the bound expression.
-- **DOM → Context** — user input writes the control's value back to the bound path.
+- **Context to DOM** — the control reflects the current value of the bound expression.
+- **DOM to context** — user input writes the control's value back to the bound path.
 
 `@bind` is intended for form controls whose value should remain synchronized with reactive component state.
-
----
 
 ## Basic Usage
 
@@ -30,8 +28,6 @@ state() {
 the input initially displays `Attamah`.
 
 When the user edits the input, the new value is written back to `userName`. When `userName` changes reactively, the input is updated to match.
-
----
 
 ## Supported Controls
 
@@ -67,8 +63,6 @@ For radios, the runtime compares the radio's `value` with the bound value. A sel
 <input type="radio" name="plan" value="pro" @bind="plan" />
 ```
 
----
-
 ## Two-Way Synchronization
 
 A binding establishes a reactive read and an event-driven write.
@@ -98,8 +92,6 @@ The DOM-to-context side is handled by an event listener:
 - `input` for ordinary controls  
 - `change` for checkboxes and radios  
 
----
-
 ## Binding State
 
 A typical component can bind several controls directly to its state:
@@ -119,7 +111,7 @@ const ProfileForm = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <form>
       <label>
         Name
@@ -153,8 +145,6 @@ render(ProfileForm(), "#app");
 ```
 
 The controls and state remain synchronized through the binding.
-
----
 
 ## Nested Paths
 
@@ -202,8 +192,6 @@ notify dependents of user
 
 This allows `@bind="user.name"` to work with nested state without requiring deep reactive proxies for every nested property.
 
----
-
 ## Writable Paths
 
 The expression supplied to `@bind` should resolve to a writable path.
@@ -239,8 +227,6 @@ or:
 <input @bind="user.name" />
 ```
 
----
-
 ## Read-Only Bindings
 
 If the runtime cannot write the new value to the bound path, the DOM event does not update the component state.
@@ -256,8 +242,6 @@ A warning is emitted once for a binding when a write fails:
 The warning is intentionally emitted only once for that binding rather than on every subsequent input event.
 
 Prefer binding directly to writable state or another writable path.
-
----
 
 ## Text-Like Controls
 
@@ -287,8 +271,6 @@ results in an empty input rather than displaying `"null"` or `"undefined"`.
 
 The runtime only updates the DOM value when it differs from the normalized value.
 
----
-
 ## Checkboxes
 
 Checkboxes are bound through the DOM `checked` property.
@@ -317,7 +299,7 @@ const Settings = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <label>
       <input type="checkbox" @bind="notifications" />
       Enable notifications
@@ -325,8 +307,6 @@ const Settings = createComponent({
   `,
 });
 ```
-
----
 
 ## Radio Buttons
 
@@ -359,8 +339,6 @@ The selected radio's DOM value is always converted to a string for comparison wi
 
 A radio that is not selected does not write anything when its change handler runs.
 
----
-
 ## Reactive Updates
 
 `@bind` is reactive on the context-to-DOM side.
@@ -385,8 +363,6 @@ with:
 When `userName` changes, the binding effect runs and updates the input.
 
 The binding does not require the component to re-render its entire template. The runtime updates the bound DOM property directly through its reactive effect.
-
----
 
 ## `@bind` vs `@text`
 
@@ -416,8 +392,6 @@ Use:
 
 when the user should be able to edit that value.
 
----
-
 ## `@bind` vs `@on`
 
 `@bind` provides the standard value synchronization for form controls.
@@ -436,8 +410,6 @@ The two directives can be used together:
 
 The binding's own `input` or `change` listener is managed independently by the runtime.
 
----
-
 ## Forms and Validation
 
 `@bind` is responsible for synchronizing a control with component data.
@@ -446,14 +418,12 @@ It does not replace Udodi's form and validation system.
 
 For form validation and submission, see:
 
-- [Forms](../forms/README.md)  
+- [Forms](../forms/index.md)  
 - `@form`  
 - `@validate`  
 - `@submit`  
 
 A form can use `@bind` for value synchronization while the form system handles validation and submission behavior.
-
----
 
 ## Lifecycle and Cleanup
 
@@ -467,8 +437,6 @@ When the component scope is disposed, the effect is stopped and the event listen
 The `@bind` attribute itself is also removed from the DOM after the binding has been installed.
 
 This means `@bind` is a runtime directive rather than an attribute that remains active in the final DOM.
-
----
 
 ## Behavior Summary
 
@@ -491,8 +459,6 @@ the runtime performs the following:
 9. Registers cleanup for the effect and event listener.  
 10. Removes the `@bind` attribute after setup.  
 
----
-
 ## Syntax Summary
 
 | Syntax | Behavior |
@@ -507,8 +473,6 @@ the runtime performs the following:
 | Nested path write | Performs the deep assignment and touches the root |
 | Read-only destination | Write fails and warns once |
 
----
-
 ## Constraints
 
 | Constraint | Behavior |
@@ -521,8 +485,6 @@ the runtime performs the following:
 | Reactive synchronization | Bound controls update when their dependencies change |
 | Automatic cleanup | Effects and listeners are removed with the component scope |
 | Runtime directive | `@bind` is removed after it is processed |
-
----
 
 ## Minimal Example
 
@@ -540,7 +502,7 @@ const Form = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <form>
       <input @bind="userName" />
 
@@ -566,16 +528,3 @@ const Form = createComponent({
 
 render(Form(), "#app");
 ```
-
----
-
-## Next Steps
-
-* [Template DSL](./dsl.md) — expression and path syntax  
-* [`@text`](./text.md) — reactive text content  
-* [`@on`](./on.md) — event handling  
-* [`@class`](./class.md) — reactive classes  
-* [`@style`](./style.md) — reactive inline styles  
-* [Forms](../forms/README.md) — form state, validation, and submission  
-* [Reactive State](../reactivity/state.md) — Udodi's reactive state model  
-* [Template Overview](./overview.md) — how directives fit together  

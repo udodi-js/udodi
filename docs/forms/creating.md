@@ -15,8 +15,6 @@ This guide covers:
 
 For validation, field state, and submission behavior, see the specialized guides linked at the end of this document.
 
----
-
 ## Basic Registration
 
 Register a form by adding `@form` to a native `<form>` element:
@@ -76,8 +74,6 @@ For example:
 
 Invalid registrations produce a runtime warning and are not registered.
 
----
-
 ## Validation Mode
 
 The optional second token selects how form-level validation is executed.
@@ -100,7 +96,7 @@ The optional second token selects how form-level validation is executed.
 
 If no mode is specified, `sequential` is used.
 
-An unknown mode causes a warning and prevents the form from being registered:
+An unknown mode causes the runtime to throw an error, which prevents the form from being registered:
 
 ```html
 <!-- Invalid -->
@@ -110,8 +106,6 @@ An unknown mode causes a warning and prevents the form from being registered:
 Validation mode primarily determines **how validation work is executed**. Field-level validation triggers determine **when individual validation starts**.
 
 For the complete execution semantics, see **[Sequential and Parallel Validation](./sequential-parallel.md)**.
-
----
 
 ## Accessing the Form Controller
 
@@ -160,8 +154,6 @@ ud.forms.login = {
 
 The controller's detailed API is documented separately in **[Form Controllers](./controllers.md)**.
 
----
-
 ## Form State
 
 A newly registered form starts with no validation errors and therefore has a valid state:
@@ -187,14 +179,14 @@ For example:
 
 The main aggregate properties are:
 
-* **`valid`** — `true` when every registered error is an empty string.
-* **`validating`** — `true` while field validation is in progress, including asynchronous validation.
-* **`dirty`** — aggregate dirty state derived from registered fields.
-* **`touched`** — aggregate touched state derived from registered fields.
-* **`submitting`** — indicates that the submit handler is currently executing.
-* **`submitted`** — tracks successful form submission.
-* **`validationMode`** — the form's validation execution strategy.
-* **`errors`** — the reactive map of field names to validation error messages.
+* **`valid`**: the value is `true` when every registered error is an empty string.
+* **`validating`**: the value is `true` while field validation is in progress, including asynchronous validation.
+* **`dirty`**: aggregate dirty state derived from registered fields.
+* **`touched`**: aggregate touched state derived from registered fields.
+* **`submitting`**: indicates that the submit handler is currently executing.
+* **`submitted`**: tracks successful form submission.
+* **`validationMode`**: the form's validation execution strategy.
+* **`errors`**: the reactive map of field names to validation error messages.
 
 A field contributes an entry to `errors` when it has both a `name` and `@validate`.
 
@@ -205,8 +197,6 @@ ud.forms.login.errors
 ```
 
 to be empty.
-
----
 
 ## Minimal Example
 
@@ -303,8 +293,6 @@ Here:
 * `ud.forms.signup.errors` exposes reactive validation errors.
 * `ud.forms.signup.submitting` exposes the submission state.
 
----
-
 ## Multiple Forms in One Component
 
 A component can contain multiple forms as long as their identifiers are unique:
@@ -349,8 +337,6 @@ Duplicate form identifiers are not allowed:
 
 The second registration is skipped and the runtime emits a warning.
 
----
-
 ## Form and Submission Registration
 
 `@submit` is associated with the form declared by `@form`.
@@ -376,8 +362,6 @@ The runtime warns and does not bind the submission handler.
 
 For submission handler arguments, validation before submission, and the submission lifecycle, see **[Form Submission](./submission.md)**.
 
----
-
 ## Cleanup
 
 Form registration follows the component's lifecycle.
@@ -390,29 +374,13 @@ When the component unmounts, or the form's effect scope is cleaned up, Udodi aut
 
 Forms therefore do not require manual unregistration.
 
----
-
 ## Common Mistakes
 
 | Mistake                                         | Result                                                                                                    |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `@form` on a non-`<form>` element               | Warning; the form is not registered.                                                                      |
-| Quoted identifier such as `@form="'login'"`     | Warning; the form is not registered.                                                                      |
-| Duplicate form key within a component           | Warning; the duplicate registration is skipped.                                                           |
-| Unknown mode such as `@form="login concurrent"` | Warning; the form is not registered.                                                                      |
-| `@submit` without `@form` on the same `<form>`  | Warning; submission is not bound.                                                                         |
+| `@form` on a non-`<form>` element               | Fails with an error.                                                                      |
+| Quoted identifier such as `@form="'login'"`     | Fails with an error.                                                                      |
+| Duplicate form key within a component           | Fails with an error.                                                           |
+| Unknown mode such as `@form="login concurrent"` | Fails with an error.                                                                      |
+| `@submit` without `@form` on the same `<form>`  | Fails with an error.                                                                         |
 | Validated field without `name`                  | The field can validate, but its validation error cannot be keyed under `controller.errors` by field name. |
-
----
-
-## Next Steps
-
-| Goal                                          | Guide                                                              |
-| --------------------------------------------- | ------------------------------------------------------------------ |
-| Understand field registration and field state | **[Working with Fields](./fields.md)**                             |
-| Write validators and configure `@trigger`     | **[Validation](./validation.md)**                                  |
-| Understand sequential and parallel validation | **[Sequential and Parallel Validation](./sequential-parallel.md)** |
-| Handle form submission                        | **[Form Submission](./submission.md)**                             |
-| Use the complete controller API               | **[Form Controllers](./controllers.md)**                           |
-
-For a higher-level picture of how `@form`, `@validate`, and `@submit` interact, see [Forms Overview](./overview.md).

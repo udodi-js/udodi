@@ -2,7 +2,7 @@
 
 Udodi's Query Pool is a reactive runtime for asynchronous data and mutations.
 
-It owns the lifecycle of work tied to remote data, background computation, request caching, invalidation, refresh, and mutation execution. Component state and [Udodi Store](../store/README.md) own client-side application state; Query Pool owns the lifecycle of asynchronous work and the reactive state that represents that work.
+It owns the lifecycle of work tied to remote data, background computation, request caching, invalidation, refresh, and mutation execution. Component state and [Udodi Store](../store/index.md) own client-side application state; Query Pool owns the lifecycle of asynchronous work and the reactive state that represents that work.
 
 A Query Pool coordinates:
 
@@ -18,8 +18,6 @@ A Query Pool coordinates:
 
 Query and mutation handles expose reactive fields such as `data`, `error`, `loading`, and `status`. Udodi components, effects, and computed values can therefore react directly to asynchronous execution without manually coordinating request state.
 
----
-
 ## The Query Pool Model
 
 A Query Pool is an isolated runtime created with `createQueryPool()`:
@@ -28,23 +26,6 @@ A Query Pool is an isolated runtime created with `createQueryPool()`:
 import { createQueryPool } from "udodi";
 
 const pool = createQueryPool();
-```
-
-Each pool owns its own queries, mutations, dependency graph, cache, in-flight execution state, and optional worker infrastructure:
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│                       Query Pool                           │
-│                                                            │
-│  Queries            "users", "posts", "userCount", ...     │
-│  Mutations          "createUser", "updatePost", ...        │
-│  Dependency graph   users → userCount, session → profile   │
-│  Cache entries      TTL + freshness per query              │
-│  In-flight work     deduplicated execution promises        │
-│  Module registry    worker module descriptors (optional)   │
-│  Worker bridge      Main Worker + Compute Pool (optional)  │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
 ```
 
 The pool is the ownership boundary for:
@@ -56,8 +37,6 @@ The pool is the ownership boundary for:
 - Optional worker infrastructure
 
 Different pools do not share queries, mutations, or cache. This isolation is intentional: an application can use one pool for the entire application or create separate pools for distinct subsystems.
-
----
 
 ## What the Query Pool Provides
 
@@ -76,8 +55,6 @@ Different pools do not share queries, mutations, or cache. This isolation is int
 The Query Pool API is asynchronous at the execution boundary.
 
 Reading reactive fields such as `data`, `status`, or `loading` is synchronous. Starting or awaiting asynchronous work through `fetch()`, `refresh()`, or `mutate()` returns a Promise.
-
----
 
 ## Choosing a State Boundary
 
@@ -158,8 +135,6 @@ A Store action can still call an API, and a query or mutation can still update a
 | Worker-backed asynchronous work | Query Pool |
 | Durable client preferences | Store + persistence |
 
----
-
 ## Queries
 
 A query is an asynchronous read registered under a unique string key.
@@ -204,7 +179,7 @@ The local query pipeline is:
 source(signal, input)
         │
         ▼
-compute(rawData)       // optional
+ compute(rawData)       // optional
         │
         ▼
     query.data
@@ -253,8 +228,6 @@ Registering a query returns a handle containing reactive state and execution con
 These fields participate in Udodi's reactive system. Reading them inside an effect, computed value, or template establishes a dependency on the corresponding reactive state.
 
 See [Queries](./queries.md) and [Query Lifecycle](./lifecycle.md) for the complete execution model.
-
----
 
 ## Mutations
 
@@ -321,8 +294,6 @@ The value returned by `onMutate()` is merged into the context available to later
 
 See [Mutations](./mutations.md) and [Invalidation](./invalidation.md).
 
----
-
 ## Dependencies and Scheduling
 
 Queries can declare upstream dependencies with `dependsOn`:
@@ -362,8 +333,6 @@ executeExecutionPlan(key)
 Upstream dependency failures are represented as `QueryDependencyError` for dependent nodes so that the root query can retain its original error, including an `AbortError`.
 
 See [Query Dependencies](./dependencies.md).
-
----
 
 ## Caching and Invalidation
 
@@ -426,8 +395,6 @@ Cache belongs to query execution and freshness. It is therefore fundamentally di
 
 See [Caching](./caching.md) and [Invalidation](./invalidation.md).
 
----
-
 ## Cancellation
 
 Each execution creates an `AbortController`.
@@ -445,8 +412,6 @@ Calling `cancel()`:
 Preserving the last successful result is important for UI continuity: cancelling a refresh does not require the UI to lose the data it was already displaying.
 
 See [Query Cancellation](./cancellation.md).
-
----
 
 ## Workers and Transferables
 
@@ -498,8 +463,6 @@ Because transferring an object detaches it from the sender, transferable input i
 
 See [Query Pool and Workers](./workers.md), [Query Registry](./registry.md), and [Transferable Data](./transfers.md).
 
----
-
 ## Reactivity
 
 Query and mutation state is backed by Udodi's reactive system.
@@ -528,8 +491,6 @@ pool.setQueryData("users", value);
 
 This changes the reactive query data without executing the query's `source()` or worker module. Mutations use this capability for optimistic updates and rollback.
 
----
-
 ## Pool Lifecycle
 
 A pool can optionally own worker infrastructure:
@@ -557,8 +518,6 @@ pool.terminate();
 Query handles remain as JavaScript objects after pool termination. Use `reset()` or drop references when their state should also be cleared.
 
 Registering a query starts its initial execution plan, including its dependencies. Failures during this initial execution are swallowed so that registration itself does not reject; the resulting failure remains observable through the query handle's reactive `status` and `error`.
-
----
 
 ## Mental Model
 
@@ -614,8 +573,6 @@ Handles expose execution results and lifecycle state so the UI can react without
 
 Caching, invalidation, dependent cascades, and transferable transport all support these four layers. They do not turn Query Pool into a general-purpose application-state store.
 
----
-
 ## Query Pool vs Store
 
 The distinction can be summarized as application state versus asynchronous lifecycle state:
@@ -640,8 +597,6 @@ The two systems can work together.
 For example, a mutation can update Store state after an asynchronous operation succeeds, while Query Pool continues to own the request lifecycle and related query invalidation.
 
 The important rule is not "never call APIs from the Store" or "never update the Store from Query Pool." The rule is to keep each system responsible for the state and lifecycle it actually owns.
-
----
 
 ## Core Principles
 
@@ -680,22 +635,5 @@ Worker modules are an execution mechanism for asynchronous computation, not a se
 ### 9. Use transferables deliberately
 
 Transferable transport can avoid structured-clone costs for large binary values, but transferred objects become detached from the sender and therefore cannot be treated as reusable cached input.
-
----
-
-## Next Steps
-
-| Goal | Guide |
-| --- | --- |
-| Create and execute queries | [Queries](./queries.md) |
-| Understand query status and transitions | [Query Lifecycle](./lifecycle.md) |
-| Register worker modules | [Query Registry](./registry.md) |
-| Perform asynchronous writes | [Mutations](./mutations.md) |
-| Connect queries into a dependency graph, and understand dependency execution order | [Query Dependencies](./dependencies.md) |
-| Control cache freshness | [Caching](./caching.md) |
-| Invalidate and refresh queries | [Invalidation](./invalidation.md) |
-| Stop in-flight work | [Query Cancellation](./cancellation.md) |
-| Run work off the UI thread | [Query Pool and Workers](./workers.md) |
-| Transfer large binary values | [Transferable Data](./transfers.md) |
 
 The [Query Pool API Reference](../api/query-pool.md) is the authoritative source for exact signatures, options, and return values.

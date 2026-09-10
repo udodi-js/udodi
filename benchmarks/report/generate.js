@@ -19,7 +19,7 @@ const benchmarkRoot = path.resolve(__dirname, "..");
 const resultsRoot = path.resolve(benchmarkRoot, "results");
 const templatePath = path.resolve(benchmarkRoot, "templates", "performance.md");
 const docsRoot = path.resolve(benchmarkRoot, "..", "docs");
-const assetsRoot = path.resolve(docsRoot, "performance-assets");
+const assetsRoot = path.resolve(docsRoot, "assets");
 
 async function readJson(filePath) {
 	const source = await fs.readFile(filePath, "utf8");
@@ -88,7 +88,7 @@ async function createTimingSummaryChart(result, fileName, chartName, unit = "ms"
 		valueFormatter: (value) => `${Number(value || 0).toFixed(2)} ${unit}`,
 	});
 	await writeChartFile(path.resolve(assetsRoot, fileName), chart);
-	return chartLabel(chartName, `./performance-assets/${fileName}`);
+	return chartLabel(chartName, `./assets/${fileName}`);
 }
 
 async function createHeapChart(result, fileName, chartName) {
@@ -109,7 +109,7 @@ async function createHeapChart(result, fileName, chartName) {
 		 includeZero: true,
 	});
 	await writeChartFile(path.resolve(assetsRoot, fileName), chart);
-	return chartLabel(chartName, `./performance-assets/${fileName}`);
+	return chartLabel(chartName, `./assets/${fileName}`);
 }
 
 async function createDslChart(dslResults, fileName, chartName) {
@@ -123,7 +123,7 @@ async function createDslChart(dslResults, fileName, chartName) {
 		valueFormatter: (value) => `${Number(value || 0).toFixed(2)} ms`,
 	});
 	await writeChartFile(path.resolve(assetsRoot, fileName), chart);
-	return chartLabel(chartName, `./performance-assets/${fileName}`);
+	return chartLabel(chartName, `./assets/${fileName}`);
 }
 
 async function createCssScopeChart(coldResult, warmResult, fileName, chartName) {
@@ -141,7 +141,7 @@ async function createCssScopeChart(coldResult, warmResult, fileName, chartName) 
 		valueFormatter: (value) => `${Number(value || 0).toFixed(2)} ms`,
 	});
 	await writeChartFile(path.resolve(assetsRoot, fileName), chart);
-	return chartLabel(chartName, `./performance-assets/${fileName}`);
+	return chartLabel(chartName, `./assets/${fileName}`);
 }
 
 async function generateReport() {

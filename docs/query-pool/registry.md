@@ -32,11 +32,9 @@ This separation keeps module registration independent from query execution:
 └───────────────────────┘
 ```
 
-**Public API:** applications register modules through the pool; `pool.registerModule()` and `pool.registerModules()`. Each pool owns an internal registry. `createQueryModuleRegistry` is not part of the public package export from `udodi`.
+**Public API:** applications register modules through the pool; `pool.registerModule()` and `pool.registerModules()`. Each pool owns an internal registry.
 
 For the complete worker execution model, see [Query Pool and Workers](./workers.md).
-
----
 
 ## Why a Registry Exists
 
@@ -76,13 +74,11 @@ query definition
 ┌────────────────────┐
 │   Query Registry   │
 │                    │
-│ heavySort ─────────┼──► module URL
+│ heavySort  ─────────────►  module URL
 └────────────────────┘
 ```
 
 This is particularly useful when several queries or mutations use the same worker module.
-
----
 
 ## Registering a Module
 
@@ -160,8 +156,6 @@ pool.registerModules({
 });
 ```
 
----
-
 ## Module Descriptors
 
 A registered module is represented by a descriptor containing its worker module URL and, where supported, the export information required to invoke it.
@@ -188,7 +182,7 @@ Conceptually:
 The registry stores this descriptor under its key:
 
 ```text
-"heavySort"
+ "heavySort"
       │
       ▼
 {
@@ -251,8 +245,6 @@ Compute Worker
 
 Each successful registration assigns a new **revision** to the descriptor. The worker bridge uses that revision to decide whether to re-sync the module before execution. See [Query Pool and Workers](./workers.md).
 
----
-
 ## Using a Registry with a Query
 
 Once a module has been registered, a query can reference it:
@@ -287,17 +279,15 @@ A definition uses either the local execution path or the worker-module path.
 Query definition
       │
       ├── source / compute
-      │       │
-      │       └── UI-thread execution
+      │      │
+      │      └── UI-thread execution
       │
       └── module
-              │
-              └── worker execution
+             │
+             └── worker execution
 ```
 
 A worker-backed definition must not combine `module` with a local `source` / `compute` execution definition.
-
----
 
 ## Using a Registry with Mutations
 
@@ -317,14 +307,14 @@ const saveUser = pool.mutation("saveUser", {
 This allows queries and mutations to share a common module registry:
 
 ```text
-                    Query Registry
+                   Query Registry
                          │
              ┌───────────┴───────────┐
              │                       │
           Queries                 Mutations
              │                       │
              ▼                       ▼
-       "heavySort"               "saveUser"
+        "heavySort"              "saveUser"
              │                       │
              └───────────┬───────────┘
                          ▼
@@ -332,8 +322,6 @@ This allows queries and mutations to share a common module registry:
 ```
 
 The registry does not distinguish whether a module will ultimately be used by a query or mutation. It simply provides the module descriptor associated with the key.
-
----
 
 ## Registry and Worker Configuration
 
@@ -359,24 +347,22 @@ If worker execution is disabled, a query that references `module` cannot execute
 The distinction is:
 
 ```text
-pool.registerModule()
-        │
-        ▼
-module is known
-        │
-        ▼
-worker.enabled?
-   ┌────┴────┐
-  yes       no
-   │         │
-   ▼         ▼
-execute    module
-in worker  execution unavailable
+     pool.registerModule()
+              │
+              ▼
+       module is known
+              │
+              ▼
+       worker.enabled?
+      ┌───────┴───────┐
+     yes             no
+      │               │
+      ▼               ▼
+   execute        module execution
+   in worker      unavailable
 ```
 
 Therefore, registration and execution configuration are separate concerns.
-
----
 
 ## Module Registration Before Query Creation
 
@@ -413,8 +399,6 @@ create query / mutation
 initial execution
 ```
 
----
-
 ## Looking Up and Removing Modules
 
 The pool exposes module lookup and removal:
@@ -435,8 +419,6 @@ These are module-resolution operations, not query execution.
 | `pool.removeModule(key)` | Remove a module; returns whether it existed. |
 
 Removing a module does not cancel or destroy queries that already reference it. Later executions that need the module will fail if it is no longer registered.
-
----
 
 ## Registry vs Query Pool
 
@@ -461,8 +443,6 @@ It is useful to keep the two responsibilities separate.
 In short:
 
 > The registry describes worker modules; the Query Pool manages the lifecycle of work that uses them.
-
----
 
 ## Registry Does Not Replace the Worker Pool
 
@@ -504,8 +484,6 @@ Compute Worker Pool
 The registry does not schedule work between Compute Workers. Scheduling and execution belong to the worker runtime.
 
 See [Query Pool and Workers](./workers.md) for the complete execution architecture.
-
----
 
 ## When to Register Modules
 
@@ -557,8 +535,6 @@ registerWorkerModules(pool);
 
 This keeps application configuration separate from individual query definitions.
 
----
-
 ## Complete Example
 
 The following example puts the pieces together:
@@ -609,14 +585,14 @@ The resulting architecture is:
               ┌─────────────┴─────────────┐
               │                           │
         registerModule             registerModule
-        "heavySort"                  "saveUser"
+         "heavySort"                  "saveUser"
               │                           │
               └─────────────┬─────────────┘
                             │
                  ┌──────────┴──────────┐
                  │                     │
-             Query                 Mutation
-          sortedUsers              saveUser
+               Query                Mutation
+            sortedUsers             saveUser
                  │                     │
                  └──────────┬──────────┘
                             ▼
@@ -626,22 +602,9 @@ The resulting architecture is:
                        Main Worker
                             │
                             ▼
-                  Compute Worker Pool
+                   Compute Worker Pool
 ```
 
 The important boundary is that the registry only defines how a module is identified and located. The Query Pool remains responsible for deciding when that module runs, tracking its reactive state, handling cancellation, coordinating dependencies, caching results, and processing invalidation.
-
----
-
-## Next Steps
-
-| Goal | Guide |
-| --- | --- |
-| Understand the overall worker architecture | [Query Pool and Workers](./workers.md) |
-| Create worker-backed queries | [Queries](./queries.md) |
-| Create worker-backed mutations | [Mutations](./mutations.md) |
-| Understand dependency execution | [Query Dependencies](./dependencies.md) |
-| Understand cancellation | [Query Cancellation](./cancellation.md) |
-| Transfer large binary inputs | [Transferable Data](./transfers.md) |
 
 The [Query Pool API Reference](../api/query-pool.md) remains the authoritative source for the exact registry-related APIs, signatures, module descriptor options, and return values.

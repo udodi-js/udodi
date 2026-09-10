@@ -6,8 +6,6 @@ A template describes the DOM structure of a component. Udodi directives, identif
 
 Templates are designed to remain close to HTML while providing the reactive behavior needed to build interactive interfaces.
 
----
-
 ## Templates in Components
 
 A component defines its markup through the `template` option.
@@ -26,7 +24,7 @@ const Greeting = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <div>
       <p>Hello, <span @text="userName"></span></p>
     </div>
@@ -39,8 +37,6 @@ render(Greeting(), "#app");
 The template remains ordinary HTML, with Udodi directives added where dynamic behavior is required.
 
 A component template must produce exactly one root element when mounted.
-
----
 
 ## Directives
 
@@ -72,9 +68,7 @@ Udodi provides directives for common UI operations:
 | [`@attr`](./attr.md) | Bind element attributes |
 | [`@teleport`](./teleport.md) | Render content at another DOM target |
 
-Form-specific directives such as `@form`, `@validate`, and `@submit` are documented under [Forms](../forms/).
-
----
+Form-specific directives such as `@form`, `@validate`, and `@submit` are documented under [Forms](../forms/index.md).
 
 ## Template Expressions
 
@@ -94,7 +88,7 @@ const Greeting = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <p @text="userName | capitalise"></p>
   `,
 });
@@ -117,8 +111,6 @@ therefore reads the `userName` value and transforms it before rendering.
 More complex expression syntax, including the supported operators and
 pipeline syntax, is documented in [Template DSL](./dsl.md).
 
----
-
 ## Reactive Bindings
 
 Directives that read reactive values can update the DOM when those values change.
@@ -135,7 +127,7 @@ const Counter = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <span @text="count"></span>
   `,
 });
@@ -145,9 +137,7 @@ When `count` changes, the `@text` binding updates the element's text content.
 
 This is part of Udodi's fine-grained reactive model. A reactive binding tracks the values it reads rather than requiring the entire component template to be rendered again.
 
-See [Reactivity](../reactivity/README.md) for the underlying reactive system.
-
----
+See [Reactivity](../reactivity/index.md) for the underlying reactive system.
 
 ## Text Content
 
@@ -169,8 +159,6 @@ Use `@text` when the content depends on component data.
 
 See [`@text`](./text.md).
 
----
-
 ## Form Binding
 
 Use `@bind` when a form control should stay synchronized with a component value:
@@ -190,8 +178,6 @@ Nested paths can also be used:
 The runtime handles the appropriate value behavior for supported form controls, including text inputs, checkboxes, and radio buttons.
 
 See [`@bind`](./bind.md) for the supported control types and binding behavior.
-
----
 
 ## Events
 
@@ -217,8 +203,6 @@ The event expression identifies the DOM event and the component handler that sho
 
 `@on` also supports event modifiers and handler arguments. See [`@on`](./on.md) for the complete event syntax.
 
----
-
 ## Conditional Rendering
 
 Udodi provides `@if`, `@elseif`, and `@else` for conditional rendering.
@@ -243,8 +227,6 @@ Use conditional rendering when the presence of the content itself should depend 
 
 See [`@if`](./if.md).
 
----
-
 ## Conditional Visibility
 
 Use `@show` when an element should remain mounted while its visibility changes.
@@ -260,8 +242,6 @@ Use `@show` when an element should remain mounted while its visibility changes.
 This makes `@show` useful when the DOM element should remain available while its visibility changes.
 
 See [`@show`](./show.md).
-
----
 
 ## Rendering Lists
 
@@ -285,8 +265,6 @@ Supported forms:
 `item` and optional `index` are loop-local names. `items` is any expression that evaluates to an array.
 
 An optional `@key` can provide stable identity for reconciliation. List-specific syntax and behavior are documented in [`@for`](./for.md).
-
----
 
 ## Classes and Styles
 
@@ -345,8 +323,6 @@ Use:
 
 See [`@class`](./class.md), [`@style`](./style.md), and [Component Styles](../fundamentals/styles.md).
 
----
-
 ## Attributes
 
 Use `@attr` when HTML attributes need to be controlled by template expressions.
@@ -367,8 +343,6 @@ Static attributes should remain ordinary HTML:
 ```
 
 See [`@attr`](./attr.md).
-
----
 
 ## DOM References
 
@@ -394,8 +368,6 @@ Prefer declarative directives when the behavior can be expressed directly in the
 
 See [`@ref`](./ref.md).
 
----
-
 ## Teleporting Content
 
 Use `@teleport` when content needs to be rendered into another DOM target.
@@ -404,9 +376,7 @@ This is useful for UI that needs to escape its normal DOM position, such as laye
 
 See [`@teleport`](./teleport.md).
 
-For higher-level modal and layered UI behavior, see [Overlay](../overlay/README.md).
-
----
+For higher-level modal and layered UI behavior, see [Overlay](../overlay/index.md).
 
 ## Nested Components
 
@@ -433,8 +403,6 @@ Parent component
 
 Component inputs and live property bindings are documented in [Props](../fundamentals/props.md).
 
----
-
 ## Template and Reactivity
 
 Templates are integrated directly with Udodi's fine-grained reactivity system.
@@ -458,9 +426,7 @@ When the relevant reactive value changes, the binding can update the affected DO
 
 This is one of the main differences between Udodi's template model and component systems based primarily on whole-component re-rendering.
 
-See [Reactivity Overview](../reactivity/overview.md).
-
----
+See [Reactivity Overview](../reactivity/index.md).
 
 ## Template Lifecycle
 
@@ -493,8 +459,6 @@ The template declares the desired structure and behavior. The runtime performs t
 When the component is unmounted, the runtime removes the resources associated with the mounted component, including directive and reactive cleanup.
 
 See [Lifecycle](../fundamentals/lifecycle.md).
-
----
 
 ## Template Rules
 
@@ -536,8 +500,6 @@ Prefer expressing UI behavior through directives and component methods.
 
 Use direct DOM access through `@ref` when imperative browser APIs are actually required.
 
----
-
 ## Template DSL
 
 The template DSL defines the expression syntax used by directive values.
@@ -556,31 +518,6 @@ Do not assume that the syntax of one directive applies to another.
 
 See [Template DSL](./dsl.md) for the expression language and directive expression rules.
 
----
-
-## Where to Go Next
-
-| Goal | Guide |
-|------|--------|
-| Understand template syntax | [Template DSL](./dsl.md) |
-| Bind text content | [`@text`](./text.md) |
-| Bind form controls | [`@bind`](./bind.md) |
-| Handle DOM events | [`@on`](./on.md) |
-| Access DOM elements | [`@ref`](./ref.md) |
-| Conditionally render content | [`@if`](./if.md) |
-| Toggle visibility | [`@show`](./show.md) |
-| Render collections | [`@for`](./for.md) |
-| Manage classes | [`@class`](./class.md) |
-| Manage inline styles | [`@style`](./style.md) |
-| Bind attributes | [`@attr`](./attr.md) |
-| Teleport content | [`@teleport`](./teleport.md) |
-| Understand component context | [Context](../fundamentals/context.md) |
-| Understand reactivity | [Reactivity Overview](../reactivity/overview.md) |
-| Build forms | [Forms](../forms/README.md) |
-| Build modals and layered UI | [Overlay](../overlay/README.md) |
-
----
-
 ## Summary
 
 Udodi templates combine standard HTML with a focused set of `@` directives.
@@ -595,5 +532,3 @@ Use templates to:
 - manage classes, styles, and attributes  
 - access DOM elements when imperative access is required  
 - compose components  
-
-Start with the [Template DSL](./dsl.md) to understand template expressions, then use the individual directive guides for directive-specific syntax and behavior.

@@ -8,25 +8,9 @@ The Store uses Udodi's fine-grained reactivity system. A store read can therefor
 
 The Store is deliberately smaller in scope than a server-state system. It owns application state; Query Pool owns the lifecycle of asynchronous data.
 
----
-
 ## The Store Model
 
-At its core, the Store is a single reactive key/value map:
-
-```text
-┌──────────────────────────────────────────────┐
-│                  Global Store                │
-│                                              │
-│  "theme"            →  "dark"                │
-│  "auth:user"        →  { ... }               │
-│  "cart:items"       →  [ ... ]               │
-│  "ui:sidebarOpen"   →  true                  │
-│                                              │
-└──────────────────────────────────────────────┘
-```
-
-Every store key has one current value.
+At its core, the Store is a single reactive key/value map, and every store key has one current value.
 
 The important operations are:
 
@@ -51,8 +35,6 @@ are all entries in the same global store. A module such as `auth` or `cart` simp
 
 This architecture gives the Store one consistent reactivity model, one batching mechanism, and one persistence mechanism while still allowing applications to organize state by feature.
 
----
-
 ## What the Store Provides
 
 | Capability | What it provides |
@@ -68,8 +50,6 @@ This architecture gives the Store one consistent reactivity model, one batching 
 The Store API itself is **synchronous**. `get()`, `set()`, `update()`, `delete()`, and related state operations do not require asynchronous access.
 
 Persistence is the exception only at the storage boundary: IndexedDB hydration and writes are asynchronous, but they do not change the normal synchronous Store API.
-
----
 
 ## Choosing a State Boundary
 
@@ -127,8 +107,6 @@ defineStore("cart", {
 ```
 
 Modules add registration, retrieval, lifecycle cleanup, initial state, and a module-scoped reactive `state` proxy.
-
----
 
 ## Global Store
 
@@ -201,8 +179,6 @@ if (store.has("draft")) {
 }
 ```
 
----
-
 ## Reactivity
 
 Store reactivity follows the same fine-grained dependency model used elsewhere in Udodi.
@@ -269,8 +245,6 @@ Use `touch()` when in-place mutation is intentional or more appropriate.
 
 The same rule applies through module APIs and action contexts.
 
----
-
 ## Batching
 
 `batch()` coordinates multiple Store writes:
@@ -303,8 +277,6 @@ batch(() => {
 The inner batch does not independently commit the staged changes; the outermost batch remains responsible for the final commit.
 
 Batching is primarily about coordinating store writes and deferring their notifications. It should not be interpreted as a promise that every reactive consumer runs exactly once regardless of how many distinct keys it depends on. The normal reactive update rules still apply when the staged keys are committed.
-
----
 
 ## Modules
 
@@ -412,8 +384,6 @@ If the module owns persistence or other reactive resources, destruction also tea
 
 See [Store Registry](./registry.md) for the complete module lifecycle.
 
----
-
 ## The Action Model
 
 Actions are named operations over Store state.
@@ -494,18 +464,16 @@ The difference is the scope.
 For a global action:
 
 ```text
-ctx → global store
+ctx  →  global store
 ```
 
 For a module action:
 
 ```text
-ctx → module namespace
+ctx  →  module namespace
 ```
 
 This lets action code operate against its supplied context instead of depending on the global Store directly.
-
----
 
 ## Selectors
 
@@ -553,8 +521,6 @@ source state
 
 Store the source data; derive values that can be calculated from it.
 
----
-
 ## Subscriptions
 
 Subscriptions provide an imperative observation mechanism for a specific key:
@@ -585,8 +551,6 @@ stop();
 Subscriptions are useful when a state change must trigger an imperative side effect.
 
 For reactive UI derivation, prefer a normal effect, computed value, selector, or template dependency. A subscription should not be treated as a replacement for the reactive dependency system.
-
----
 
 ## Persistence
 
@@ -621,18 +585,14 @@ This ordering matters:
 
 ```text
 IndexedDB
-
     │
     │ hydrate
     ▼
-
 Store state
-
     │
     │ subscribe
     ▼
-
-Future changes → IndexedDB
+Future changes  →  IndexedDB
 ```
 
 It prevents the initial persistence subscription from immediately writing the in-memory initial value back over the persisted value.
@@ -662,9 +622,9 @@ The controller exposes four important lifecycle operations:
 `clear()` and `stop()` therefore have different purposes:
 
 ```text
-clear() → remove persisted data
+clear()  →  remove persisted data
 
-stop()  → stop syncing, keep persisted data
+stop()  →  stop syncing, keep persisted data
 ```
 
 ### Debouncing
@@ -711,8 +671,6 @@ settings:locale
 This keeps persistence scoped to the module and prevents different modules from accidentally sharing the same Store key.
 
 See [Persistent Stores](./persistence.md) for the complete persistence API and controller lifecycle.
-
----
 
 ## Store vs Component State vs Query Pool
 
@@ -762,15 +720,12 @@ store.defineAction(
 
 This can be perfectly valid when the resulting value is application state. But if the problem requires request caching, deduplication, invalidation, refresh, cancellation, or mutation lifecycle management, Query Pool is the appropriate abstraction.
 
----
-
 ## A Practical Decision Tree
 
 When deciding where a value belongs, ask:
 
 ```text
 Does the value belong only to one component?
-
         │
        yes
         ▼
@@ -779,20 +734,18 @@ Does the value belong only to one component?
         │
         ▼
 Is it client/application state?
-
         │
        yes
         ▼
       Store
         │
-        ├── Simple shared keys → global store
+        ├── Simple shared keys  →  global store
         │
-        └── Feature lifecycle → module
+        └── Feature lifecycle  →  module
         no
         │
         ▼
 Is it asynchronous/server-owned data?
-
         │
        yes
         ▼
@@ -801,73 +754,56 @@ Is it asynchronous/server-owned data?
 
 This boundary keeps the Store focused instead of turning it into a general-purpose replacement for every other state system.
 
----
-
 ## Store Architecture
 
 The Store can be understood as a layered API over one reactive state space:
 
 ```text
-                         ┌───────────────────┐
-                         │    Global Store   │
-                         │    reactive map   │
-                         └─────────┬─────────┘
-                                   │
-                    ┌──────────────┴──────────────┐
-                    │                             │
-                    ▼                             ▼
-                 global                       modules
-                    │                             │
-                    │                       registry / scope
-                    │                             │
-                    └──────────────┬──────────────┘
-                                   │
-                          actions / selectors
-                            subscriptions
-                              batching
-                                   │
-                                   ▼
-                              persistence
-                                   │
-                                   ▼
-                                IndexedDB
+           ┌───────────────────┐
+           │    Global Store   │
+           │    reactive map   │
+           └─────────┬─────────┘
+                     │
+      ┌──────────────┴──────────────┐
+      │                             │
+      ▼                             ▼
+    global                       modules
+      │                             │
+      │                       registry / scope
+      │                             │
+      └──────────────┬──────────────┘
+                     │
+             actions / selectors
+               subscriptions
+                  batching
+                     │
+                     ▼
+                persistence
+                     │
+                     ▼
+                 IndexedDB
 ```
 
 The registry therefore organizes state; it does not replace the global reactive storage model.
 
 Likewise, persistence is an adapter around Store state; it does not become a second source of truth. The in-memory Store remains the synchronous application-facing state layer.
 
----
-
 ## Core Principles
 
 The Store is easiest to use correctly when these principles are kept in mind:
 
-1. **State has an owner** — Use component state for component-owned concerns and Store for application-owned concerns.
+1. **State has an owner**: Use component state for component-owned concerns and Store for application-owned concerns.
 
-2. **Modules provide feature boundaries** — Use a module when a feature needs initial state, scoped actions, lifecycle management, or a reusable state API.
+2. **Modules provide feature boundaries**: Use a module when a feature needs initial state, scoped actions, lifecycle management, or a reusable state API.
 
-3. **Reads establish dependencies** — Store reads inside effects, computed values, and templates establish reactive dependencies. Do not manually synchronize consumers that can depend on the Store reactively.
+3. **Reads establish dependencies**: Store reads inside effects, computed values, and templates establish reactive dependencies. Do not manually synchronize consumers that can depend on the Store reactively.
 
-4. **Replace or touch** — When state changes, either replace the root value with `set()` / `update()` or explicitly notify with `touch()` after an in-place mutation.
+4. **Replace or touch**: When state changes, either replace the root value with `set()` / `update()` or explicitly notify with `touch()` after an in-place mutation.
 
-5. **Derive instead of duplicate** — Use selectors for values that can be calculated from existing Store state.
+5. **Derive instead of duplicate**: Use selectors for values that can be calculated from existing Store state.
 
-6. **Persist deliberately** — Persistence is opt-in. Persist only the state that genuinely needs to survive a page reload.
+6. **Persist deliberately**: Persistence is opt-in. Persist only the state that genuinely needs to survive a page reload.
 
-7. **Keep server state in Query Pool** — Do not turn Store actions into a home-grown query cache when the problem is fundamentally asynchronous server data.
+7. **Keep server state in Query Pool**: Do not turn Store actions into a home-grown query cache when the problem is fundamentally asynchronous server data.
 
----
-
-## Next Steps
-
-| Guide | What you will learn |
-| --- | --- |
-| **[Creating Stores](./creating.md)** | Global state operations, actions, batching, selectors, and subscriptions |
-| **[Store Registry](./registry.md)** | `defineStore()`, `useStore()`, `destroyStore()`, module state, and lifecycle |
-| **[Persistent Stores](./persistence.md)** | IndexedDB persistence, hydration, debouncing, and controller lifecycle |
-| **[Store API Reference](../api/store.md)** | Exact signatures, options, and return values |
-
-For the conceptual foundation of the reactive primitives used by Store, see [Reactivity](../reactivity/README.md).
-
-For asynchronous server state and query/mutation management, see [Query Pool](../query-pool/README.md).
+For the conceptual foundation of the reactive primitives used by Store, see [Reactivity](../reactivity/index.md).

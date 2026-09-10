@@ -8,8 +8,6 @@ Transfer applies to **module-backed** queries and mutations. Local `source` / `e
 
 For the worker architecture, see [Query Pool and Workers](./workers.md). For module registration, see [Query Registry](./registry.md).
 
----
-
 ## Structured Clone vs Transfer
 
 The Query Pool uses structured cloning by default. Transfer is enabled explicitly with `transfer: true`.
@@ -54,8 +52,6 @@ UI Thread                         Worker
 
 The important distinction is **copying versus ownership transfer**. Transfer does not create a second usable copy of the object on the sender.
 
----
-
 ## When to Use Transfer
 
 Transfer is most useful when all of the following are true:
@@ -88,8 +84,6 @@ await process.fetch({
 ```
 
 Transfer is an optimization, not a different query execution model.
-
----
 
 ## Enabling Transfer
 
@@ -129,8 +123,6 @@ const processVideo = pool.mutation("processVideo", {
 
 Use a per-call option when transfer is only appropriate for particular invocations. The [Query Pool API Reference](../api/query-pool.md) is authoritative for the available definition options.
 
----
-
 ## What Can Be Transferred?
 
 Common browser transferables include:
@@ -157,8 +149,6 @@ await sorted.fetch({
 The relevant ownership transfer is associated with the buffer backing `view`.
 
 Exact transferable support ultimately depends on the platform and the worker messaging path. Design module APIs around explicit transferable values when transfer performance matters.
-
----
 
 ## Ownership Transfer and Detachment
 
@@ -236,8 +226,6 @@ await sorted.fetch({
 
 If the worker produces data that the UI needs, have the module return the required result rather than assuming the original input remains available.
 
----
-
 ## Transfer Does Not Mean "Move Everything"
 
 `transfer: true` does not mean that every object in the input graph is magically transferable.
@@ -262,8 +250,6 @@ The worker transport must determine which transferable objects can actually be m
 The important application-level rule is simpler:
 
 > Only design around post-transfer ownership for values that you know are transferable.
-
----
 
 ## Multiple Worker Boundaries
 
@@ -313,8 +299,6 @@ await query.fetch({
 It does not manually construct intermediate `postMessage()` transfer lists for each worker hop.
 
 This is particularly important because a transferred `ArrayBuffer` is detached at each ownership handoff. The worker infrastructure must therefore perform the appropriate transfer again when the same value needs to cross another worker boundary.
-
----
 
 ## Transfer and Caching
 
@@ -367,8 +351,6 @@ await query.fetch({
 
 See [Caching](./caching.md).
 
----
-
 ## Transfer and refresh()
 
 This distinction is worth making explicit.
@@ -407,10 +389,8 @@ Need to reuse the input?
         │
         ├── yes ──► structured clone / keep a separate copy
         │
-        └── no ───► transfer is a good candidate
+        └── no  ──► transfer is a good candidate
 ```
-
----
 
 ## setQueryData() Is Independent
 
@@ -453,8 +433,6 @@ Query state
 ```
 
 Transport does not become another state-management system.
-
----
 
 ## Transfer and Cancellation
 
@@ -500,8 +478,6 @@ Cancellation therefore has two separate guarantees:
 
 See [Query Cancellation](./cancellation.md).
 
----
-
 ## Transfer and Superseding Runs
 
 Consider two executions:
@@ -544,8 +520,6 @@ Run A ─────────────► late result
 
 Transfer does not weaken the Query Pool's protection against stale worker results.
 
----
-
 ## Streaming
 
 Transfer of input and streaming of output are separate concerns.
@@ -571,7 +545,7 @@ Here:
 Conceptually:
 
 ```text
-                 module execution
+                module execution
                        │
           ┌────────────┴────────────┐
           │                         │
@@ -580,7 +554,7 @@ Conceptually:
        transfer                 streaming
           │                         │
           ▼                         ▼
-       worker                 query.chunks
+        worker                 query.chunks
 ```
 
 Input transfer does not imply that stream chunks are transferred, and streaming does not imply that input is transferred.
@@ -588,8 +562,6 @@ Input transfer does not imply that stream chunks are transferred, and streaming 
 The transport details for individual output chunks depend on the worker bridge and platform.
 
 See [Query Pool and Workers](./workers.md) and [Query Lifecycle](./lifecycle.md).
-
----
 
 ## Worker-Backed Query Example
 
@@ -627,8 +599,6 @@ console.log(processed.data);
 ```
 
 The module receives the transferred buffer without requiring the application to manually interact with `postMessage()`.
-
----
 
 ## Mutation Example
 
@@ -686,8 +656,6 @@ onMutate(input, ctx) {
 
 If optimistic UI state needs the binary value, keep a copy before transferring it.
 
----
-
 ## What Transfer Does Not Apply To
 
 Transfer is specifically a worker transport concern.
@@ -716,8 +684,6 @@ These are local execution paths. There is no worker boundary through which the Q
 
 The transfer option therefore matters for **module-backed** execution.
 
----
-
 ## When Not to Transfer
 
 Prefer the default structured-clone path when:
@@ -742,8 +708,6 @@ await query.fetch({
 ```
 
 There is little benefit in trying to optimize such a payload with transfer.
-
----
 
 ## Transfer vs Copying a Large Buffer
 
@@ -776,22 +740,18 @@ The correct choice is therefore not simply "transfer is faster." It is:
 
 > Transfer when avoiding the copy is valuable and the application can give up ownership of the input.
 
----
-
 ## Design Rules
 
-1. **Opt in** — structured clone is the default; transfer requires an explicit opt-in.
-2. **Transfer large payloads** — the main benefit is avoiding expensive copies of large transferable values.
-3. **Plan ownership** — after transfer, the sender must not depend on the original transferable remaining usable.
-4. **Do not confuse input with cache** — TTL caching stores successful results; it does not preserve a reusable copy of transferred input.
-5. **Treat refresh carefully** — if the same input must be reused, prefer structured cloning or retain a separate copy.
-6. **Let the pool manage worker hops** — application code should not construct intermediate transfer lists manually.
-7. **Keep transport separate from state** — transfer does not alter reactive query state, cache semantics, or lifecycle semantics.
-8. **Cancellation still applies** — transferred work can be superseded and late results remain prevented from committing.
-9. **Streaming is independent** — transfer controls input transport; stream controls progressive output.
-10. **Use transfer deliberately** — ownership transfer is a semantic decision as well as a performance optimization.
-
----
+1. **Opt in**: structured clone is the default; transfer requires an explicit opt-in.
+2. **Transfer large payloads**: the main benefit is avoiding expensive copies of large transferable values.
+3. **Plan ownership**: after transfer, the sender must not depend on the original transferable remaining usable.
+4. **Do not confuse input with cache**: TTL caching stores successful results; it does not preserve a reusable copy of transferred input.
+5. **Treat refresh carefully**: if the same input must be reused, prefer structured cloning or retain a separate copy.
+6. **Let the pool manage worker hops**: application code should not construct intermediate transfer lists manually.
+7. **Keep transport separate from state**: transfer does not alter reactive query state, cache semantics, or lifecycle semantics.
+8. **Cancellation still applies**: transferred work can be superseded and late results remain prevented from committing.
+9. **Streaming is independent**: transfer controls input transport; stream controls progressive output.
+10. **Use transfer deliberately**: ownership transfer is a semantic decision as well as a performance optimization.
 
 ## Mental Model
 
@@ -803,15 +763,15 @@ The simplest way to think about transferable transport is:
              module execution
                     │
                     ▼
-             Worker Bridge
+              Worker Bridge
                     │
           ┌─────────┴─────────┐
           │                   │
       structured           transfer
-       clone                  │
+        clone                 │
           │                   │
           ▼                   ▼
-       copy made         ownership moves
+      copy made         ownership moves
           │                   │
           ▼                   ▼
      sender keeps        sender loses
@@ -821,8 +781,6 @@ The simplest way to think about transferable transport is:
 The Query Pool therefore gives the application a deliberate choice:
 
 > copy the input by default, or move ownership when the payload and execution model justify it.
-
----
 
 ## API Summary
 
@@ -837,20 +795,5 @@ The Query Pool therefore gives the application a deliberate choice:
 | `setQueryData()` | Reactive query-data update; independent of transport |
 | `cancel()` | Cancels/supersedes execution; independent of transport |
 | `stream: true` | Streams module output; independent of input transfer |
-
----
-
-## Next Steps
-
-| Topic | Guide |
-| --- | --- |
-| Worker architecture | [Query Pool and Workers](./workers.md) |
-| Module registration | [Query Registry](./registry.md) |
-| Module-backed queries | [Queries](./queries.md) |
-| Module-backed mutations | [Mutations](./mutations.md) |
-| Cache and refresh input | [Caching](./caching.md) |
-| Cancellation and supersede | [Query Cancellation](./cancellation.md) |
-| Streaming lifecycle | [Query Lifecycle](./lifecycle.md) |
-| Architecture | [Query Pool Overview](./overview.md) |
 
 For exact option types and supported transport behavior, see the [Query Pool API Reference](../api/query-pool.md).

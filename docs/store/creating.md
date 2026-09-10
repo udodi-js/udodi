@@ -2,10 +2,6 @@
 
 This guide covers the **global Store API**, including reactive state, actions, batching, selectors, and subscriptions.
 
-For feature-level state with initial values, scoped actions, and lifecycle management, see [Store Registry](./registry.md). For IndexedDB persistence, see [Persistent Stores](./persistence.md).
-
----
-
 ## Importing the Store
 
 ```js
@@ -19,8 +15,6 @@ import {
 * **`batch`** — groups multiple writes into one coherent reactive update.
 
 For registered feature modules, use `defineStore`, `useStore`, and `destroyStore` instead. See [Store Registry](./registry.md).
-
----
 
 ## Reading and Writing State
 
@@ -59,7 +53,7 @@ store.set("count", 0);
 `set(key, value)`:
 
 * Stores `value` under `key`.
-* Does nothing when `value` is `Object.is`-equal to the current value.
+* Does nothing when `value` is equal to the current value.
 * Notifies reactive dependents and subscriptions when the value changes.
 
 ```js
@@ -159,8 +153,6 @@ It also stops active persistence and clears pending batch state.
 
 Use `clear()` when the entire global Store should be reset rather than when removing an individual key.
 
----
-
 ## Batching Updates
 
 Use `batch()` when several state changes should be committed as one coherent update:
@@ -219,8 +211,6 @@ Only the outermost batch commits the staged changes.
 Reads inside a batch see the staged values through the normal `get()` path, so code does not need a separate "pending state" API.
 
 Batching changes when updates become observable; it does not introduce a different state API.
-
----
 
 ## Actions
 
@@ -400,8 +390,6 @@ store.deleteAction("increment");
 
 Deleting an action does not modify Store state. It only removes the named action handler.
 
----
-
 ## Selectors
 
 Selectors derive values from Store state.
@@ -464,8 +452,6 @@ The optional second argument to `select()` is a scope used when the selector nee
 
 Global selectors generally do not need to provide a scope explicitly.
 
----
-
 ## Subscriptions
 
 Use `subscribe()` when imperative code needs to react to a Store key changing:
@@ -475,10 +461,7 @@ const stop = store.subscribe(
   "count",
   (next, prev) => {
     console.log(
-      "count changed:",
-      prev,
-      "→",
-      next,
+      "count changed:", prev, "→", next
     );
   },
 );
@@ -539,8 +522,6 @@ store.subscribe(
 
 For UI rendering, prefer normal reactive reads in components and templates.
 
----
-
 ## Organizing State
 
 The global Store is appropriate for simple shared state:
@@ -599,8 +580,6 @@ cart.dispatch("addItem", item);
 ```
 
 See [Store Registry](./registry.md) for the complete module API.
-
----
 
 ## Putting It Together
 
@@ -679,8 +658,6 @@ Global Store
 
 For structured feature state, move to Store modules rather than manually creating namespaces.
 
----
-
 ## Persistence
 
 Persistence is intentionally documented separately because it introduces an asynchronous storage boundary while the Store itself remains synchronous.
@@ -707,12 +684,3 @@ See [Persistent Stores](./persistence.md) for:
 * `stop()`;
 * persistence errors;
 * module persistence.
-
----
-
-## Next Steps
-
-* **[Store Overview](./overview.md)** — mental model, reactivity, state organization, and Store vs Component State vs Query Pool.
-* **[Store Registry](./registry.md)** — `defineStore`, `useStore`, module state, scoped actions, and lifecycle.
-* **[Persistent Stores](./persistence.md)** — IndexedDB persistence, hydration, and persistence controllers.
-* **[Store API Reference](../api/store.md)** — precise signatures, options, and return values.

@@ -4,8 +4,6 @@ When an array, `Map`, or `Set` is stored on a reactive object, Udodi wraps it so
 
 Deep changes inside elements or values are **not** tracked automatically. Use `touch()` or replace the element/property when those need to notify.
 
----
-
 ## How Wrapping Works
 
 Assignment (or initialization) through a reactive object runs the value through a collection check:
@@ -40,8 +38,6 @@ The wrapper:
 
 Wrapped collections are marked with `__udodi_reactive__` so they are not wrapped again.
 
----
-
 ## Structural vs Deep
 
 | Change | Notifies owner? |
@@ -64,8 +60,6 @@ state.items = state.items.map((item, i) =>
   i === 0 ? { ...item, name: "updated" } : item,
 );
 ```
-
----
 
 ## Arrays
 
@@ -122,8 +116,6 @@ state.todos = state.todos.filter((t) => !t.done);
 
 Replacing the property notifies through the normal reactive setter. The new array is wrapped again if needed.
 
----
-
 ## Maps
 
 ### Notifying methods
@@ -160,8 +152,6 @@ touch(state, "scores");
 // or set a new value
 state.scores.set("Ada", { points: 11 });
 ```
-
----
 
 ## Sets
 
@@ -200,8 +190,6 @@ user.name = "Grace";
 touch(state, "selected"); // if dependents need to re-run
 ```
 
----
-
 ## Ownership
 
 The wrapper notifies the **reactive property** that owns the collection (`owner` + `key` captured at wrap time):
@@ -222,8 +210,6 @@ state.items = orphan; // now wrapped; future structural mutations notify
 state.items.push(2);  // notifies
 ```
 
----
-
 ## Replacing vs Mutating
 
 | Approach | Example | Notifies |
@@ -243,8 +229,6 @@ state.tags = new Set(state.tags).add(tag);
 
 In-place mutation is fine when you want to avoid copying; rely on the wrapper for structural methods, and `touch` for deep edits.
 
----
-
 ## Interaction With Effects and Computed
 
 ```js
@@ -263,8 +247,6 @@ state.items.push({ amount: 10 }); // structural → notifies → total recompute
 
 If you only change `row.amount` in place, call `touch(state, "items")` (or replace the row) so `total` and the effect update.
 
----
-
 ## API Summary
 
 Collections are not constructed with a public `reactiveArray()` API in application code. They are applied automatically when values are set on reactive state.
@@ -281,8 +263,6 @@ Collections are not constructed with a public `reactiveArray()` API in applicati
 | `touch(proxy, key)` | Notify after deep / index mutations |
 | `__udodi_reactive__` | Internal mark; do not rely on it in app code |
 
----
-
 ## Constraints
 
 | Behavior | Detail |
@@ -292,12 +272,3 @@ Collections are not constructed with a public `reactiveArray()` API in applicati
 | Index assignment | Not wrapped for arrays; use methods, replace, or `touch` |
 | One owner key | Notifications go to the property that held the collection at wrap time |
 | No double wrap | Already marked collections are left as-is |
-
----
-
-## Next Steps
-
-* [Reactive State](./state.md) — `reactive()` and shallow rules  
-* [Using `touch()`](./touch.md) — nested and deep notification patterns  
-* [Effects](./effects.md) — reacting to collection-driven updates  
-* [Reactivity Overview](./overview.md) — how collections fit the full model  

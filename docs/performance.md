@@ -18,8 +18,6 @@ Every result published here is generated from benchmark code in the repository. 
 
 The numbers should therefore be treated as **evidence about specific workloads**, not as universal performance guarantees.
 
----
-
 ## Performance philosophy
 
 Udodi's performance work follows the same principles as the runtime itself:
@@ -44,8 +42,6 @@ It is to answer practical questions such as:
 - What is the difference between cold and cached compilation?
 - What happens when component-scoped CSS is injected for the first time?
 - How does the runtime behave after the relevant caches and browser paths are warm?
-
----
 
 ## Methodology
 
@@ -185,42 +181,6 @@ Heap benchmarks measure allocation behaviour and memory retention across complet
 
 Measurements use V8's used JavaScript heap size after garbage collection at defined lifecycle checkpoints.
 
-A typical lifecycle is:
-
-```text
-Forced GC
-    │
-    ▼
-before
-    │
-    ▼
-Mount application
-    │
-    ▼
-Forced GC
-    │
-    ▼
-afterMount
-    │
-    ▼
-Perform updates
-    │
-    ▼
-Forced GC
-    │
-    ▼
-afterUpdate
-    │
-    ▼
-Destroy application
-    │
-    ▼
-Forced GC
-    │
-    ▼
-afterDestroy
-```
-
 The checkpoints are:
 
 | Checkpoint       | Meaning |
@@ -356,8 +316,6 @@ Report generator
 
 Re-running the benchmark suite and report generator refreshes the published results.
 
----
-
 ## Why these benchmarks?
 
 Udodi is a fine-grained reactive UI runtime. Its important performance characteristics are therefore not limited to one synthetic operation.
@@ -391,8 +349,6 @@ Together, these workloads exercise the paths that matter most for Udodi's archit
 - memory retention;
 - scoped style processing.
 
----
-
 ## Results
 
 The tables and charts below are generated automatically from benchmark result files.
@@ -415,7 +371,7 @@ The benchmark performs 10 warmup mount/unmount cycles, then records 50 measured 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Udodi | 1.1.0 | 1 mount of 1,000 rows | 10 iterations | 24.06 ms | 20.35 ms | 18.80 ms | 81.30 ms | 9.63 ms | 34.34 ms | 60.13 ms |
 
-![Mount benchmark](./performance-assets/mount.svg)
+![Mount benchmark](./assets/mount.svg)
 
 #### How to interpret this result
 
@@ -440,7 +396,7 @@ The benchmark performs 10 warmup updates, then records 1,000 measured single-upd
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Udodi | 1.1.0 | 1 update per sample | 10 iterations | 0.11 ms | 0.10 ms | 0.00 ms | 1.70 ms | 0.08 ms | 0.20 ms | 0.20 ms |
 
-![Single update benchmark](./performance-assets/update-single.svg)
+![Single update benchmark](./assets/update-single.svg)
 
 #### What this measures
 
@@ -471,7 +427,7 @@ Warmup batches are excluded from the reported timing statistics. Therefore, the 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Udodi | 1.1.0 | 100 updates per sample | 10 iterations | 10.32 ms | 10.20 ms | 10.00 ms | 11.30 ms | 0.23 ms | 10.81 ms | 11.00 ms |
 
-![Batched update benchmark](./performance-assets/update-batched.svg)
+![Batched update benchmark](./assets/update-batched.svg)
 
 #### Why batch updates?
 
@@ -521,7 +477,7 @@ The first cycle is generally considered the cold cycle. Later cycles provide inf
 | 9 | 5.28 MB | 5.28 MB | 5.28 MB | 5.28 MB | 840 B | 668 B | 2.15 KB |
 | 10 | 5.28 MB | 5.28 MB | 5.28 MB | 5.28 MB | 768 B | 576 B | 1.82 KB |
 
-![Heap lifecycle benchmark](./performance-assets/heap.svg)
+![Heap lifecycle benchmark](./assets/heap.svg)
 
 #### What to look for
 
@@ -650,7 +606,7 @@ This helps ensure that the micro-benchmarks measure representative DSL paths rat
 | Evaluate | 10,000 operations per sample | 10 iterations | 705.00 µs | 700.00 µs | 600.00 µs | 1.50 ms | 144.48 µs | 805.00 µs | 1.40 ms |
 | Directive | 1 operation per sample | 0 iterations | 19.30 ms | 18.00 ms | 15.10 ms | 34.80 ms | 4.23 ms | 26.89 ms | 32.74 ms |
 
-![DSL benchmark stages](./performance-assets/dsl.svg)
+![DSL benchmark stages](./assets/dsl.svg)
 
 #### Why isolate the DSL?
 
@@ -720,7 +676,7 @@ The warm benchmark measures the same general path after relevant initialization 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Udodi | 1.1.0 | 1 scoped mount per sample | 1 iterations | 9.23 ms | 8.65 ms | 4.10 ms | 16.60 ms | 3.93 ms | 15.76 ms | 16.40 ms |
 
-![CSS scope benchmark](./performance-assets/css-scope.svg)
+![CSS scope benchmark](./assets/css-scope.svg)
 
 #### Why separate cold and warm results?
 
@@ -871,8 +827,6 @@ Likewise, framework comparisons are meaningful only when:
 - warmup methodology is equivalent;
 - the benchmark code is publicly available.
 
----
-
 ## What these benchmarks do not prove
 
 These benchmarks do not prove that Udodi is the fastest framework for every application.
@@ -894,8 +848,6 @@ For example, benchmark results may not directly represent:
 Performance depends on the application.
 
 The benchmark suite provides evidence about specific runtime characteristics under defined workloads.
-
----
 
 ## Reproducing the results
 
@@ -988,8 +940,6 @@ A history of results across releases is more useful.
 
 As the measurement infrastructure matures, representative workloads can be incorporated into automated regression checks where practical.
 
----
-
 ## Reporting performance honestly
 
 The preferred interpretation of this page is:
@@ -1012,10 +962,8 @@ If a future version regresses, the regression should be visible rather than hidd
 
 That is the purpose of publishing the methodology and raw measurements.
 
----
-
 ## Version
 
 Results on this page were generated for **Udodi 1.1.0** unless otherwise noted in an individual result table.
 
-*Last generated: 2026-09-03 12:36:41.858 UTC*
+*Last generated: 2026-09-04 14:28:43.311 UTC*

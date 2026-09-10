@@ -8,8 +8,6 @@ The system supports synchronous and asynchronous validation, configurable valida
 
 No separate form library is required.
 
----
-
 ## How the Pieces Fit Together
 
 A typical form combines four form directives:
@@ -51,8 +49,6 @@ The runtime coordinates these directives as a single form lifecycle:
 4. **`@submit="login"`** validates the registered fields according to the form's validation mode. If validation succeeds, the component's `login` method is invoked.
 
 Field values are normally managed through component state and `@bind`. Validation state is maintained by the form controller and exposed reactively through `ud.forms`.
-
----
 
 ## The Form Controller
 
@@ -99,14 +95,14 @@ The important distinction is that the controller is the **form-level reactive st
 
 ### Form State
 
-* **`valid`** — `true` when every entry in `errors` is an empty string.
-* **`validating`** — `true` while form field validation is in progress, including asynchronous validation.
-* **`dirty`** — indicates that the form has field-level changes.
-* **`touched`** — indicates that fields in the form have been interacted with.
-* **`submitting`** — `true` while the submit handler is executing.
-* **`submitted`** — indicates that the form has completed a successful validation and submission cycle.
-* **`validationMode`** — determines whether form validation executes sequentially or in parallel.
-* **`errors`** — the reactive collection of field validation errors.
+* **`valid`**: the value is `true` when every entry in `errors` is an empty string.
+* **`validating`**: the value is `true` while form field validation is in progress, including asynchronous validation.
+* **`dirty`**: indicates that the form has field-level changes.
+* **`touched`**: indicates that fields in the form have been interacted with.
+* **`submitting`**: the value is `true` while the submit handler is executing.
+* **`submitted`**: indicates that the form has completed a successful validation and submission cycle.
+* **`validationMode`**: determines whether form validation executes sequentially or in parallel.
+* **`errors`**: the reactive collection of field validation errors.
 
 Because the controller is reactive, its state can be consumed directly from templates:
 
@@ -122,8 +118,6 @@ Because the controller is reactive, its state can be consumed directly from temp
 ```
 
 For the complete controller API, see **[Form Controllers](./controllers.md)**.
-
----
 
 ## Validation
 
@@ -224,8 +218,6 @@ Using the supplied `AbortSignal` allows superseded asynchronous validations to b
 
 See **[Validation](./validation.md)** for validator composition and the validation context, and **[Async Validation](./async.md)** for asynchronous validation and cancellation.
 
----
-
 ## Validation Triggers
 
 A field's validation trigger determines **when its validators run**.
@@ -264,8 +256,6 @@ This allows different fields to provide different validation experiences within 
 
 For the complete trigger behavior, see **[Validation](./validation.md)**.
 
----
-
 ## Validation Modes
 
 Validation triggers determine **when** validation starts. The form's validation mode determines **how registered validation work is executed**.
@@ -292,8 +282,6 @@ or:
 The distinction is particularly important for asynchronous validation. Sequential validation can avoid starting subsequent work after an earlier failure, while parallel validation allows independent validations to proceed concurrently.
 
 See **[Sequential and Parallel Validation](./sequential-parallel.md)** for the detailed execution semantics.
-
----
 
 ## Form Submission
 
@@ -336,10 +324,10 @@ The first argument passed to the submit handler is always the submit context:
 
 Where:
 
-* **`event`** — the originating submit event.
-* **`form`** — the `<form>` element.
-* **`formData`** — the submitted `FormData`.
-* **`controller`** — the reactive form controller corresponding to `ud.forms.login`.
+* **`event`**: the originating submit event.
+* **`form`**: the `<form>` element.
+* **`formData`**: the submitted `FormData`.
+* **`controller`**: the reactive form controller corresponding to `ud.forms.login`.
 
 A submit handler can be synchronous or asynchronous:
 
@@ -358,8 +346,6 @@ async login({ formData, controller }) {
 If the handler calls `controller.reset()`, the resulting reset state is preserved.
 
 See **[Form Submission](./submission.md)** for the complete submission lifecycle.
-
----
 
 ## Field State
 
@@ -404,8 +390,6 @@ controller.resetField(name);
 Form-level `dirty` and `touched` state are derived from the registered fields, while validation errors are keyed by field name on `controller.errors`.
 
 See **[Working with Fields](./fields.md)** for field registration, state, and field-level operations.
-
----
 
 ## Minimal End-to-End Example
 
@@ -507,42 +491,28 @@ This example demonstrates the core relationship:
 
 ```text
 Component State
-      │
-      │ @bind
-      ▼
-   Form Fields
-      │
-      │ @validate
-      ▼
-   Validation
-      │
-      │ @form / controller
-      ▼
- Form State + Errors
-      │
-      │ @submit
-      ▼
- Submit Handler
+    │
+    │ @bind
+    ▼
+Form Fields
+    │
+    │ @validate
+    ▼
+Validation
+    │
+    │ @form / controller
+    ▼
+Form State + Errors
+    │
+    │ @submit
+    ▼
+Submit Handler
 ```
 
 The form controller acts as the coordination point between these pieces while remaining reactive and accessible from both component code and templates.
 
----
-
-## Next Steps
-
-| Goal                                                  | Guide                                                              |
-| ----------------------------------------------------- | ------------------------------------------------------------------ |
-| Register a form and choose its validation mode        | **[Creating a Form](./creating.md)**                               |
-| Understand field registration and field state         | **[Working with Fields](./fields.md)**                             |
-| Write and compose validators                          | **[Validation](./validation.md)**                                  |
-| Understand sequential and parallel execution          | **[Sequential and Parallel Validation](./sequential-parallel.md)** |
-| Handle form submission and its lifecycle              | **[Form Submission](./submission.md)**                             |
-| Use the complete reactive controller API              | **[Form Controllers](./controllers.md)**                           |
-| Build asynchronous validators and handle cancellation | **[Async Validation](./async.md)**                                 |
-
 Form-oriented directives are part of Udodi's template system but have behavior specific to form state, validation, and submission.
 
-For the broader template DSL, including directives such as `@bind`, `@on`, `@text`, `@attr`, and `@show`, see **[Templates and Directives](../templates/README.md)**.
+For the broader template DSL, see **[Templates and Directives](../templates/index.md)**.
 
 For precise public API signatures, see the **[Form API Reference](../api/form.md)**.

@@ -2,7 +2,7 @@
 
 Components are the primary building blocks of an Udodi application.
 
-A component combines **state, derived values, behavior, templates, styles, and lifecycle** into a reusable unit. Components can be composed into larger interfaces and can receive data through props.
+A component combines **state**, **derived values**, **behavior**, **templates**, **styles**, and **lifecycle** into a reusable unit. Components can be composed into larger interfaces and can receive data through props.
 
 A component is defined with `createComponent()`, instantiated through the returned factory, and mounted with `render()`.
 
@@ -22,9 +22,7 @@ Component instance
        DOM
 ```
 
-This guide explains the component model and how its parts fit together. Each individual capability is covered in more detail in the corresponding [Fundamentals](./) guide.
-
----
+This guide explains the component model and how its parts fit together. Each individual capability is covered in more detail in the corresponding guide.
 
 ## Creating a Component
 
@@ -48,7 +46,7 @@ const Counter = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <main class="counter">
       <p>Count: <span @text="count"></span></p>
       <button @on="click=increment">+</button>
@@ -76,8 +74,6 @@ A component definition describes the data, behavior, presentation, and lifecycle
 
 The component's `template` option must be provided, and other options are optional.
 
----
-
 ## Component Definition, Placeholder, and Instance
 
 `createComponent()` creates a **component factory**. It does not immediately create a component instance or DOM element.
@@ -102,19 +98,19 @@ Conceptually:
 
 ```text
 createComponent(...)
-        │
-        ▼
+      │
+      ▼
 Component factory
-        │
-        │ Counter(props)
-        ▼
+      │
+      │ Counter(props)
+      ▼
 Component placeholder
-        │
-        │ render / resolve
-        ▼
+      │
+      │ render / resolve
+      ▼
 Component instance
-        │
-        ▼
+      │
+      ▼
 Mounted DOM
 ```
 
@@ -133,8 +129,6 @@ render(second, "#second");
 Each resulting instance receives its own component state, context, reactive effects, and lifecycle.
 
 This separation between **component definition**, **placeholder**, and **instance** allows components to participate in the render tree before their runtime instances are created.
-
----
 
 ## Component Options at a Glance
 
@@ -170,8 +164,6 @@ The individual options are intentionally documented separately:
 * [Context](./context.md) — the component context exposed to user code.
 * [Component Styles](./styles.md) — component-scoped CSS.
 
----
-
 ## Rendering a Component
 
 Mount a component with `render()`:
@@ -196,9 +188,7 @@ template: () => html`
 
 A template with multiple top-level elements is not a valid component template.
 
-See [Templates](../templates/README.md).
-
----
+See [Templates](../templates/index.md).
 
 ## Component Composition
 
@@ -208,7 +198,7 @@ Components can be composed by including one component's factory call inside anot
 const Child = createComponent({
   name: "Child",
 
-  template: () => html`
+  template: html`
     <p>Child component</p>
   `,
 });
@@ -216,7 +206,7 @@ const Child = createComponent({
 const Parent = createComponent({
   name: "Parent",
 
-  template: () => html`
+  template: html`
     <section>
       <h1>Parent</h1>
       ${Child()}
@@ -245,8 +235,6 @@ Application
 
 Composition is the primary mechanism for building larger interfaces from smaller components.
 
----
-
 ## Passing Props
 
 A component can receive props when its factory is called:
@@ -255,13 +243,13 @@ A component can receive props when its factory is called:
 const User = createComponent({
   name: "User",
 
-  template: () => html`
+  template: html`
     <p @text="userName"></p>
   `,
 });
 
 const Page = createComponent({
-  template: () => html`
+  template: html`
     <section>
       ${User({
         userName: "Attamah",
@@ -376,8 +364,6 @@ props ────────┘
 
 See [Props](./props.md) for the complete prop model.
 
----
-
 ## Static and Reactive Props
 
 Props are passed directly to the child component by default.
@@ -447,7 +433,7 @@ With `bindProp()`, Udodi creates a reactive prop binding rather than storing the
 ```text
 Regular prop
 
-Parent expression ───── value/reference ─────► Child prop
+Parent expression ─── value/reference ───► Child prop
 
 
 Reactive prop
@@ -467,8 +453,6 @@ This distinction is particularly important for objects. An object can be shared 
 Udodi's reactive state system is also shallow: top-level reactive properties are tracked, while nested objects are not automatically made independently reactive.
 
 See [Props](./props.md) for the complete prop model.
-
----
 
 ## Component Context
 
@@ -543,28 +527,26 @@ The public context is deliberately restricted. User code cannot append arbitrary
 
 See [Context](./context.md).
 
----
-
 ## Component Lifecycle
 
 A component progresses through a defined lifecycle:
 
 ```text
 Create
-  │
-  ▼
+   │
+   ▼
 Initialize
-  │
-  ▼
+   │
+   ▼
 Mount
-  │
-  ▼
+   │
+   ▼
 Active
-  │
-  ▼
+   │
+   ▼
 Unmount
-  │
-  ▼
+   │
+   ▼
 Cleanup
 ```
 
@@ -600,8 +582,6 @@ onMount(root, ctx) {
 
 See [Lifecycle](./lifecycle.md).
 
----
-
 ## Component Styles
 
 Components can define styles through the `style` option:
@@ -621,8 +601,6 @@ const Card = createComponent({
 Component styles are scoped by Udodi so that styles defined by a component can remain isolated from unrelated application markup.
 
 See [Component Styles](./styles.md) and [CSS Scoping](../advanced/css-scoping.md).
-
----
 
 ## Component State
 
@@ -698,8 +676,6 @@ Replacing the root key notifies automatically. Use `touch()` when you want to ke
 
 See [State](./state.md).
 
----
-
 ## Root-Level Names
 
 Udodi maintains a single namespace for the names exposed at the component root.
@@ -741,23 +717,21 @@ The same rule applies to methods and props.
 Component root namespace
 
 ┌───────────────────────────────┐
-│             Context           │
+│            Context            │
 ├───────────────────────────────┤
 │ state                         │
 │ computed                      │
 │ methods                       │
 │ props                         │
 └───────────────────────────────┘
-              │
-              ▼
-       All names unique
+                │
+                ▼
+         All names unique
 ```
 
 Udodi validates component-defined keys when the component is created and validates props against those keys when an instance is created.
 
 This prevents ambiguous context resolution and ensures that a root-level name always has a single meaning.
-
----
 
 ## Reserved Keywords
 
@@ -806,8 +780,6 @@ const Example = createComponent({
 
 Reserved names also cannot be overwritten through the public component context.
 
----
-
 ## Component Constraints
 
 The component runtime enforces the following constraints:
@@ -826,8 +798,6 @@ The component runtime enforces the following constraints:
 | Public context cannot be extended                | Arbitrary root-level properties cannot be appended.                      |
 | Reserved context properties cannot be overridden | Framework-reserved properties are protected.                             |
 
----
-
 ## Minimal Example
 
 The following is the smallest useful component pattern:
@@ -844,7 +814,7 @@ const Hello = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <p>
       Hello, <span @text="label"></span>
     </p>
@@ -858,8 +828,6 @@ render(Hello(), "#app");
 
 A component does not need to use every available option. Start with the smallest definition that expresses the component's responsibility and add state, behavior, lifecycle, props, or styles as required.
 
----
-
 ## Component Model
 
 The complete component flow can be summarized as:
@@ -872,11 +840,11 @@ The complete component flow can be summarized as:
                                 │
               ┌─────────────────┼─────────────────┐
               │                 │                 │
-             Data            Behavior       Presentation
+             Data            Behavior        Presentation
               │                 │                 │
-            state            methods           template
-            computed         watch             style
-            props            interceptors
+            state            methods            template
+            computed         watch              style
+            props            interceptors         │
               │                 │                 │
               └─────────────────┼─────────────────┘
                                 │
@@ -899,24 +867,4 @@ The complete component flow can be summarized as:
 
 This is the core model to keep in mind when working with Udodi components.
 
----
-
-## Next Steps
-
-The Fundamentals section provides a focused guide for each component capability:
-
-* [State](./state.md) — reactive component state.
-* [Methods](./methods.md) — component behavior and event handlers.
-* [Computed Values](./computed.md) — derived reactive values.
-* [Watchers](./watch.md) — responding to reactive changes.
-* [Interceptors](./interceptors.md) — controlling state assignments.
-* [Lifecycle](./lifecycle.md) — mounting, unmounting, and cleanup.
-* [Props](./props.md) — passing data and establishing reactive bindings.
-* [Context](./context.md) — the public component context.
-* [Component Styles](./styles.md) — component-scoped CSS.
-
-For templates and directives, see [Templates](../templates/README.md).
-
-For advanced runtime concepts, see [Advanced](../advanced/README.md).
-
-For exact API signatures and runtime contracts, see the [API Reference](../api/README.md).
+For exact API signatures and runtime contracts, see the [API Reference](../api/index.md).

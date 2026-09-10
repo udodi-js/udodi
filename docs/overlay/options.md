@@ -22,12 +22,10 @@ For the opening lifecycle, see [Opening Overlays](./opening.md).
 
 For close behavior and close results, see [Closing Overlays](./closing.md).
 
----
-
 ## Options at a Glance
 
-| Option            | Type               | Default     | Purpose                                                        |
-| ----------------- | ------------------ | ----------- | -------------------------------------------------------------- |
+| Option            | Type               | Default     | Purpose                     |
+| ----------------- | ------------------ | ----------- | --------------------------- |
 | `renderBackdrop`  | `boolean`          | `true`      | Whether to render the dimmed backdrop.                         |
 | `closeOnBackdrop` | `boolean`          | `true`      | Whether clicking the rendered backdrop closes the overlay.     |
 | `closeOnEscape`   | `boolean`          | `true`      | Whether Escape closes the top-most overlay.                    |
@@ -53,8 +51,6 @@ await openModal(
 ```
 
 Only the options supplied are overridden; all others retain their defaults.
-
----
 
 ## `renderBackdrop`
 
@@ -130,8 +126,6 @@ when the overlay should appear without a dimmed viewport layer.
 
 This can also be useful when the application provides its own full-screen visual treatment inside the overlay content.
 
----
-
 ## `closeOnBackdrop`
 
 **Default:** `true`
@@ -176,8 +170,6 @@ For example, a confirmation dialog can return `true` from its Confirm action whi
 
 See [Closing Overlays](./closing.md) for close-result conventions.
 
----
-
 ## `closeOnEscape`
 
 **Default:** `true`
@@ -207,14 +199,14 @@ For example:
 Overlay stack
 
 Modal A
-Modal B  ← top-most
+Modal B  ←  top-most
 
 Escape
   │
   ▼
 Modal B closes
 
-Modal A  ← now top-most
+Modal A  ←  now top-most
 ```
 
 Escape never skips the top overlay to close a lower entry.
@@ -238,8 +230,6 @@ With both options disabled, the overlay must be closed explicitly through its co
 Escape dismissal always resolves the overlay's Promise with `false`.
 
 See [Overlay Stacking](./stacking.md) for top-most behavior.
-
----
 
 ## `lockScroll`
 
@@ -266,37 +256,37 @@ while at least one open overlay requires scroll locking.
 Scroll locking is **reference-counted**, rather than being tied to a single overlay.
 
 ```text
- open overlay A (lockScroll: true)
-        │
-        ▼
- lock count = 1
-        │
-        ▼
- scroll locked
+open overlay A (lockScroll: true)
+      │
+      ▼
+lock count = 1
+      │
+      ▼
+scroll locked
 
- open overlay B (lockScroll: true)
-        │
-        ▼
- lock count = 2
-        │
-        ▼
- still locked
+open overlay B (lockScroll: true)
+      │
+      ▼
+lock count = 2
+      │
+      ▼
+still locked
 
- close overlay B
-        │
-        ▼
- lock count = 1
-        │
-        ▼
- still locked
+close overlay B
+      │
+      ▼
+lock count = 1
+      │
+      ▼
+still locked
 
- close overlay A
-        │
-        ▼
- lock count = 0
-        │
-        ▼
- scroll restored
+close overlay A
+      │
+      ▼
+lock count = 0
+      │
+      ▼
+scroll restored
 ```
 
 This is important for nested overlays: closing one locking overlay does not restore scrolling while another locking overlay remains open.
@@ -317,8 +307,6 @@ await openModal(render, {
 ```
 
 For example, this can be appropriate for a lightweight notice or toast-style layer.
-
----
 
 ## `focusTrap`
 
@@ -363,8 +351,6 @@ await openModal(render, {
 ```
 
 See [Accessibility](./accessibility.md) for focus management and dialog semantics.
-
----
 
 ## `zIndex`
 
@@ -424,8 +410,6 @@ The second overlay does not inherit the first overlay's inline `zIndex`.
 
 Use explicit values when an overlay must interact with other application-level stacking contexts.
 
----
-
 ## `className`
 
 **Default:** `undefined`
@@ -469,8 +453,6 @@ The panel and its contents remain the responsibility of the application:
 ```
 
 The runtime intentionally provides only minimal structural CSS. Typography, colors, borders, shadows, transitions, animations, and themes remain application concerns.
-
----
 
 ## Combining Options
 
@@ -548,8 +530,6 @@ This removes the backdrop, leaves document scrolling enabled, and does not trap 
 
 The Overlay system can therefore provide the host and lifecycle management without forcing every use case to behave like a conventional blocking dialog.
 
----
-
 ## Defaults and Overrides
 
 Calling `openModal()` without an options object uses the complete default configuration:
@@ -596,8 +576,6 @@ zIndex           →  undefined
 className        →  undefined
 ```
 
----
-
 ## How Options Affect the Host
 
 The options that affect the overlay's DOM structure or host behavior map directly to the runtime-created elements:
@@ -636,8 +614,6 @@ The options that affect the overlay's DOM structure or host behavior map directl
 
 The runtime owns these structural behaviors; application CSS owns the visual presentation.
 
----
-
 ## Option Interactions
 
 Some options are intentionally related.
@@ -671,7 +647,7 @@ Escape applies only to the top-most overlay:
 
 ```text
 Modal A  ── closeOnEscape: true
-Modal B  ── closeOnEscape: false  ← top
+Modal B  ── closeOnEscape: false  ←  top
 
 Escape
   │
@@ -690,8 +666,8 @@ Modal A: lockScroll = true
 Modal B: lockScroll = true
 
 close Modal B
-       │
-       ▼
+      │
+      ▼
 Modal A still locks scrolling
 ```
 
@@ -705,12 +681,10 @@ When the top overlay closes, the next overlay becomes the active top layer and i
 
 These interactions are what allow independent overlay entries to coexist safely in a nested stack.
 
----
-
 ## Common Mistakes
 
-| Mistake                                                                         | Result                                                                                           |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Mistake         | Result                                 |
+| --------------- | -------------------------------------- |
 | Setting `closeOnBackdrop: true` with `renderBackdrop: false`                    | There is no backdrop to click, so backdrop dismissal cannot occur.                               |
 | Expecting Escape to close a lower overlay                                       | Only the top-most overlay can respond to Escape.                                                 |
 | Using `lockScroll: false` and expecting the page to unlock                      | Another open overlay with `lockScroll: true` can keep scrolling locked.                          |
@@ -718,8 +692,6 @@ These interactions are what allow independent overlay entries to coexist safely 
 | Assuming `zIndex` is inherited by nested overlays                               | Each overlay host has its own configuration.                                                     |
 | Disabling `focusTrap` on a normal modal without considering keyboard navigation | Focus can leave the dialog while it remains open.                                                |
 | Assuming `renderBackdrop` controls whether the overlay is modal                 | It controls only backdrop rendering; Escape, focus, and scroll behavior are separate options.    |
-
----
 
 ## Choosing the Right Configuration
 
@@ -743,17 +715,3 @@ Override only the behavior the particular overlay requires.
 | Style a specific overlay host         | Set `className`          |
 
 A good default principle is to **change behavioral options only when the overlay's interaction model requires it**. The built-in defaults provide the expected behavior for a conventional modal dialog.
-
----
-
-## Next Steps
-
-| Goal                                             | Guide                                   |
-| ------------------------------------------------ | --------------------------------------- |
-| Open overlays and work with the Promise          | **[Opening Overlays](./opening.md)**    |
-| Close overlays and return results                | **[Closing Overlays](./closing.md)**    |
-| Understand nested overlays and top-most behavior | **[Overlay Stacking](./stacking.md)**   |
-| Understand focus trapping and restoration        | **[Accessibility](./accessibility.md)** |
-| Review the complete Overlay model                | **[Overlay Overview](./overview.md)**   |
-
-For precise public API signatures, see the **[Overlay API Reference](../api/overlay.md)**.
