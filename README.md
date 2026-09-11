@@ -20,6 +20,7 @@
 <p align="center">
   <a href="#installation"><strong>Installation</strong></a> •
   <a href="#usage-example"><strong>Usage Example</strong></a> •
+  <a href="#performance"><strong>Performance</strong></a> •
   <a href="#documentation"><strong>Documentation</strong></a> •
   <a href="#testing"><strong>Testing</strong></a> •
   <a href="#roadmap"><strong>Roadmap</strong></a> •
@@ -93,7 +94,7 @@ const Counter = createComponent({
     }
   `,
 
-  template: (ctx) => html`
+  template: html`
     <div>
       <div class="text" @text="count"></div>
       <button @on="click=increment">Increment</button>
@@ -102,20 +103,20 @@ const Counter = createComponent({
 });
 
 // Mount component to DOM
-render(Counter(), document.getElementById("app"));
+render(Counter(), "#app");
 ```
 
 ## Performance
 
 Udodi publishes a reproducible benchmark suite and methodology so that its performance characteristics can be measured, inspected, and independently verified.
 
-See the [Performance](https://github.com/udodi-js/udodi/blob/main/docs/performance.md) report.
+See the [Performance](https://udodi.dev/performance.html) report.
 
 ## Documentation
 
-For comprehensive guidance on building with Udodi, explore the master guides in this repository for an in-depth look at the framework, from everyday development to advanced runtime usage.
+Visit **[udodi.dev](https://udodi.dev)** for the complete Udodi documentation, including guides, API reference, reactivity, templates, forms, Store, Query Pool, Overlay, and advanced runtime usage.
 
-[Explore the Comprehensive Documentation Suite](https://github.com/udodi-js/udodi/blob/main/docs/README.md)
+The documentation source is maintained in the [`docs/`](https://github.com/udodi-js/udodi/blob/main/docs) directory of this repository.
 
 ## Development
 
@@ -149,12 +150,6 @@ udodi/
 
 Udodi uses **Vitest** to drive low-level framework runtime verification alongside real browser integration checks. Detailed specifications regarding testing setups can be viewed in our [Runtime Testing Guide](https://github.com/udodi-js/udodi/blob/main/docs/udodi-testing.md).
 
-| Target Suite | Purpose |
-| :--- | :--- |
-| **Unit Tests** | Validates isolated compiler mechanics and reactive trackers |
-| **DOM Tests** | Asserts token directives modify node values correctly |
-| **Integration Tests** | Monitors deep component communication and unmount scopes |
-
 ### Execution Commands
 ```bash
 npm test                                  # Executes full test suite once
@@ -171,6 +166,20 @@ See [ROADMAP.md](https://github.com/udodi-js/udodi/blob/main/ROADMAP.md) for shi
 ## Contributing
 
 Contributions, core reviews, and optimization feedback are highly welcome. Please ensure you read the full [Contribution Guidelines](https://github.com/udodi-js/udodi/blob/main/CONTRIBUTING.md) before pushing a pull request tracking branch.
+
+## ❤️ Sponsors
+
+Udodi is independent open-source software made possible by the generous backing of companies and individuals who believe in a lightweight, high-performance web ecosystem.
+
+<p align="center">
+  <img src="https://udodi.dev/sponsors/sponsors.svg" alt="Udodi Platinum and Gold Sponsors" width="100%" style="max-width: 900px;" />
+</p>
+
+### Join Our Backers
+
+Whether you are using Udodi for a hobby project, building production apps, or just want to help keep the ecosystem fast and dependency-free, your support makes a huge difference.
+
+**[Become a sponsor on GitHub →](https://github.com/sponsors/udodi-js)**
 
 ## License
 
