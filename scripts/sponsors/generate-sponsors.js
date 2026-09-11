@@ -476,7 +476,7 @@ function createSponsorSvg(sponsors) {
 	// The Invisible Placeholder Trick: If no backers exist, disappear completely.
 	if (sponsors.platinum.length === 0 && sponsors.gold.length === 0) {
 		return `
-			<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1" opacity="0">
+			<svg xmlns="http://www.w3.org/2000/svg" width="1" height="0" viewBox="0 0 1 0" opacity="0">
 		    	<title>Udodi Sponsors</title>
 			</svg>
 		`;
