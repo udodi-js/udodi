@@ -369,7 +369,7 @@ The benchmark performs 10 warmup mount/unmount cycles, then records 50 measured 
 
 | Framework | Version | Operations | Warmup | Mean | Median | Min | Max | Std Dev | P95 | P99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Udodi | 1.1.0 | 1 mount of 1,000 rows | 10 iterations | 24.06 ms | 20.35 ms | 18.80 ms | 81.30 ms | 9.63 ms | 34.34 ms | 60.13 ms |
+| Udodi | 1.1.0 | 1 mount of 1,000 rows | 10 iterations | 22.08 ms | 19.60 ms | 18.20 ms | 33.40 ms | 4.61 ms | 31.06 ms | 32.42 ms |
 
 ![Mount benchmark](./assets/mount.svg)
 
@@ -394,7 +394,7 @@ The benchmark performs 10 warmup updates, then records 1,000 measured single-upd
 
 | Framework | Version | Operations | Warmup | Mean | Median | Min | Max | Std Dev | P95 | P99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Udodi | 1.1.0 | 1 update per sample | 10 iterations | 0.11 ms | 0.10 ms | 0.00 ms | 1.70 ms | 0.08 ms | 0.20 ms | 0.20 ms |
+| Udodi | 1.1.0 | 1 update per sample | 10 iterations | 0.11 ms | 0.10 ms | 0.00 ms | 1.00 ms | 0.07 ms | 0.20 ms | 0.20 ms |
 
 ![Single update benchmark](./assets/update-single.svg)
 
@@ -425,7 +425,7 @@ Warmup batches are excluded from the reported timing statistics. Therefore, the 
 
 | Framework | Version | Operations | Warmup | Mean | Median | Min | Max | Std Dev | P95 | P99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Udodi | 1.1.0 | 100 updates per sample | 10 iterations | 10.32 ms | 10.20 ms | 10.00 ms | 11.30 ms | 0.23 ms | 10.81 ms | 11.00 ms |
+| Udodi | 1.1.0 | 100 updates per sample | 10 iterations | 10.03 ms | 9.80 ms | 9.50 ms | 13.50 ms | 0.58 ms | 10.62 ms | 12.61 ms |
 
 ![Batched update benchmark](./assets/update-batched.svg)
 
@@ -466,16 +466,16 @@ The first cycle is generally considered the cold cycle. Later cycles provide inf
 
 | Cycle | Before | After Mount | After Update | After Destroy | Mount Δ | Update Δ | Retained |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 4.89 MB | 4.76 MB | 6.53 MB | 5.42 MB | -133.86 KB | 1.78 MB | 540.64 KB |
-| 2 | 5.21 MB | 5.22 MB | 5.25 MB | 5.25 MB | 5.10 KB | 36.91 KB | 42.65 KB |
-| 3 | 5.26 MB | 5.26 MB | 5.26 MB | 5.26 MB | 1.02 KB | 748 B | 1.95 KB |
-| 4 | 5.26 MB | 5.26 MB | 5.26 MB | 5.26 MB | 728 B | 564 B | 1.78 KB |
-| 5 | 5.27 MB | 5.27 MB | 5.27 MB | 5.27 MB | 740 B | 528 B | 1.78 KB |
-| 6 | 5.27 MB | 5.27 MB | 5.27 MB | 5.27 MB | 728 B | 576 B | 1.79 KB |
-| 7 | 5.27 MB | 5.27 MB | 5.27 MB | 5.27 MB | 740 B | 552 B | 1.78 KB |
-| 8 | 5.28 MB | 5.28 MB | 5.28 MB | 5.28 MB | 716 B | -364 B | 868 B |
-| 9 | 5.28 MB | 5.28 MB | 5.28 MB | 5.28 MB | 840 B | 668 B | 2.15 KB |
-| 10 | 5.28 MB | 5.28 MB | 5.28 MB | 5.28 MB | 768 B | 576 B | 1.82 KB |
+| 1 | 4.88 MB | 4.77 MB | 6.68 MB | 5.45 MB | -117.12 KB | 1.91 MB | 580.02 KB |
+| 2 | 5.24 MB | 5.25 MB | 5.28 MB | 5.29 MB | 5.16 KB | 37.00 KB | 42.76 KB |
+| 3 | 5.29 MB | 5.29 MB | 5.29 MB | 5.29 MB | 1.04 KB | 804 B | 2.03 KB |
+| 4 | 5.29 MB | 5.29 MB | 5.29 MB | 5.29 MB | 728 B | 580 B | 1.80 KB |
+| 5 | 5.30 MB | 5.30 MB | 5.30 MB | 5.30 MB | 780 B | 580 B | 1.83 KB |
+| 6 | 5.30 MB | 5.30 MB | 5.30 MB | 5.30 MB | 768 B | 580 B | 1.83 KB |
+| 7 | 5.30 MB | 5.30 MB | 5.30 MB | 5.30 MB | 796 B | 564 B | 1.83 KB |
+| 8 | 5.31 MB | 5.31 MB | 5.31 MB | 5.31 MB | 740 B | 672 B | 1.89 KB |
+| 9 | 5.31 MB | 5.31 MB | 5.31 MB | 5.31 MB | 840 B | 564 B | 2.05 KB |
+| 10 | 5.31 MB | 5.31 MB | 5.31 MB | 5.31 MB | 740 B | 564 B | 1.83 KB |
 
 ![Heap lifecycle benchmark](./assets/heap.svg)
 
@@ -600,11 +600,11 @@ This helps ensure that the micro-benchmarks measure representative DSL paths rat
 
 | Stage | Operations | Warmup | Mean | Median | Min | Max | Std Dev | P95 | P99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Parse | 10,000 operations per sample | 10 iterations | 3.44 ms | 3.30 ms | 3.10 ms | 7.70 ms | 644.24 µs | 4.30 ms | 7.21 ms |
-| Compile (cold) | 10,000 operations per sample | 0 iterations | 4.22 ms | 4.00 ms | 3.80 ms | 9.20 ms | 884.92 µs | 5.37 ms | 7.91 ms |
-| Compile (cached) | 10,000 operations per sample | 10 iterations | 129.00 µs | 100.00 µs | 0.00 µs | 400.00 µs | 93.05 µs | 300.00 µs | 400.00 µs |
-| Evaluate | 10,000 operations per sample | 10 iterations | 705.00 µs | 700.00 µs | 600.00 µs | 1.50 ms | 144.48 µs | 805.00 µs | 1.40 ms |
-| Directive | 1 operation per sample | 0 iterations | 19.30 ms | 18.00 ms | 15.10 ms | 34.80 ms | 4.23 ms | 26.89 ms | 32.74 ms |
+| Parse | 10,000 operations per sample | 10 iterations | 3.45 ms | 3.40 ms | 3.20 ms | 7.60 ms | 493.05 µs | 3.61 ms | 5.52 ms |
+| Compile (cold) | 10,000 operations per sample | 0 iterations | 4.12 ms | 4.00 ms | 3.90 ms | 8.80 ms | 584.27 µs | 4.20 ms | 7.22 ms |
+| Compile (cached) | 10,000 operations per sample | 10 iterations | 127.00 µs | 100.00 µs | 0.00 µs | 300.00 µs | 90.39 µs | 300.00 µs | 300.00 µs |
+| Evaluate | 10,000 operations per sample | 10 iterations | 694.00 µs | 700.00 µs | 500.00 µs | 1.70 ms | 170.77 µs | 805.00 µs | 1.50 ms |
+| Directive | 1 operation per sample | 0 iterations | 18.94 ms | 17.60 ms | 15.00 ms | 30.90 ms | 3.77 ms | 26.60 ms | 29.80 ms |
 
 ![DSL benchmark stages](./assets/dsl.svg)
 
@@ -666,7 +666,7 @@ The cold benchmark measures component-scoped style processing under fresh or fir
 
 | Framework | Version | Operations | Warmup | Mean | Median | Min | Max | Std Dev | P95 | P99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Udodi | 1.1.0 | 1 scoped mount per sample | 0 iterations | 285.78 ms | 285.30 ms | 279.60 ms | 294.10 ms | 4.06 ms | 293.42 ms | 294.07 ms |
+| Udodi | 1.1.0 | 1 scoped mount per sample | 0 iterations | 291.81 ms | 289.70 ms | 282.90 ms | 303.10 ms | 5.22 ms | 301.06 ms | 302.78 ms |
 
 #### Warm
 
@@ -674,7 +674,7 @@ The warm benchmark measures the same general path after relevant initialization 
 
 | Framework | Version | Operations | Warmup | Mean | Median | Min | Max | Std Dev | P95 | P99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Udodi | 1.1.0 | 1 scoped mount per sample | 1 iterations | 9.23 ms | 8.65 ms | 4.10 ms | 16.60 ms | 3.93 ms | 15.76 ms | 16.40 ms |
+| Udodi | 1.1.0 | 1 scoped mount per sample | 1 iterations | 9.38 ms | 8.85 ms | 4.40 ms | 16.50 ms | 3.75 ms | 16.04 ms | 16.47 ms |
 
 ![CSS scope benchmark](./assets/css-scope.svg)
 
@@ -729,8 +729,6 @@ Factors include:
 - whether style work can be reused.
 
 These results should therefore be interpreted as measurements of the published benchmark workload rather than a universal cost for all CSS.
-
----
 
 ## Interpreting the numbers
 
@@ -966,4 +964,4 @@ That is the purpose of publishing the methodology and raw measurements.
 
 Results on this page were generated for **Udodi 1.1.0** unless otherwise noted in an individual result table.
 
-*Last generated: 2026-09-04 14:28:43.311 UTC*
+*Last generated: 2026-09-11 03:08:35.595 UTC*
