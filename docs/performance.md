@@ -369,7 +369,7 @@ The benchmark performs 10 warmup mount/unmount cycles, then records 50 measured 
 
 | Framework | Version | Operations | Warmup | Mean | Median | Min | Max | Std Dev | P95 | P99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Udodi | 1.1.0 | 1 mount of 1,000 rows | 10 iterations | 22.08 ms | 19.60 ms | 18.20 ms | 33.40 ms | 4.61 ms | 31.06 ms | 32.42 ms |
+| Udodi | 1.1.1 | 1 mount of 1,000 rows | 10 iterations | 22.08 ms | 19.60 ms | 18.20 ms | 33.40 ms | 4.61 ms | 31.06 ms | 32.42 ms |
 
 ![Mount benchmark](./assets/mount.svg)
 
@@ -394,7 +394,7 @@ The benchmark performs 10 warmup updates, then records 1,000 measured single-upd
 
 | Framework | Version | Operations | Warmup | Mean | Median | Min | Max | Std Dev | P95 | P99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Udodi | 1.1.0 | 1 update per sample | 10 iterations | 0.11 ms | 0.10 ms | 0.00 ms | 1.00 ms | 0.07 ms | 0.20 ms | 0.20 ms |
+| Udodi | 1.1.1 | 1 update per sample | 10 iterations | 0.11 ms | 0.10 ms | 0.00 ms | 1.00 ms | 0.07 ms | 0.20 ms | 0.20 ms |
 
 ![Single update benchmark](./assets/update-single.svg)
 
@@ -425,7 +425,7 @@ Warmup batches are excluded from the reported timing statistics. Therefore, the 
 
 | Framework | Version | Operations | Warmup | Mean | Median | Min | Max | Std Dev | P95 | P99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Udodi | 1.1.0 | 100 updates per sample | 10 iterations | 10.03 ms | 9.80 ms | 9.50 ms | 13.50 ms | 0.58 ms | 10.62 ms | 12.61 ms |
+| Udodi | 1.1.1 | 100 updates per sample | 10 iterations | 10.03 ms | 9.80 ms | 9.50 ms | 13.50 ms | 0.58 ms | 10.62 ms | 12.61 ms |
 
 ![Batched update benchmark](./assets/update-batched.svg)
 
@@ -666,7 +666,7 @@ The cold benchmark measures component-scoped style processing under fresh or fir
 
 | Framework | Version | Operations | Warmup | Mean | Median | Min | Max | Std Dev | P95 | P99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Udodi | 1.1.0 | 1 scoped mount per sample | 0 iterations | 291.81 ms | 289.70 ms | 282.90 ms | 303.10 ms | 5.22 ms | 301.06 ms | 302.78 ms |
+| Udodi | 1.1.1 | 1 scoped mount per sample | 0 iterations | 291.81 ms | 289.70 ms | 282.90 ms | 303.10 ms | 5.22 ms | 301.06 ms | 302.78 ms |
 
 #### Warm
 
@@ -674,7 +674,7 @@ The warm benchmark measures the same general path after relevant initialization 
 
 | Framework | Version | Operations | Warmup | Mean | Median | Min | Max | Std Dev | P95 | P99 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Udodi | 1.1.0 | 1 scoped mount per sample | 1 iterations | 9.38 ms | 8.85 ms | 4.40 ms | 16.50 ms | 3.75 ms | 16.04 ms | 16.47 ms |
+| Udodi | 1.1.1 | 1 scoped mount per sample | 1 iterations | 9.38 ms | 8.85 ms | 4.40 ms | 16.50 ms | 3.75 ms | 16.04 ms | 16.47 ms |
 
 ![CSS scope benchmark](./assets/css-scope.svg)
 
@@ -962,6 +962,6 @@ That is the purpose of publishing the methodology and raw measurements.
 
 ## Version
 
-Results on this page were generated for **Udodi 1.1.0** unless otherwise noted in an individual result table.
+Results on this page were generated for **Udodi 1.1.1** unless otherwise noted in an individual result table.
 
 *Last generated: 2026-09-11 03:08:35.595 UTC*

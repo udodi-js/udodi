@@ -172,7 +172,7 @@ Contributions, core reviews, and optimization feedback are highly welcome. Pleas
 Udodi is independent open-source software made possible by the generous backing of companies and individuals who believe in a lightweight, high-performance web ecosystem.
 
 <p align="center">
-  <img src="https://udodi.dev/sponsors/sponsors.svg" alt="Udodi Platinum and Gold Sponsors" width="100%" style="max-width: 900px;" />
+  <img src="https://udodi.dev/sponsors/sponsors.svg" alt="Udodi Platinum and Gold Sponsors" width="100%" />
 </p>
 
 ### Join Our Backers
