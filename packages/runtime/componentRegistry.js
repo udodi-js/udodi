@@ -58,7 +58,7 @@ export function getComponent(id) {
  */
 export function removeComponent(id) {
     if (id >= 0 && id < registry.length) {
-        registry[id] = null; // Mark as deleted without creating holes
+        registry[id] = null; // Mark as deleted without shifting stable IDs
     }
 }
 

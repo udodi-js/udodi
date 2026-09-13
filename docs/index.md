@@ -179,7 +179,7 @@ await processed.fetch({
 		<div class="section-heading">
 			<h2>Built for the parts that matter.</h2>
 			<p>
-				A small reactive core combined with the application primitives needed to
+				A small reactive core combined with the primitives needed to
 				build real interfaces.
 			</p>
 		</div>
@@ -385,6 +385,19 @@ await processed.fetch({
 			</div>
 		</div>
 	</section>
+	<!-- Sponsors: injected from /sponsors.json. Empty tiers are omitted; section stays hidden if none. -->
+	<section class="sponsors-section" data-sponsors-root hidden="hidden">
+		<div class="section-heading sponsors-heading">
+			<p class="eyebrow">Supported by the community</p>
+			<h2>Built with the support of others.</h2>
+			<p>Sponsors help keep Udodi independent and support continued work on its core, documentation, testing, performance, and developer experience.</p>
+		</div>
+		<div data-sponsors-mount></div>
+		<div class="sponsors-cta">
+			<p>Interested in supporting Udodi?</p>
+			<a href="https://github.com/sponsors/udodi-js">Become a sponsor →</a>
+		</div>
+	</section>
 </div>
 <footer class="site-footer">
 	<div class="site-footer-inner">
@@ -494,104 +507,325 @@ await processed.fetch({
 <script setup>
 import { onMounted, onUnmounted, nextTick } from 'vue';
 
-let observer = null;
 let resizeHandler = null;
 let scrollHandler = null;
+let sponsorResizeHandler = null;
 
 onMounted(async () => {
 	await nextTick();
 
+	// *********************** Capability carousel ***********************
 	const grid = document.querySelector('.capability-grid');
 	const allDots = document.querySelectorAll('.carousel-dots .dot');
 
-	if (!grid || allDots.length === 0) return;
+	if (grid && allDots.length > 0) {
+		const isTablet = () => window.innerWidth > 640 && window.innerWidth <= 960;
+		const isMobile = () => window.innerWidth <= 640;
 
-	const isTablet = () => window.innerWidth > 640 && window.innerWidth <= 960;
-	const isMobile = () => window.innerWidth <= 640;
-
-	const setActiveDot = (index) => {
-		allDots.forEach((d) => d.classList.remove('active'));
-
-		if (isTablet()) {
-			// Only 2 dots are visible
-			const visibleDots = Array.from(allDots).filter(
-				(dot) => window.getComputedStyle(dot).display !== 'none'
-			);
-
-			visibleDots[index]?.classList.add('active');
-
-		} else if (isMobile()) {
-			allDots[index]?.classList.add('active');
-		}
-	};
-
-	// More reliable way to decide which "page" we are on
-	const updateActiveFromScroll = () => {
-		if (window.innerWidth > 960) return;
-
-		const scrollLeft = grid.scrollLeft;
-		const cardWidth = grid.children[0]?.offsetWidth || 1;
-		const gap = 16; // same as your CSS gap
-
-		if (isMobile()) {
-			// 1 card per view
-			const index = Math.round(scrollLeft / (cardWidth + gap));
-			setActiveDot(Math.min(index, 2));
-
-		} else if (isTablet()) {
-			// 2 cards per view → 2 pages
-			// page 0: cards 0+1
-			// page 1: cards 1+2  (or cards 2 alone)
-			const page = scrollLeft > cardWidth * 0.6 ? 1 : 0;
-			setActiveDot(page);
-		}
-	}
-
-	allDots.forEach((dot) => {
-		dot.addEventListener('click', () => {
-			const index = Number(dot.dataset.index);
-			let targetIndex = index;
+		const setActiveDot = (index) => {
+			allDots.forEach((d) => d.classList.remove('active'));
 
 			if (isTablet()) {
-				// On tablet, dot 0 → card 0, dot 1 → card 1 (or 2)
-				targetIndex = index === 0 ? 0 : 1;
+				const visibleDots = Array.from(allDots).filter(
+					(dot) => window.getComputedStyle(dot).display !== 'none'
+				);
+
+				visibleDots[index]?.classList.add('active');
+				
+			} else if (isMobile()) {
+				allDots[index]?.classList.add('active');
 			}
+		};
 
-			const card = grid.children[targetIndex];
+		const updateActiveFromScroll = () => {
+			if (window.innerWidth > 960) return;
 
-			if (!card) return;
+			const scrollLeft = grid.scrollLeft;
+			const cardWidth = grid.children[0]?.offsetWidth || 1;
+			const gap = 16;
 
-			const scrollLeft = card.offsetLeft - grid.offsetLeft;
+			if (isMobile()) {
+				const index = Math.round(scrollLeft / (cardWidth + gap));
+				setActiveDot(Math.min(index, 2));
 
-			grid.scrollTo({
-				left: scrollLeft,
-				behavior: 'smooth'
+			} else if (isTablet()) {
+				const page = scrollLeft > cardWidth * 0.6 ? 1 : 0;
+				setActiveDot(page);
+			}
+		};
+
+		allDots.forEach((dot) => {
+			dot.addEventListener('click', () => {
+				const index = Number(dot.dataset.index);
+				let targetIndex = index;
+
+				if (isTablet()) {
+					targetIndex = index === 0 ? 0 : 1;
+				}
+
+				const card = grid.children[targetIndex];
+				if (!card) return;
+
+				const scrollLeft = card.offsetLeft - grid.offsetLeft;
+				grid.scrollTo({ left: scrollLeft, behavior: 'smooth' });
 			});
 		});
-	});
 
-	scrollHandler = () => {
-		// Use requestAnimationFrame for better performance
-		requestAnimationFrame(updateActiveFromScroll);
+		scrollHandler = () => {
+			requestAnimationFrame(updateActiveFromScroll);
+		};
+
+		grid.addEventListener('scroll', scrollHandler, { passive: true });
+
+		let resizeTimeout;
+
+		resizeHandler = () => {
+			clearTimeout(resizeTimeout);
+			resizeTimeout = setTimeout(updateActiveFromScroll, 80);
+		};
+
+		window.addEventListener('resize', resizeHandler);
+
+		updateActiveFromScroll();
+	}
+
+	// *************************** Sponsors (from /sponsors.json) ***************************
+	const SPONSORS_URL = '/sponsors.json';
+
+	const prefersReducedMotion = window.matchMedia(
+		'(prefers-reduced-motion: reduce)'
+	).matches;
+
+	const escapeHtml = (str) =>
+		String(str)
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+
+	const sponsorLink = (s) => {
+		const name = escapeHtml(s.name || 'Sponsor');
+		const url = escapeHtml(s.url || '#');
+		const logo = escapeHtml(s.logo || '');
+
+		return (
+			'<a href="' + url + '" target="_blank" rel="noopener noreferrer">' +
+			'<img src="' + logo + '" alt="' + name + ' sponsor" loading="lazy" />' +
+			'</a>'
+		);
 	};
 
-	grid.addEventListener('scroll', scrollHandler, { passive: true });
+	const renderFeaturedTier = (tier, list) => {
+		if (!list || list.length === 0) return '';
 
-	let resizeTimeout;
+		const logos = list.map(sponsorLink).join('');
+		const label = tier.charAt(0).toUpperCase() + tier.slice(1);
 
-	resizeHandler = () => {
-		clearTimeout(resizeTimeout);
-
-		resizeTimeout = setTimeout(() => {
-			updateActiveFromScroll();
-		}, 80);
+		return (
+			'<div class="sponsor-tier sponsor-tier-' + tier + '">' +
+			'<h3>' + label + '</h3>' +
+			'<div class="sponsor-featured">' + logos + '</div>' +
+			'</div>'
+		);
 	};
 
-	window.addEventListener('resize', resizeHandler);
+	const renderWall = (silver, bronze) => {
+		const hasSilver = silver && silver.length > 0;
+		const hasBronze = bronze && bronze.length > 0;
 
-	// Initial run
-	updateActiveFromScroll();
-})
+		if (!hasSilver && !hasBronze) return '';
+
+		let html = '<div class="sponsor-wall">';
+
+		if (hasSilver) {
+			html +=
+				'<div class="sponsor-row-container">' +
+				'<div class="sponsor-row sponsor-row-silver">' +
+				silver.map(sponsorLink).join('') +
+				'</div></div>';
+		}
+
+		if (hasBronze) {
+			html +=
+				'<div class="sponsor-row-container">' +
+				'<div class="sponsor-row sponsor-row-bronze">' +
+				bronze.map(sponsorLink).join('') +
+				'</div></div>';
+		}
+
+		html += '</div>';
+		return html;
+	};
+
+	const waitForImages = (row) => {
+		const images = Array.from(row.querySelectorAll('img'));
+		if (images.length === 0) return Promise.resolve();
+
+		return Promise.all(
+			images.map((img) => {
+				if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+
+				return new Promise((resolve) => {
+					const done = () => {
+						img.removeEventListener('load', done);
+						img.removeEventListener('error', done);
+						resolve();
+					};
+
+					img.addEventListener('load', done);
+					img.addEventListener('error', done);
+				});
+			})
+		);
+	};
+
+	const checkOverflow = (row) => {
+		const container = row.parentElement;
+		if (!container || !row) return;
+
+		if (prefersReducedMotion) {
+			row.classList.remove('is-overflowing');
+			return;
+		}
+
+		row.classList.remove('is-overflowing');
+
+		const clones = row.querySelectorAll('a[aria-hidden="true"]');
+		clones.forEach((el) => {
+			el.style.display = 'inline-flex';
+		});
+
+		row.style.width = 'max-content';
+		row.style.maxWidth = 'none';
+		row.style.minWidth = '0';
+		row.style.justifyContent = 'flex-start';
+		row.style.padding = '0';
+		void row.offsetWidth;
+
+		const contentWidth = row.scrollWidth / 2;
+		const available = container.clientWidth;
+		const needsScroll = contentWidth > available + 1;
+
+		row.style.width = '';
+		row.style.maxWidth = '';
+		row.style.minWidth = '';
+		row.style.justifyContent = '';
+		row.style.padding = '';
+
+		clones.forEach((el) => {
+			el.style.display = '';
+		});
+
+		if (needsScroll) {
+			row.classList.add('is-overflowing');
+		}
+	};
+
+	const setupSponsorRow = async (row) => {
+		if (!row || row.children.length === 0) return;
+
+		if (row.dataset.duplicated !== 'true') {
+			const originals = Array.from(row.children);
+
+			originals.forEach((el) => {
+				const clone = el.cloneNode(true);
+				clone.setAttribute('aria-hidden', 'true');
+				clone.tabIndex = -1;
+				row.appendChild(clone);
+			});
+
+			row.dataset.duplicated = 'true';
+		}
+
+		await waitForImages(row);
+		checkOverflow(row);
+		requestAnimationFrame(() => checkOverflow(row));
+	};
+
+	const initSponsorMarquee = async () => {
+		const silverRow = document.querySelector('.sponsor-row-silver');
+		const bronzeRow = document.querySelector('.sponsor-row-bronze');
+
+		await Promise.all([
+			setupSponsorRow(silverRow),
+			setupSponsorRow(bronzeRow),
+		]);
+
+		const recheck = () => {
+			if (silverRow) checkOverflow(silverRow);
+			if (bronzeRow) checkOverflow(bronzeRow);
+		};
+
+		setTimeout(recheck, 300);
+		setTimeout(recheck, 1000);
+
+		let sponsorResizeTimeout;
+
+		sponsorResizeHandler = () => {
+			clearTimeout(sponsorResizeTimeout);
+			sponsorResizeTimeout = setTimeout(recheck, 80);
+		};
+
+		window.addEventListener('resize', sponsorResizeHandler);
+
+		if (typeof ResizeObserver !== 'undefined') {
+			const ro = new ResizeObserver(() => {
+				clearTimeout(sponsorResizeTimeout);
+				sponsorResizeTimeout = setTimeout(recheck, 80);
+			});
+
+			if (silverRow && silverRow.parentElement) ro.observe(silverRow.parentElement);
+			if (bronzeRow && bronzeRow.parentElement) ro.observe(bronzeRow.parentElement);
+			
+			window.__sponsorRowRO = ro;
+		}
+	};
+
+	const loadSponsors = async () => {
+		const root = document.querySelector('[data-sponsors-root]');
+		const mount = document.querySelector('[data-sponsors-mount]');
+
+		if (!root || !mount) return;
+
+		let data;
+
+		try {
+			const res = await fetch(SPONSORS_URL, { credentials: 'same-origin' });
+			if (!res.ok) throw new Error('HTTP ' + res.status);
+			data = await res.json();
+
+		} catch (err) {
+			console.warn('[sponsors] failed to load', err);
+			return;
+		}
+
+		const platinum = Array.isArray(data.platinum) ? data.platinum : [];
+		const gold = Array.isArray(data.gold) ? data.gold : [];
+		const silver = Array.isArray(data.silver) ? data.silver : [];
+		const bronze = Array.isArray(data.bronze) ? data.bronze : [];
+
+		const hasAny =
+			platinum.length + gold.length + silver.length + bronze.length > 0;
+
+		if (!hasAny) {
+			root.hidden = true;
+			return;
+		}
+
+		mount.innerHTML = [
+			renderFeaturedTier('platinum', platinum),
+			renderFeaturedTier('gold', gold),
+			renderWall(silver, bronze),
+		].filter(Boolean).join('');
+
+		root.hidden = false;
+		await nextTick();
+		await initSponsorMarquee();
+	};
+
+	await loadSponsors();
+});
 
 onUnmounted(() => {
 	if (scrollHandler) {
@@ -601,6 +835,15 @@ onUnmounted(() => {
 
 	if (resizeHandler) {
 		window.removeEventListener('resize', resizeHandler);
+	}
+
+	if (sponsorResizeHandler) {
+		window.removeEventListener('resize', sponsorResizeHandler);
+	}
+
+	if (window.__sponsorRowRO) {
+		window.__sponsorRowRO.disconnect();
+		delete window.__sponsorRowRO;
 	}
 });
 </script>
