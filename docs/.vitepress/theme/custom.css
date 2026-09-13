@@ -32,18 +32,10 @@
 		#93d6c0 30%,
 		var(--vp-c-brand-1) 70%
 	);
+	background-clip: text;
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 }
-
-/* Scale the source image itself to fill 100% of the space */
-/*.VPHero .image-src {
-	width: 100% !important;
-	height: 100% !important;
-	max-width: 100% !important;
-	max-height: 100% !important;
-	object-fit: contain !important;
-}*/
 
 @media (min-width: 60rem) {
 	.VPHero .image-src {
@@ -602,6 +594,377 @@
 	color: var(--vp-c-brand-1);
 }
 
+/* ========== Sponsors ========== */
+
+.sponsors-section {
+	margin-top: 112px !important;
+}
+
+.sponsors-heading {
+	margin-bottom: 64px;
+	text-align: center;
+}
+
+.sponsors-heading .eyebrow {
+	margin-bottom: 12px;
+	color: var(--vp-c-brand-1);
+}
+
+.sponsor-tier {
+	margin-bottom: 56px;
+}
+
+.sponsor-tier h3 {
+	margin: 0 0 28px;
+	color: var(--vp-c-text-2);
+	font-size: 0.8rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-align: center;
+	text-transform: uppercase;
+}
+
+.sponsor-featured {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
+	min-height: 40px;
+}
+
+/* Each tier controls its own gap */
+.sponsor-tier-platinum .sponsor-featured {
+	gap: 50px 45px;
+}
+
+.sponsor-tier-gold .sponsor-featured {
+	gap: 35px 30px;
+}
+
+.sponsor-featured a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition: transform 0.2s ease;
+}
+
+.sponsor-featured a:hover {
+	transform: scale(1.02);
+}
+
+.sponsor-featured img {
+	display: block;
+	width: auto;
+	height: 65px;
+	max-width: 275px;
+	object-fit: contain;
+	filter: grayscale(100%);
+	opacity: 0.85;
+	transition:
+		filter 0.25s ease,
+		opacity 0.25s ease;
+}
+
+.sponsor-featured a:hover img {
+	filter: grayscale(0%);
+	opacity: 1;
+}
+
+.sponsor-tier-platinum .sponsor-featured img {
+	height: 90px;
+	max-width: 350px;
+	margin: 0;
+}
+
+.sponsor-tier-gold .sponsor-featured img {
+	height: 65px;
+	max-width: 300px;
+	margin: 0;
+}
+
+/* ========== Silver / Bronze sponsor wall ========== */
+
+.sponsor-wall {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	margin-top: 24px;
+}
+
+.sponsor-row-container {
+	position: relative;
+	/* Always clip — logos must never escape the container */
+	overflow: hidden;
+	width: 100%;
+
+	-webkit-mask-image: linear-gradient(
+		to right,
+		transparent 0,
+		#000 72px,
+		#000 calc(100% - 72px),
+		transparent 100%
+	);
+	mask-image: linear-gradient(
+		to right,
+		transparent 0,
+		#000 72px,
+		#000 calc(100% - 72px),
+		transparent 100%
+	);
+}
+
+/* No edge fades when the row is static / centered (keep overflow:hidden) */
+.sponsor-row-container:has(.sponsor-row:not(.is-overflowing)) {
+	-webkit-mask-image: none;
+	mask-image: none;
+}
+
+.sponsor-row {
+	display: flex;
+	align-items: center;
+	justify-content: center; /* center when few logos */
+	width: 100%;
+	min-width: 0;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+/* Scrolling mode: full marquee track (wider than container) */
+.sponsor-row.is-overflowing {
+	justify-content: flex-start;
+	width: max-content;
+	min-width: 100%;
+	max-width: none;
+	padding: 12px 72px;
+}
+
+/* Hide the duplicated logo set when not scrolling */
+.sponsor-row:not(.is-overflowing) a[aria-hidden="true"] {
+	display: none;
+}
+
+/* Each tier controls its own gap */
+.sponsor-row-silver {
+	gap: 0px 20px;
+}
+
+.sponsor-row-bronze {
+	gap: 0px 15px;
+}
+
+.sponsor-row a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+}
+
+.sponsor-row img {
+	display: block;
+	width: auto;
+	max-width: 225px;
+	margin: 0;
+	object-fit: contain;
+	filter: grayscale(100%);
+	opacity: 0.72;
+	transition:
+		filter 0.25s ease,
+		opacity 0.25s ease;
+}
+
+.sponsor-row a:hover img {
+	margin: 0;
+	filter: grayscale(0%);
+	opacity: 1;
+}
+
+.sponsor-row-silver img {
+	height: 55px;
+	margin: 0;
+}
+
+.sponsor-row-bronze img {
+	height: 45px;
+	margin: 0;
+	opacity: 0.62;
+}
+
+.sponsor-row-bronze a:hover img {
+	opacity: 1;
+}
+
+/* Infinite marquee.
+ * The duplicated sponsor set should occupy exactly one animation cycle.
+ */
+.sponsor-row-silver.is-overflowing {
+	animation: sponsorScrollLeft 32s linear infinite;
+}
+
+.sponsor-row-bronze.is-overflowing {
+	animation: sponsorScrollRight 36s linear infinite;
+}
+
+.sponsor-wall:hover .sponsor-row {
+	animation-play-state: paused;
+}
+
+@keyframes sponsorScrollLeft {
+	from {
+		transform: translateX(0);
+	}
+
+	to {
+		transform: translateX(-50%);
+	}
+}
+
+@keyframes sponsorScrollRight {
+	from {
+		transform: translateX(-50%);
+	}
+
+	to {
+		transform: translateX(0);
+	}
+}
+
+/* ========== Sponsor CTA ========== */
+
+.sponsors-cta {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 16px;
+	margin-top: 64px;
+	text-align: center;
+}
+
+.sponsors-cta p {
+	margin: 0;
+	color: var(--vp-c-text-2);
+}
+
+.sponsors-cta a {
+	color: var(--vp-c-brand-1);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.sponsors-cta a:hover {
+	color: var(--vp-c-brand-2);
+}
+
+/* ========== Sponsors responsive ========== */
+
+@media (max-width: 640px) {
+	.sponsors-section {
+		margin-top: 80px !important;
+	}
+
+	.sponsors-heading {
+		margin-bottom: 48px;
+	}
+
+	.sponsor-tier {
+		margin-bottom: 44px;
+	}
+
+	.sponsor-tier-platinum .sponsor-featured {
+		gap: 25px 20px;
+	}
+
+	.sponsor-tier-gold .sponsor-featured {
+		gap: 20px 15px;
+	}
+
+	.sponsor-featured img {
+		height: 55px;
+		max-width: 225px;
+	}
+
+	.sponsor-tier-platinum .sponsor-featured img {
+		height: 70px;
+		margin: 0;
+	}
+
+	.sponsor-tier-gold .sponsor-featured img {
+		height: 55px;
+	}
+
+	/* Keep marquee scrolling on mobile */
+	.sponsor-wall {
+		gap: 12px;
+	}
+
+	.sponsor-row-container {
+		overflow: hidden;
+		width: 100%;
+		-webkit-mask-image: linear-gradient(
+			to right,
+			transparent 0,
+			#000 48px,
+			#000 calc(100% - 48px),
+			transparent 100%
+		);
+		mask-image: linear-gradient(
+			to right,
+			transparent 0,
+			#000 48px,
+			#000 calc(100% - 48px),
+			transparent 100%
+		);
+	}
+
+	.sponsor-row-container:has(.sponsor-row:not(.is-overflowing)) {
+		-webkit-mask-image: none;
+		mask-image: none;
+		/* keep overflow:hidden so logos never escape */
+	}
+
+	.sponsor-row {
+		flex-wrap: nowrap;
+		justify-content: center;
+		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+	}
+
+	.sponsor-row.is-overflowing {
+		justify-content: flex-start;
+		width: max-content;
+		min-width: 100%;
+		max-width: none;
+		padding: 8px 48px;
+	}
+
+	.sponsor-row-silver {
+		gap: 0px 12px;
+	}
+
+	.sponsor-row-bronze {
+		gap: 0px 10px;
+	}
+
+	/* Animation stays active on mobile (no animation: none) */
+
+	.sponsor-row img {
+		max-width: 175px;
+	}
+
+	.sponsor-row-silver img {
+		height: 50px;
+	}
+
+	.sponsor-row-bronze img {
+		height: 40px;
+	}
+
+	.sponsors-cta {
+		flex-direction: column;
+		margin-top: 48px;
+	}
+}
+
 /* ========== Footer CTA ========== */
 
 .footer-cta {
@@ -1071,7 +1434,20 @@
 }
 
 /* ========== Professional home footer ========== */
+
 @media (prefers-reduced-motion: reduce) {
+	.sponsor-row-silver.is-overflowing,
+	.sponsor-row-bronze.is-overflowing {
+		animation: none;
+	}
+
+	.sponsor-featured a,
+	.sponsor-row a,
+	.sponsor-featured img,
+	.sponsor-row img {
+		transition: none;
+	}
+
 	.footer-sponsor,
 	.footer-sponsor svg {
 		transition: none;
