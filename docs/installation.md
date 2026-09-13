@@ -71,7 +71,7 @@ Include Udodi **before** your application script:
   <div id="app"></div>
 
   <!-- Pin a version in production -->
-  <script src="https://cdn.jsdelivr.net/npm/udodi@1.1.0/dist/index.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/udodi@1.1.1/dist/index.global.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
@@ -89,7 +89,7 @@ Include Udodi **before** your application script:
   <div id="app"></div>
 
   <!-- Pin a version in production -->
-  <script src="https://unpkg.com/udodi@1.1.0/dist/index.global.js"></script>
+  <script src="https://unpkg.com/udodi@1.1.1/dist/index.global.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
@@ -123,7 +123,7 @@ You can specify an exact version in `package.json`:
 ```json
 {
   "dependencies": {
-    "udodi": "1.1.0"
+    "udodi": "1.1.1"
   }
 }
 ```
@@ -135,9 +135,9 @@ Commit your lockfile as well to ensure reproducible installations.
 Pin the CDN URL to a specific version:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/udodi@1.1.0/dist/index.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/udodi@1.1.1/dist/index.global.js"></script>
 ```
 
-Replace `1.1.0` with the version you want to use. See [npm](https://www.npmjs.com/package/udodi) for published releases.
+Replace `1.1.1` with the version you want to use. See [npm](https://www.npmjs.com/package/udodi) for published releases.
 
 Avoid unversioned or `@latest` CDN URLs in production because they automatically change when new versions are published.
