@@ -6,8 +6,6 @@ Thank you — every contribution makes a real difference.
 
 **[Become a sponsor →](https://github.com/sponsors/udodi-js)**
 
----
-
 ## Sponsors
 
 <p align="center">
