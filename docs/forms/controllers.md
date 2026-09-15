@@ -13,8 +13,6 @@ The controller is the public API for:
 - submit state
 - validation mode
 
----
-
 ## Accessing the Controller
 
 A form registered as:
@@ -115,8 +113,6 @@ methods: {
 }
 ```
 
----
-
 ## Controller Shape
 
 A controller exposes reactive status properties, a reactive error map, and imperative field/form methods:
@@ -174,8 +170,6 @@ The available modes are:
 - `"parallel"`
 
 See [Sequential and Parallel Validation](./sequential-parallel.md).
-
----
 
 ## Status Properties
 
@@ -316,9 +310,7 @@ The value comes from `@form`:
 </form>
 ```
 
-The mode affects how different fields are coordinated during full-form validation.
-
-It does not change the order of validators declared on a single field.
+The mode affects how different fields are coordinated during full-form validation. It does not change the order of validators declared on a single field.
 
 See [Sequential and Parallel Validation](./sequential-parallel.md).
 
@@ -377,8 +369,6 @@ Direct controller properties can be consumed directly:
 ```
 
 For derived error state or more complex presentation logic, use a computed value.
-
----
 
 ## Methods
 
@@ -469,8 +459,6 @@ This is useful when a successful submission should immediately leave the form in
 
 See [Form Submission](./submission.md).
 
----
-
 ### `resetField(name, options?)`
 
 Resets one field or all controls belonging to a field group.
@@ -531,8 +519,6 @@ the current DOM value is retained and becomes the field's new baseline.
 Returns `true` when the field exists.
 
 Returns `false` when no registered field matches the supplied name.
-
----
 
 ### `getField(name)`
 
@@ -646,8 +632,6 @@ Then:
 
 Trying to use `getField()` in a directive expression result to invalid directive DSL.
 
----
-
 ### `getValue(name)`
 
 Returns the current value of a registered field.
@@ -675,8 +659,6 @@ For example:
 ```js
 const plan = controller.getValue("plan");
 ```
-
----
 
 ### `setValue(name, value)`
 
@@ -782,8 +764,6 @@ Returns `true` if the error changed.
 
 Returns `false` if nothing changed.
 
----
-
 ### `resetError(name)`
 
 Clears a field error without running validators.
@@ -811,8 +791,6 @@ If the field name does not exist in `errors`, or the error is already empty, not
 Returns `true` if the error changed.
 
 Otherwise `false`.
-
----
 
 ## Field Groups
 
@@ -855,8 +833,6 @@ The controller maintains the individual registered fields while exposing name-ba
 When the final registered control for a name is removed, the corresponding `errors[name]` entry is removed as well.
 
 See [Working with Fields](./fields.md) for complete group semantics.
-
----
 
 ## Reactivity
 
@@ -917,8 +893,6 @@ computed: {
 
 The controller therefore acts as the reactive boundary between the form runtime and application UI.
 
----
-
 ## Server-Side Errors
 
 Client-side validation cannot guarantee that a submission will be accepted by the server.
@@ -968,8 +942,6 @@ This makes `setError()` appropriate for errors originating outside the client-si
 - server-side validation
 - optimistic submission failures
 
----
-
 ## Controller Lifecycle
 
 The controller is created and destroyed with the form's runtime registration.
@@ -987,8 +959,6 @@ The controller is created and destroyed with the form's runtime registration.
 | Form/component cleanup | Controller is removed from `ud.forms` |
 
 Application code does not need to manually unregister the controller.
-
----
 
 ## Example
 
@@ -1117,8 +1087,6 @@ const AccountForm = createComponent({
 render(AccountForm(), "#app");
 ```
 
----
-
 ## Common Patterns
 
 ### Disable submission while invalid or submitting
@@ -1208,8 +1176,6 @@ controller.setValue(
 );
 ```
 
----
-
 ## API Summary
 
 | API | Purpose |
@@ -1229,18 +1195,3 @@ controller.setValue(
 | **`setValue(name, value)`** | Programmatically update field value |
 | **`setError(name, message)`** | Set a manual/server error |
 | **`resetError(name)`** | Clear a manual/server error |
-
----
-
-## Next Steps
-
-| Goal | Guide |
-| --- | --- |
-| Register a form and choose its validation mode | [Creating a Form](./creating.md) |
-| Understand field state and field groups | [Working with Fields](./fields.md) |
-| Define validators and validation triggers | [Validation](./validation.md) |
-| Handle form submission | [Form Submission](./submission.md) |
-| Choose sequential or parallel validation | [Sequential and Parallel Validation](./sequential-parallel.md) |
-| Handle asynchronous validators and cancellation | [Async Validation](./async.md) |
-
-For the higher-level form architecture, see [Forms Overview](./overview.md).

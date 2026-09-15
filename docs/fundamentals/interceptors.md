@@ -31,7 +31,7 @@ const Counter = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <main>
       <p>Count: <span @text="count"></span></p>
       <button @on="click=decrement">-</button>
@@ -44,9 +44,7 @@ render(Counter(), "#app");
 
 When `decrement()` assigns `-1` to `count`, the interceptor changes the value to `0` before it is committed.
 
-Interceptors are therefore useful for **normalization, clamping, validation, and enforcing the shape of state writes**.
-
----
+Interceptors are therefore useful for **normalization**, **clamping**, **validation**, and **enforcing the shape of state writes**.
 
 ## Defining Interceptors
 
@@ -91,8 +89,6 @@ interceptors: {
 
 However, prefer keeping interceptors focused on transforming or validating the incoming value rather than performing unrelated side effects.
 
----
-
 ## Transforming a Value
 
 Return a value to replace the original assignment:
@@ -127,20 +123,18 @@ The interceptor therefore sits between the attempted assignment and the committe
 
 ```text
 incoming value
-      │
-      ▼
-  interceptor
-      │
-      ▼
+     │
+     ▼
+interceptor
+     │
+     ▼
 transformed value
-      │
-      ▼
- reactive state
+     │
+     ▼
+reactive state
 ```
 
 The transformed value is what the reactive signal and backing state object receive.
-
----
 
 ## Cancelling a Write
 
@@ -181,8 +175,6 @@ There is no separate `reject()` or `cancel()` API.
 **Returning `undefined` is the cancellation mechanism.**
 
 The reactive `commit()` function checks the interceptor result and immediately returns without updating the signal or backing state when the result is `undefined`.
-
----
 
 ## Transform vs Cancel
 
@@ -228,8 +220,6 @@ this.count = "abc"; // cancelled
 
 Cancellation leaves the existing state value untouched.
 
----
-
 ## When Interceptors Run
 
 Interceptors execute as part of the reactive state's root-property write path.
@@ -262,10 +252,10 @@ interceptor(value)
    cancel       update signal
                       │
                       ▼
-                update state
+                 update state
                       │
                       ▼
-                notify dependents
+              notify dependents
 ```
 
 The reactive implementation invokes `commit()` for properties that have an existing reactive signal. The signal is then updated with the interceptor's returned value, and the backing target is synchronized with that value.
@@ -290,8 +280,6 @@ this.user = {
 and root-level writes produced by two-way bindings such as `@bind`.
 
 Because those assignments ultimately pass through the component's reactive state proxy, the appropriate interceptor is applied.
-
----
 
 ## When Interceptors Do Not Run
 
@@ -345,8 +333,6 @@ user interceptor
 
 This distinction is important when an interceptor is responsible for normalization or validation.
 
----
-
 ## Initial State Is Not Intercepted
 
 Interceptors do not process the initial result of `state()` field-by-field.
@@ -398,8 +384,6 @@ state() {
 ```
 
 Use the interceptor to enforce the invariant on later writes.
-
----
 
 ## Interceptors Apply to Root State Keys
 
@@ -466,8 +450,6 @@ interceptors: {
 
 `enabled` is assigned without an interceptor.
 
----
-
 ## Unknown Interceptor Keys
 
 An interceptor configuration does not create a new state property.
@@ -503,8 +485,6 @@ and there is no reactive signal for it.
 The reactive store only invokes an interceptor when the assigned property already has a reactive signal.
 
 This means interceptors should be declared for keys that exist in the component's root state.
-
----
 
 ## Root Replacement and Nested Data
 
@@ -578,8 +558,6 @@ Use root replacement when the value needs to pass through normalization or valid
 
 See [State](./state.md) and [Using `touch()`](../reactivity/touch.md).
 
----
-
 ## Interceptors and Reactivity
 
 After an interceptor returns a value, the reactive signal receives that value:
@@ -632,8 +610,6 @@ This is an important distinction:
 
 If the transformed result is `Object.is()`-equal to the current value, the signal does not notify its subscribers.
 
----
-
 ## Interceptors and Watchers
 
 Interceptors operate **before** the state value is committed.
@@ -654,11 +630,7 @@ watch: {
     deps: ["count"],
 
     handler(newValues, oldValues) {
-      console.log(
-        oldValues.count,
-        "→",
-        newValues.count,
-      );
+      console.log(oldValues.count, "→", newValues.count);
     },
   },
 },
@@ -676,25 +648,23 @@ The watcher observes the resulting state transition, not the raw attempted value
 
 ```text
 this.count = -5
-      │
-      ▼
+    │
+    ▼
 interceptor
-      │
-      ▼
-      0
-      │
-      ▼
+    │
+    ▼
+    0
+    │
+    ▼
 reactive signal
-      │
-      ▼
+    │
+    ▼
 watcher
 ```
 
 If the current value was already `0`, the interceptor still runs, but the watcher does not run because the signal does not detect a change.
 
 See [Watchers](./watch.md).
-
----
 
 ## Interceptors and Computed Values
 
@@ -738,8 +708,6 @@ It does not see the raw `-5` assignment.
 The interceptor therefore establishes the value that becomes part of the reactive state graph.
 
 See [Computed Values](./computed.md).
-
----
 
 ## Interceptors and Methods
 
@@ -785,8 +753,6 @@ methods: {
 
 Both methods use the same state-write rule.
 
----
-
 ## Practical Patterns
 
 ### Clamp a Number
@@ -807,8 +773,6 @@ interceptors: {
 
 This accepts numeric input, rejects invalid numbers, and keeps valid values within the allowed range.
 
----
-
 ### Normalize a String
 
 ```js
@@ -826,8 +790,6 @@ this.email;
 // "user@example.com"
 ```
 
----
-
 ### Allow-List Values
 
 ```js
@@ -843,8 +805,6 @@ interceptors: {
 ```
 
 Invalid values are cancelled rather than committed.
-
----
 
 ### Normalize Digits
 
@@ -864,8 +824,6 @@ this.zip = "12-345";
 this.zip;
 // "12345"
 ```
-
----
 
 ### Normalize a Root Object
 
@@ -889,8 +847,6 @@ interceptors: {
 ```
 
 This is preferable to trying to intercept individual nested properties because the interceptor receives the complete root value being assigned.
-
----
 
 ## Avoid Side Effects in Interceptors
 
@@ -944,8 +900,6 @@ Method      → perform explicit behavior
 ```
 
 See [Watchers](./watch.md) and [Methods](./methods.md).
-
----
 
 ## Interceptors vs Watchers vs Methods
 
@@ -1010,8 +964,6 @@ interceptor
        watcher
 ```
 
----
-
 ## Interceptors and `touch()`
 
 `touch()` and interceptors serve fundamentally different purposes.
@@ -1057,8 +1009,6 @@ touch(this, "user");
 
 when the nested mutation is already trusted and only notification is needed.
 
----
-
 ## Binding and Interceptors
 
 Two-way bindings that assign to a root state property use the same reactive write path as ordinary assignments.
@@ -1100,8 +1050,6 @@ SAVE20
 
 The interceptor remains the single place responsible for the state invariant rather than requiring the binding itself to perform normalization.
 
----
-
 ## Constraints
 
 | Constraint               | Behavior                                                                 |
@@ -1118,8 +1066,6 @@ The interceptor remains the single place responsible for the state invariant rat
 | Computed values          | See the intercepted/committed state                                      |
 | Watchers                 | React to the resulting committed state change                            |
 | Methods                  | Root assignments made by methods automatically pass through interceptors |
-
----
 
 ## Minimal Example
 
@@ -1141,7 +1087,7 @@ const CouponField = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <label>
       Coupon
       <input @bind="coupon" />
@@ -1176,15 +1122,3 @@ The interceptor transforms it:
 ```
 
 and `"SAVE20"` becomes the committed reactive state value.
-
----
-
-## Next Steps
-
-* [Components](./components.md) — the component model and root-level state
-* [State](./state.md) — reactive state and shallow updates
-* [Watchers](./watch.md) — side effects after state changes
-* [Methods](./methods.md) — explicit actions that perform state writes
-* [Computed Values](./computed.md) — derived values from reactive state
-* [Using `touch()`](../reactivity/touch.md) — notifying after nested mutations
-* [Reactivity Overview](../reactivity/overview.md) — signals, effects, and the reactive write path

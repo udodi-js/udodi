@@ -23,9 +23,7 @@ The runtime does **not** determine what your dialog means or how it should be pr
 * Sufficient color contrast
 * Any additional ARIA required by the specific interface
 
-For configuration, see [Overlay Options](./options.md). For top-most behavior and nested overlays, see [Overlay Stacking](./stacking.md).
-
----
+For configuration, see [Overlay Options](./options.md). For top-most behavior and nested overlays, see [Overlay Stacking](./stacking.md)
 
 ## Dialog Semantics
 
@@ -44,8 +42,8 @@ Each overlay creates a dialog layer with the following structural attributes:
 </div>
 ```
 
-| Attribute               | Purpose                                                                                                             |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Attribute               | Purpose                               |
+| ----------------------- | ------------------------------------- |
 | **`role="dialog"`**     | Identifies the overlay as a dialog to assistive technologies.                                                       |
 | **`aria-modal="true"`** | Communicates that the dialog is modal and that content outside it is not part of the current interaction.           |
 | **`tabindex="-1"`**     | Allows the runtime to focus the dialog layer programmatically without adding it to the normal sequential Tab order. |
@@ -70,7 +68,7 @@ const ConfirmDialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div
       class="dialog"
       aria-labelledby="confirm-title"
@@ -97,8 +95,6 @@ const ConfirmDialog = createComponent({
 ```
 
 Use the labeling mechanism appropriate to the structure of your dialog and application. A visible heading is generally preferable when the title is part of the UI itself.
-
----
 
 ## Initial Focus
 
@@ -151,8 +147,6 @@ const FormDialog = createComponent({
 This leaves the runtime's normal layer focus behavior intact while allowing the application to establish a more specific starting point.
 
 Use targeted initial focus when it improves the interaction. The layer itself is a valid focus target and provides a useful default for dialogs without an obvious first control.
-
----
 
 ## Focus Trapping
 
@@ -207,19 +201,17 @@ B owns the active focus trap.
 A may retain its own trap state, but it does not control keyboard focus while B is top-most.
 
 ```text
-Overlay A  → trap inactive
+Overlay A  →  trap inactive
 
-Overlay B  → trap active
-                ▲
-                │
+Overlay B  →  trap active
+                 ▲
+                 │
             Tab / Shift+Tab
 ```
 
 When B closes, A becomes top-most and its focus behavior resumes.
 
 This prevents multiple nested overlays from competing for keyboard focus.
-
----
 
 ## Disabling the Focus Trap
 
@@ -245,8 +237,6 @@ Disable the trap only when the interaction intentionally requires behavior diffe
 
 See [Overlay Options](./options.md).
 
----
-
 ## Focusable Elements
 
 The focus trap discovers focusable elements inside the dialog layer.
@@ -255,15 +245,10 @@ The runtime considers elements matching these categories:
 
 ```css
 a[href]
-
 button:not([disabled])
-
 input:not([disabled]):not([type='hidden'])
-
 select:not([disabled])
-
 textarea:not([disabled])
-
 [tabindex]:not([tabindex='-1'])
 ```
 
@@ -302,8 +287,6 @@ Prefer:
 over a non-interactive element that only looks like a button.
 
 If a custom control is necessary, ensure that it participates correctly in keyboard interaction and the Tab order.
-
----
 
 ## Focus Restoration
 
@@ -413,8 +396,6 @@ Page
 
 This is what makes focus restoration compose correctly with nested overlays.
 
----
-
 ## Escape and Keyboard Dismissal
 
 Escape dismissal is controlled by `closeOnEscape`, which defaults to enabled.
@@ -438,7 +419,7 @@ For example:
 
 ```text
 Overlay A
-Overlay B  ← top-most
+Overlay B  ←  top-most
 
 Escape
   │
@@ -468,8 +449,6 @@ This removes the two automatic dismissal paths while leaving the application's o
 Do not remove the explicit close or cancel action merely because Escape is enabled. Escape is a convenience mechanism, not a replacement for an accessible in-dialog dismissal control.
 
 See [Closing Overlays](./closing.md) and [Overlay Stacking](./stacking.md).
-
----
 
 ## Backdrop and Pointer Interaction
 
@@ -514,8 +493,6 @@ Provide an explicit, focusable Cancel or Close control inside the dialog:
 
 Keyboard and assistive-technology users should not have to depend on pointer-specific backdrop behavior.
 
----
-
 ## Accessible Names and Descriptions
 
 The runtime provides the dialog role, but application content should communicate what the dialog is about.
@@ -529,7 +506,7 @@ A useful dialog normally has:
 For example:
 
 ```js
-template: () => html`
+template: html`
   <div
     class="dialog"
     aria-labelledby="dialog-title"
@@ -558,8 +535,6 @@ The runtime does not automatically infer application-specific labels or descript
 
 The dialog should remain understandable even when the surrounding page is visually obscured by the overlay.
 
----
-
 ## Application Responsibilities
 
 Udodi handles the structural mechanics, but accessibility is shared between the runtime and the application.
@@ -579,8 +554,6 @@ Udodi handles the structural mechanics, but accessibility is shared between the 
 | Scroll locking                       | Ensure content remains usable at the intended viewport sizes |
 
 The runtime can establish a safe focus and keyboard foundation, but it cannot determine whether a particular dialog's content is meaningful or understandable.
-
----
 
 ## Pattern: Accessible Confirmation Dialog
 
@@ -602,7 +575,7 @@ const ConfirmDialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div
       class="dialog"
       aria-labelledby="confirm-title"
@@ -646,8 +619,6 @@ With the default Overlay behavior:
 
 The application supplies the meaningful title, description, and actions.
 
----
-
 ## Pattern: Initial Focus on a Form Field
 
 A form dialog may benefit from focusing its first meaningful field immediately:
@@ -670,7 +641,7 @@ const EditNameDialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div
       class="dialog"
       aria-labelledby="edit-name-title"
@@ -702,8 +673,6 @@ This pattern is particularly useful when the primary purpose of the dialog is da
 
 Avoid automatically moving focus to a control when doing so would make the dialog harder to understand or would unexpectedly bypass useful introductory content.
 
----
-
 ## Nested Overlays
 
 Accessibility behavior composes with the Overlay stack.
@@ -714,7 +683,7 @@ Suppose:
 ParentDialog
       │
       ▼
-ConfirmDialog  ← top-most
+ConfirmDialog  ←  top-most
 ```
 
 While `ConfirmDialog` is open:
@@ -731,8 +700,6 @@ While `ConfirmDialog` is open:
 This means nested overlays do not require the application to manually coordinate multiple focus traps.
 
 The application still needs to ensure that every layer has understandable content and a clear interaction path.
-
----
 
 ## Focus and the Overlay Stack
 
@@ -774,8 +741,6 @@ The parent becomes active again.
 
 This same top-most rule also governs Escape and `closeTopModal()`. See [Overlay Stacking](./stacking.md) for the complete stack model.
 
----
-
 ## What the Runtime Owns vs What You Own
 
 | Runtime                     | Application                                     |
@@ -794,12 +759,10 @@ This same top-most rule also governs Escape and `closeTopModal()`. See [Overlay 
 
 The runtime provides the **interaction infrastructure**. The application provides the **accessible experience**.
 
----
-
 ## Common Mistakes
 
-| Mistake                                                           | Result                                                                               |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Mistake                | Result                               |
+| ---------------------- | ------------------------------------ |
 | Providing no meaningful dialog title or accessible name           | Assistive-technology users may not know what the dialog represents.                  |
 | Using an unlabeled icon-only close control                        | The control may not communicate its purpose clearly.                                 |
 | Relying only on backdrop click                                    | Keyboard and assistive-technology users need an explicit dismissal path.             |
@@ -811,8 +774,6 @@ The runtime provides the **interaction infrastructure**. The application provide
 | Automatically focusing an arbitrary control                       | Users may be placed in an unexpected part of the dialog.                             |
 | Removing the invoking control immediately after close             | Focus restoration may have no useful target.                                         |
 | Treating backdrop dismissal as an accessibility feature by itself | Pointer dismissal does not replace keyboard-accessible interaction.                  |
-
----
 
 ## Accessibility Checklist
 
@@ -831,17 +792,5 @@ Before shipping an overlay, verify:
 * [ ] Nested overlays have their own understandable titles and actions.
 * [ ] Focus returns to a meaningful location after closing.
 * [ ] Escape behavior matches the intended dismissal policy.
-
----
-
-## Next Steps
-
-| Goal                                                    | Guide                                 |
-| ------------------------------------------------------- | ------------------------------------- |
-| Configure focus trap, Escape, and backdrop behavior     | **[Overlay Options](./options.md)**   |
-| Understand nested overlays and top-most focus ownership | **[Overlay Stacking](./stacking.md)** |
-| Understand close paths and dismissal results            | **[Closing Overlays](./closing.md)**  |
-| Open overlays and work with the Promise API             | **[Opening Overlays](./opening.md)**  |
-| Review the complete Overlay model                       | **[Overlay Overview](./overview.md)** |
 
 For precise public API signatures, see the **[Overlay API Reference](../api/overlay.md)**.

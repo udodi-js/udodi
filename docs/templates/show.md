@@ -1,10 +1,8 @@
 # `@show`
 
-The `@show` directive toggles an element’s visibility with the DOM `hidden` property.
+The `@show` directive toggles an element's visibility with the DOM `hidden` property.
 
 The element **stays mounted**. When the condition is truthy, `hidden` is cleared; when falsy, `hidden` is set. Use [`@if`](./if.md) when the element should be created and removed instead.
-
----
 
 ## Basic Usage
 
@@ -17,8 +15,6 @@ The element **stays mounted**. When the condition is truthy, `hidden` is cleared
 When `menuOpen` is truthy, the element is shown. When falsy, it is hidden.
 
 `@show` is reactive, so visibility updates automatically when its dependencies change.
-
----
 
 ## Expressions
 
@@ -40,8 +36,6 @@ methods: {
 
 See [Template DSL](./dsl.md) for expression syntax.
 
----
-
 ## Example
 
 ```js
@@ -62,7 +56,7 @@ const Menu = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div>
       <button @on="click=toggle">
         Toggle
@@ -80,8 +74,6 @@ render(Menu(), "#app");
 ```
 
 The `<nav>` remains in the document; only its `hidden` state changes.
-
----
 
 ## `@show` vs `@if`
 
@@ -103,8 +95,6 @@ The `<nav>` remains in the document; only its `hidden` state changes.
 
 Prefer `@show` when you need to keep DOM identity (focus, scroll position, input values, expensive subtrees). Prefer `@if` when inactive content should not exist or run work.
 
----
-
 ## Nested Content
 
 Content under `@show` is bound with the rest of the template and stays bound while the parent component is mounted:
@@ -118,8 +108,6 @@ Content under `@show` is bound with the rest of the template and stays bound whi
 
 Refs and listeners remain available whether the element is visible or not. Use `@if` if you need bindings and nested components only while the content is active.
 
----
-
 ## Behavior
 
 `@show`:
@@ -127,11 +115,9 @@ Refs and listeners remain available whether the element is visible or not. Use `
 - Evaluates the expression in a reactive effect  
 - Sets `elem.hidden = !visible`  
 - Does not insert or remove the element  
-- Rejects quoted string conditions (with a warning)  
+- Rejects quoted string conditions with a throw  
 - Removes the `@show` attribute after setup  
 - Disposes the effect when the component scope is cleaned up  
-
----
 
 ## Syntax Summary
 
@@ -142,8 +128,6 @@ Refs and listeners remain available whether the element is visible or not. Use `
 | Truthy result | `hidden = false` |
 | Falsy result | `hidden = true` |
 
----
-
 ## Constraints
 
 | Rule | Detail |
@@ -153,8 +137,6 @@ Refs and listeners remain available whether the element is visible or not. Use `
 | Template DSL | Not arbitrary JavaScript |
 | Reactivity | Re-runs when tracked dependencies change |
 | Runtime attribute | `@show` is removed after binding |
-
----
 
 ## Minimal Example
 
@@ -174,7 +156,7 @@ const Panel = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div>
       <button @on="click=toggle">Toggle</button>
       <p @show="visible">Hello</p>
@@ -184,13 +166,3 @@ const Panel = createComponent({
 
 render(Panel(), "#app");
 ```
-
----
-
-## Next Steps
-
-* [`@if`](./if.md) — mount and unmount conditional content  
-* [`@ref`](./ref.md) — refs on elements that stay in the DOM  
-* [`@bind`](./bind.md) — form values inside always-mounted panels  
-* [Template DSL](./dsl.md) — condition expressions  
-* [Template Overview](./overview.md) — how directives fit together  

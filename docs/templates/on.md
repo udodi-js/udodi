@@ -6,8 +6,6 @@ The **DOM `Event` object is passed as the first argument** to the handler. Addit
 
 Optional modifiers control event behavior, propagation, key filtering, and listener options.
 
----
-
 ## Basic Usage
 
 ```html
@@ -27,8 +25,6 @@ methods: {
 The event is always the first argument supplied by `@on`.
 
 This makes the native DOM event directly available to component methods without requiring a separate event lookup mechanism.
-
----
 
 ## Event Arguments
 
@@ -75,8 +71,6 @@ methods: {
 },
 ```
 
----
-
 ## Syntax
 
 Each event binding has the form:
@@ -106,8 +100,6 @@ Multiple event bindings can be placed in the same `@on` attribute:
 ```
 
 Each binding is handled independently.
-
----
 
 ## Handlers
 
@@ -147,8 +139,6 @@ methods: {
 
 The event remains the first argument even when additional arguments are supplied.
 
----
-
 ## Passing Arguments
 
 Arguments are specified after the handler using `:`:
@@ -186,8 +176,6 @@ save(event, user.id, "profile");
 ```
 
 See [Template DSL](./dsl.md) for the supported expression and argument syntax.
-
----
 
 ## Event Object
 
@@ -246,8 +234,6 @@ For common event behavior such as preventing default browser actions, prefer the
   ...
 </form>
 ```
-
----
 
 ## Modifiers
 
@@ -366,8 +352,6 @@ Example:
 
 Use `nonpassive` when the handler needs to call `preventDefault()` for an event where passive behavior would prevent that.
 
----
-
 ## Common Examples
 
 ### Click
@@ -450,8 +434,6 @@ methods: {
 },
 ```
 
----
-
 ## Full Component Example
 
 ```js
@@ -488,7 +470,7 @@ const Counter = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div>
       <p @text="count"></p>
 
@@ -517,8 +499,6 @@ const Counter = createComponent({
 render(Counter(), "#app");
 ```
 
----
-
 ## Multiple Events
 
 Multiple event bindings can share one `@on` attribute:
@@ -544,8 +524,6 @@ methods: {
   },
 },
 ```
-
----
 
 ## Event Handling Flow
 
@@ -581,8 +559,6 @@ save(event, argument1, argument2, ...)
 
 The event is therefore part of the handler contract, not a separately resolved template value.
 
----
-
 ## Lifecycle and Cleanup
 
 `@on` listeners belong to the component's runtime scope.
@@ -606,8 +582,6 @@ event listener
    │
    └── component disposal → remove listener
 ```
-
----
 
 ## `@on` vs `@bind`
 
@@ -633,8 +607,6 @@ Here:
 - `@bind` keeps `userName` synchronized with the input.  
 - `@on` invokes `save(event)` when Enter is pressed.  
 
----
-
 ## Constraints
 
 | Rule | Detail |
@@ -651,8 +623,6 @@ Here:
 | Cleanup | Listeners are removed when the component scope is disposed |
 | Runtime attribute | `@on` is removed after the directive is processed |
 
----
-
 ## Syntax Summary
 
 | Syntax | Behavior |
@@ -664,14 +634,3 @@ Here:
 | `@on="click.self=close"` | Calls `close(event)` only when the element itself is the event target |
 | `@on="click.once=init"` | Calls `init(event)` once |
 | `@on="click=save keydown.enter=save"` | Registers two independent event bindings |
-
----
-
-## Next Steps
-
-* [Template DSL](./dsl.md) — expression, call, and argument syntax  
-* [`@bind`](./bind.md) — two-way form control synchronization  
-* [`@text`](./text.md) — reactive text content  
-* [`@ref`](./ref.md) — access DOM elements through component refs  
-* [Methods](../fundamentals/methods.md) — define component event handlers  
-* [Template Overview](./overview.md) — understand the template system  

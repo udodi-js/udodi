@@ -21,17 +21,15 @@ query becomes stale
      │
      │
      └── no execution
-             │
-             ▼
+              │
+              ▼
       later execution plan
-             │
-             ▼
+              │
+              ▼
        query re-executes
 ```
 
 For cache freshness and TTL behavior, see [Caching](./caching.md). For dependency relationships, dependent refreshes, execution planning, force, and in-flight reuse, see [Query Dependencies](./dependencies.md).
-
----
 
 ## What Invalidation Does
 
@@ -51,13 +49,13 @@ The important distinction is that **staleness** and **query state** are separate
 This allows the UI to continue displaying the last known result while a later plan obtains fresh data.
 
 ```text
-            invalidate()
+             invalidate()
                   │
                   ▼
             cache → stale
                   │
                   │
-            no execution
+             no execution
                   │
                   ▼
         fetch / refresh / plan
@@ -70,8 +68,6 @@ This allows the UI to continue displaying the last known result while a later pl
 ```
 
 If caching is not configured, there is no TTL cache entry to invalidate. The query can still be targeted by invalidation and subsequent execution planning, but there is no cached result that can provide a fresh-cache short circuit.
-
----
 
 ## Manual Invalidation
 
@@ -100,8 +96,6 @@ Typical sources of manual invalidation include:
 - application logic that knows a previously fetched result is no longer authoritative
 
 Invalidation is useful when you want to separate **declaring data stale** from **deciding when to refresh** it.
-
----
 
 ## Mutation Invalidation
 
@@ -142,8 +136,6 @@ A **failed** mutation does not perform its normal successful invalidation phase 
 
 Refresh failures during the invalidation phase are handled so they do not rewrite the mutation’s own success: the write already completed. See [Mutations](./mutations.md).
 
----
-
 ## Skipping or Awaiting Invalidations
 
 Mutation calls can control how invalidation processing is handled:
@@ -173,8 +165,6 @@ await createUser.mutate(input, {
 ```
 
 The mutation's successful write and the subsequent query refreshes are therefore separate operations. `awaitInvalidations` controls whether those refreshes are part of the mutation's awaited completion.
-
----
 
 ## Invalidation Descriptors
 
@@ -232,8 +222,6 @@ The invalidation targets `users`. The refresh plan can then include `users` and 
 
 See [Query Dependencies](./dependencies.md) for how dependency edges and dependent expansion work.
 
----
-
 ## Invalidation and Dependents
 
 Invalidating a query does not automatically mean that every dependent query is executed.
@@ -289,8 +277,6 @@ refresh plan includes
 users + reverse dependents
 ```
 
----
-
 ## Invalidation vs TTL vs force
 
 These mechanisms affect query execution in different ways:
@@ -319,8 +305,6 @@ force
 ```
 
 `invalidate()` therefore does not mean "fetch now." It means "do not consider this cached result fresh for a subsequent plan."
-
----
 
 ## Optimistic Updates and Invalidation
 
@@ -375,14 +359,12 @@ execute mutation
        refresh users
              │
              ▼
-      server-authoritative data
+  server-authoritative data
 ```
 
 `setQueryData()` and invalidation serve different purposes. The former changes the currently exposed query data; the latter ensures that a later execution plan does not continue treating the cached result as authoritative.
 
 See [Mutations](./mutations.md) for the full mutation context API (`getQueryData`, `setQueryData`, hooks).
-
----
 
 ## What Invalidation Does Not Do
 
@@ -405,8 +387,6 @@ users.reset();      // clear query state and cache
 ```
 
 For directly replacing query data, use `setQueryData()`.
-
----
 
 ## Complete Example
 
@@ -497,12 +477,10 @@ refresh plan
     ├── users
     │
     └── userCount
-          │
-          ▼
+           │
+           ▼
      fresh derived data
 ```
-
----
 
 ## API Summary
 
@@ -519,17 +497,3 @@ refresh plan
 | `setQueryData()` | Updates query data directly without executing the query. |
 | `reset()` | Clears query state and cache. |
 | `cancel()` | Cancels an in-flight execution. |
-
----
-
-## Next Steps
-
-| Topic | Guide |
-| --- | --- |
-| TTL and cache freshness | [Caching](./caching.md) |
-| Optimistic updates and mutations | [Mutations](./mutations.md) |
-| Query dependencies, dependents, execution plans, force, and in-flight reuse | [Query Dependencies](./dependencies.md) |
-| Query state and preserved data | [Query Lifecycle](./lifecycle.md) |
-| Creating and configuring queries | [Queries](./queries.md) |
-| Query Pool architecture | [Query Pool Overview](./overview.md) |
-| API signatures | [Query Pool API Reference](../api/query-pool.md) |

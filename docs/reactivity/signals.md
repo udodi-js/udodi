@@ -4,8 +4,6 @@ A **signal** is Udodi's lowest-level reactive primitive: a reactive cell that st
 
 Signals form the foundation of Udodi's reactivity system. Higher-level primitives such as reactive objects, computed values, effects, and template bindings build on the same dependency-tracking mechanism.
 
----
-
 ## Creating a Signal
 
 ```js
@@ -31,8 +29,6 @@ setCount(1); // logs: count is 1
 setCount(1); // no-op (same value)
 ```
 
----
-
 ## Reading
 
 Call the getter to read the value:
@@ -44,8 +40,6 @@ const value = count();
 If a signal is read while an effect (or the internal effect of a computed) is active, that effect is added to the signal’s subscriber set. Later writes or triggers will schedule that effect to run again.
 
 Reading outside any active effect does not create a subscription.
-
----
 
 ## Writing
 
@@ -65,8 +59,6 @@ There is no updater-function form; pass the next value explicitly.
 ```js
 setCount(count() + 1);
 ```
-
----
 
 ## Triggering Without Changing the Value
 
@@ -93,8 +85,6 @@ Use `trigger` when:
 
 For reactive objects created with `reactive()`, prefer `touch(proxy, key)` at the property level; `trigger` is the same idea at the raw signal level.
 
----
-
 ## Equality
 
 Updates use `Object.is` for equality:
@@ -107,8 +97,6 @@ Updates use `Object.is` for equality:
 | `Object.is({}, {})` | Is not equal, then notify |
 
 Replacing an object with a new reference always notifies, even if the contents are identical. Mutating an object in place does **not** notify unless you call `trigger` (or `touch` on a reactive property).
-
----
 
 ## Signals and Effects
 
@@ -134,8 +122,6 @@ Each run of the effect:
 
 Conditional reads are therefore precise: a branch that is not taken does not subscribe.
 
----
-
 ## Signals and Computed Values
 
 Computed values use signals internally:
@@ -159,21 +145,17 @@ effect(() => {
 setA(3); // sum recomputes; effect runs
 ```
 
----
-
 ## Reactive Objects Are Built From Signals
 
 `reactive()` allocates one signal per reactive property. Property access goes through the signal getter; assignment goes through the signal setter (and optional interceptors).
 
 ```js
 // Conceptual model — not the public API
-// state.count  ≈  get()
+// state.count      ≈  get()
 // state.count = 1  ≈  set(1)
 ```
 
 You normally work with `reactive()` and component `state()` rather than raw signals, but understanding signals explains why shallow reactivity and `touch()` behave the way they do.
-
----
 
 ## Lifecycle of a Subscription
 
@@ -202,8 +184,6 @@ effect runs again
 
 When an effect is disposed, it is removed from every subscriber set it was in, so it will not run again.
 
----
-
 ## API Summary
 
 ```js
@@ -218,8 +198,6 @@ const [get, set, trigger] = createSignal(initialValue);
 
 Return type: `[() => any, (next: any) => void, () => void]`
 
----
-
 ## When to Use Raw Signals
 
 | Use case | Prefer |
@@ -231,12 +209,3 @@ Return type: `[() => any, (next: any) => void, () => void]`
 | Manual notify after in-place mutation of a signal’s value | `trigger` |
 
 Most application code stays at the reactive-object and component layers. Signals become useful when you need a single independent reactive cell, want to build an extension or library on top of Udodi's reactivity system, or need to understand how the higher-level reactive primitives are implemented.
-
----
-
-## Next Steps
-
-* [Effects](./effects.md) — dependency tracking and re-execution  
-* [Reactive State](./reactive-state.md) — `reactive()` built on signals  
-* [Using `touch()`](./touch.md) — property-level notification for nested data  
-* [Reactivity Overview](./overview.md) — how the primitives fit together  

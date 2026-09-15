@@ -2,7 +2,7 @@
 
 An overlay is opened with **`openModal()`**.
 
-`openModal()` mounts the returned content inside the shared overlay root, applies the configured overlay behavior, and returns a **Promise** that resolves when that overlay closes.
+The `openModal()` mounts the returned content inside the shared overlay root, applies the configured overlay behavior, and returns a **Promise** that resolves when that overlay closes.
 
 This guide covers:
 
@@ -17,8 +17,6 @@ This guide covers:
 * Opening nested overlays
 
 For closing behavior, configuration, stacking, and accessibility, see the specialized guides linked at the end.
-
----
 
 ## Basic Opening
 
@@ -49,24 +47,20 @@ When `openModal()` runs, the runtime:
 
 The render function itself is called once when the overlay opens.
 
----
-
 ## Signature
 
 ```js
 openModal(render, options?)
 ```
 
-| Parameter | Type                                    | Description                                                    |
-| --------- | --------------------------------------- | -------------------------------------------------------------- |
+| Parameter | Type                     | Description                      |
+| --------- | ------------------------ | -------------------------------- |
 | `render`  | `(close: (result?) => void) => content` | Function that returns the content to mount inside the overlay. |
 | `options` | `object`                                | Optional overlay configuration.                                |
 
 **Returns:** `Promise<any>`
 
 The Promise resolves with the value supplied when the overlay closes. Backdrop and Escape closing resolve with `false` by default.
-
----
 
 ## The Render Function
 
@@ -126,8 +120,6 @@ const result = await openModal(...);
 
 The result does not have to be a boolean. It can be any application value appropriate for the operation.
 
----
-
 ## Returning a Component
 
 For interactive overlays, the recommended approach is to return a **component placeholder**.
@@ -150,7 +142,7 @@ const ConfirmDialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div class="dialog">
       <h2>Delete item?</h2>
       <p>This action cannot be undone.</p>
@@ -215,8 +207,6 @@ The template does **not** need to know about the overlay's `close()` function.
 
 This is the preferred pattern for interactive overlays because the component remains responsible for its own behavior while the caller remains responsible for the overlay's asynchronous result.
 
----
-
 ## Why Use a Component?
 
 A component is preferable when the overlay contains interaction or application logic.
@@ -256,8 +246,6 @@ Promise resolves
 
 This keeps overlay management separate from dialog implementation.
 
----
-
 ## Passing Additional Props
 
 The callback used to close the overlay is just a normal component prop. Other props can be passed alongside it:
@@ -289,8 +277,6 @@ await openModal((close) => {
 The overlay mechanism does not need to change; only the component's inputs change.
 
 See [Props](../fundamentals/props.md) for the component prop model.
-
----
 
 ## Returning HTML
 
@@ -334,8 +320,6 @@ Instead, use a component method:
 and let that method invoke the callback supplied to the component.
 
 See [Template DSL](../templates/dsl.md) for the expression rules used by Udodi templates.
-
----
 
 ## The Returned Promise
 
@@ -417,8 +401,6 @@ openModal((close) => {
 
 Both forms observe the same Promise contract.
 
----
-
 ## Passing Options
 
 The second argument to `openModal()` configures the behavior of that particular overlay:
@@ -455,8 +437,6 @@ These settings apply to the overlay created by that particular `openModal()` cal
 
 See [Overlay Options](./options.md) for the complete behavior of each option.
 
----
-
 ## Opening from a Component Method
 
 Overlays are commonly opened in response to component interaction.
@@ -484,7 +464,7 @@ const ConfirmDialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div class="dialog">
       <h2>Delete item?</h2>
       <p>This action cannot be undone.</p>
@@ -517,7 +497,7 @@ const ItemList = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <button type="button" @on="click=removeItem">
       Delete
     </button>
@@ -556,8 +536,6 @@ confirmation dialog
                      ▼
               continue deletion
 ```
-
----
 
 ## Nested Opening
 
@@ -608,8 +586,6 @@ While both are open, the nested overlay is the top-most overlay. Consequently, t
 
 See [Overlay Stacking](./stacking.md).
 
----
-
 ## What Happens When an Overlay Opens
 
 The opening sequence can be summarized as:
@@ -647,12 +623,10 @@ openModal(render, options)
 
 The overlay then remains open until one of its supported close paths is used.
 
----
-
 ## Common Mistakes
 
-| Mistake                                                             | Result                                                                                                                              |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Mistake          | Resul                   |
+| ---------------- | ----------------------- |
 | Using `@on="click=() => close(false)"`                              | Invalid Udodi template DSL. Use a component method and callback prop instead.                                                       |
 | Forgetting to pass `close` into interactive content                 | The content has no intentional way to resolve the overlay's Promise.                                                                |
 | Expecting `openModal()` to return a modal handle                    | It returns a Promise. The render callback receives the `close` helper for that overlay.                                             |
@@ -678,17 +652,3 @@ JavaScript
 ```
 
 The render function connects the overlay lifecycle to the component; it does not change the rules of the template DSL.
-
----
-
-## Next Steps
-
-| Goal                                                         | Guide                                   |
-| ------------------------------------------------------------ | --------------------------------------- |
-| Close overlays and return results                            | **[Closing Overlays](./closing.md)**    |
-| Configure backdrop, Escape, scroll, focus, and host behavior | **[Overlay Options](./options.md)**     |
-| Open and manage multiple overlays                            | **[Overlay Stacking](./stacking.md)**   |
-| Understand focus and dialog semantics                        | **[Accessibility](./accessibility.md)** |
-| Understand the complete Overlay model                        | **[Overlay Overview](./overview.md)**   |
-
-For precise public API signatures, see the **[Overlay API Reference](../api/overlay.md)**.

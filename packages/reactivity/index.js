@@ -16,6 +16,16 @@ const jobQueue = new Set();
 let isFlushing = false;
 
 /**
+ * Reusable buffer for job batching.
+ *
+ * High-water mark buffer avoids repeated allocation during flush.
+ * Entries are cleared (set to null) after execution.
+ *
+ * @type {Function[]}
+ */
+const jobBuffer = [];
+
+/**
  * Schedules a reactive job for execution.
  *
  * Jobs are batched and executed in a microtask.
@@ -29,7 +39,7 @@ function schedule(job) {
 	jobQueue.add(job);
 
 	// Lock it immediately so no other microtasks can be scheduled
-	// during this synchronous execution block
+	// during this synchronous execution block.
 	if (!isFlushing) {
 		isFlushing = true;
 		queueMicrotask(flushJobs);
@@ -39,21 +49,42 @@ function schedule(job) {
 /**
  * Flushes all queued jobs.
  *
- * Handles jobs added during execution by scheduling
- * another microtask flush when necessary.
+ * Handles jobs added during execution by processing them in
+ * subsequent iterations of the same microtask flush.
+ *
+ * Uses a reusable buffer to avoid repeated allocation.
+ * Each job is individually wrapped in try/catch for isolation.
  */
 function flushJobs() {
 	try {
 		while (jobQueue.size > 0) {
-			const jobs = Array.from(jobQueue);
+			// Snapshot jobs into the reusable buffer.
+			let n = 0;
+
+			for (const job of jobQueue) {
+				jobBuffer[n++] = job;
+			}
+
 			jobQueue.clear();
 
-			for (let i = 0; i < jobs.length; i++) {
-				jobs[i]();
+			// Execute jobs with isolated error handling.
+			for (let i = 0; i < n; i++) {
+				const job = jobBuffer[i];
+
+				// Clear the slot immediately so the buffer does not
+				// retain job closures after execution.
+				jobBuffer[i] = null;
+
+				try {
+					job();
+				} catch (error) {
+					console.error(error);
+				}
 			}
 		}
+		
 	} finally {
-		// Unlock it only after ALL cascading jobs have finished running
+		// Unlock only after all cascading jobs have finished.
 		isFlushing = false;
 	}
 }
@@ -123,30 +154,30 @@ export function createSignal(initialValue) {
 			subscribers.add(currentEffect);
 			currentEffect.deps.add(subscribers);
 		}
+
 		return value;
 	};
 
 	const trigger = () => {
 		if (subscribers.size === 0) {
-            return;
-        }
+			return;
+		}
 
-        for (const effect of subscribers) {
-            schedule(effect);
-        }
-    };
+		for (const effect of subscribers) {
+			schedule(effect);
+		}
+	};
 
 	const set = (nextValue) => {
-        if (Object.is(value, nextValue)) {
-            return;
-        }
+		if (Object.is(value, nextValue)) {
+			return;
+		}
 
-		    value = nextValue;
+		value = nextValue;
+		trigger();
+	};
 
-        trigger();
-    };
-
-    return [get, set, trigger];
+	return [get, set, trigger];
 }
 
 /**
@@ -309,11 +340,14 @@ export function computed(fn, scope) {
 import {
 	reactiveArray,
 	reactiveMap,
-	reactiveSet
+	reactiveSet,
 } from "./collections.js";
 
 /**
  * Wraps supported collections with reactive wrappers.
+ *
+ * Collections remain independently proxied because their
+ * mutation APIs require structural interception.
  *
  * @param {*} value
  * @param {Object} owner
@@ -344,22 +378,24 @@ function wrapCollection(value, owner, key) {
 	return value;
 }
 
-// Tuple indexes for readability + minification friendliness
+// Tuple indexes for readability + minification friendliness.
 const SIGNAL_GET = 0;
 const SIGNAL_SET = 1;
 const SIGNAL_TRIGGER = 2;
 
 /**
- * Applies an interceptor (if any) and commits the value.
+ * Applies an interceptor and commits the resulting value
+ * to a reactive signal.
+ *
+ * Returning `undefined` from an interceptor cancels the update.
  *
  * @param {PropertyKey} prop
  * @param {*} value
- * @param {[Function, Function]} signal
- * @param {Object} target
+ * @param {[Function, Function, Function]} signal
  * @param {Object|null} interceptors
- * @returns {boolean}
+ * @returns {boolean} True when the value was committed, false when cancelled.
  */
-function commit(prop, value, signal, target, interceptors) {
+function commit(prop, value, signal, interceptors) {
 	let nextValue = value;
 
 	if (interceptors !== null) {
@@ -370,41 +406,51 @@ function commit(prop, value, signal, target, interceptors) {
 
 			// Returning undefined cancels the update.
 			if (intercepted === undefined) {
-				return true;
+				return false;
 			}
 
 			nextValue = intercepted;
 		}
 	}
 
-	// Update the reactive signal.
+	// createSignal performs Object.is equality checking.
 	signal[SIGNAL_SET](nextValue);
-
-	// Keep the backing object synchronized.
-	target[prop] = nextValue;
 
 	return true;
 }
 
+/**
+ * Reactive trigger functions indexed by reactive object or
+ * registered touch alias.
+ *
+ * @type {WeakMap<Object, Function>}
+ */
 const reactiveTriggers = new WeakMap();
 
 /**
  * Creates a shallow reactive object backed by per-property signals.
  *
- * Reading a property tracks the currently active effect.
- * Writing a property updates its signal and notifies subscribers.
+ * Reactive properties are installed as `Object.defineProperty`
+ * accessors. Reading a property tracks the currently active effect,
+ * while writing a property updates its signal and notifies subscribers.
  *
  * Nested objects are not made reactive automatically.
  *
+ * Properties present during construction are reactive. Properties
+ * added later through normal assignment remain non-reactive.
+ *
+ * When no interceptors are supplied the write path is specialized
+ * to avoid interceptor lookup overhead on every assignment.
+ *
  * @param {Object} [initialState={}] Initial reactive state.
  * @param {Object} [options={}]
- * @param {Object<string, Function>} [options.interceptors={}]
+ * @param {Object<string, Function>} [options.interceptors]
  * Optional property interceptors. An interceptor receives the
  * incoming value and may:
  * - Return a transformed value.
  * - Return `undefined` to cancel the update.
  *
- * @returns {Object} Reactive proxy.
+ * @returns {Object} Reactive object.
  *
  * @example
  * const state = reactive({
@@ -432,139 +478,159 @@ const reactiveTriggers = new WeakMap();
  */
 export function reactive(initialState = {}, options = {}) {
 	const interceptors = options.interceptors || null;
-
-	/**
-	 * Property signal registry.
-	 *
-	 * @type {Map<PropertyKey, {
-	 *   getter: Function,
-	 *   setter: Function
-	 * }>}
-	 */
-	const signals = new Map();
-
-	/**
-	 * Underlying target object used by
-	 * the Proxy.
-	 *
-	 * Non-reactive properties are stored
-	 * directly here.
-	 *
-	 * @type {Object}
-	 */
-	const target = {};
+	const obj = {};
+	const signals = Object.create(null);
 
 	const trigger = (key) => {
-		const signal = signals.get(key);
+		const signal = signals[key];
 
 		if (signal !== undefined) {
 			signal[SIGNAL_TRIGGER]();
 		}
 	};
 
-	const proxy = new Proxy(target, {
-		get(target, prop) {
-			const signal = signals.get(prop);
-
-			return signal !== undefined
-				? signal[SIGNAL_GET]()
-				: target[prop];
-		},
-
-		set(target, prop, value) {
-			value = wrapCollection(value, proxy, prop);
-
-			const signal = signals.get(prop);
-
-			if (signal !== undefined) {
-				return commit(
-					prop,
-					value,
-					signal,
-					target,
-					interceptors,
-				);
-			}
-
-			// Non-reactive property.
-			target[prop] = value;
-
-			return true;
-		},
-
-		has(target, prop) {
-			return (prop in target || signals.has(prop));
-		},
-
-		ownKeys(target) {
-			const keys = new Set(Reflect.ownKeys(target));
-
-			for (const key of signals.keys()) {
-				keys.add(key);
-			}
-
-			return Array.from(keys);
-		},
-
-		getOwnPropertyDescriptor(target, prop) {
-			if (signals.has(prop)) {
-				return {
-					enumerable: true,
-					configurable: true,
-					writable: true,
-				};
-			}
-
-			return Reflect.getOwnPropertyDescriptor(
-				target,
-				prop,
-			);
-		},
-	});
-
-	// Initialize signals.
 	const keys = Object.keys(initialState);
+	const descriptors = {};
 
 	for (let i = 0, length = keys.length; i < length; i++) {
 		const key = keys[i];
+		const signal = createSignal(
+			wrapCollection(initialState[key], obj, key)
+		);
 
-		let value = initialState[key];
-		value = wrapCollection(value, proxy, key);
+		signals[key] = signal;
 
-		signals.set(key, createSignal(value));
-		target[key] = value;
+		if (interceptors === null) {
+			// Hot path: no interceptor overhead on every write.
+			descriptors[key] = {
+				enumerable: true,
+				configurable: true,
+
+				get() {
+					return signal[SIGNAL_GET]();
+				},
+
+				set(nextValue) {
+					signal[SIGNAL_SET](wrapCollection(nextValue, obj, key));
+				},
+			};
+
+		} else {
+			descriptors[key] = {
+				enumerable: true,
+				configurable: true,
+
+				get() {
+					return signal[SIGNAL_GET]();
+				},
+
+				set(nextValue) {
+					nextValue = wrapCollection(nextValue, obj, key);
+					commit(key, nextValue, signal, interceptors);
+				},
+			};
+		}
 	}
 
-	reactiveTriggers.set(proxy, trigger);
+	Object.defineProperties(obj, descriptors);
+	reactiveTriggers.set(obj, trigger);
 
-	return proxy;
+	return obj;
+}
+
+/**
+ * Registers an alias target so that touch(alias, key) notifies
+ * the same triggers as the reactive proxy/object.
+ *
+ * Useful when multiple objects (for example, `ctx` and a state
+ * store) need to share the same reactive signal infrastructure.
+ *
+ * @param {Object} alias - The object to register as a touch target.
+ * @param {Object} reactiveProxy - The reactive object returned by reactive().
+ * @returns {boolean} True if successfully registered, false if
+ *   the reactive object has no registered triggers.
+ *
+ * @example
+ * const state = reactive({ count: 0 });
+ * const ctx = {};
+ *
+ * registerTouchTarget(ctx, state);
+ *
+ * // Both targets now notify the same reactive property:
+ * touch(ctx, "count");
+ * touch(state, "count");
+ */
+export function registerTouchTarget(alias, reactiveProxy) {
+	if (alias == null || reactiveProxy == null) {
+		return false;
+	}
+
+	const trigger = reactiveTriggers.get(reactiveProxy);
+
+	if (!trigger) {
+		return false;
+	}
+
+	reactiveTriggers.set(alias, trigger);
+
+	return true;
+}
+
+/**
+ * Unregisters a touch target alias.
+ *
+ * Use this during component unmount or cleanup to prevent stale
+ * references and allow the alias to be garbage collected.
+ *
+ * @param {Object} alias - The object to unregister.
+ * @returns {boolean} True if an entry was deleted, false otherwise.
+ *
+ * @example
+ * unregisterTouchTarget(ctx);
+ */
+export function unregisterTouchTarget(alias) {
+	if (alias == null) {
+		return false;
+	}
+
+	return reactiveTriggers.delete(alias);
 }
 
 /**
  * Notifies subscribers that a shallow reactive property has been
  * mutated in place without replacing its reference.
  *
- * This is primarily used after mutating nested objects in a shallow
+ * This is primarily used after mutating nested objects in shallow
  * reactive state.
  *
- * @param {Object} proxy - Reactive object returned by `reactive()`.
+ * @param {Object} proxy - Reactive object or registered touch target.
  * @param {PropertyKey} key - Root reactive property to notify.
- * @returns {boolean}
+ * @returns {boolean} True if notification was sent, false otherwise.
+ *
+ * @example
+ * const state = reactive({
+ *   user: {
+ *     name: "John"
+ *   }
+ * });
+ *
+ * state.user.name = "Jane";
+ * touch(state, "user");
  */
 export function touch(proxy, key) {
 	if (typeof key !== "string" && typeof key !== "symbol") {
-        return false;
-    }
+		return false;
+	}
 
-    const state = proxy._state || proxy;
-	const trigger = reactiveTriggers.get(state);
+	const trigger = reactiveTriggers.get(proxy);
 
-    if (!trigger) {
-        return false;
-    }
+	if (!trigger) {
+		return false;
+	}
 
-    trigger(key);
-    return true;
+	trigger(key);
+
+	return true;
 }
 
 const REACTIVE_BINDING = Symbol("REACTIVE_BINDING");
@@ -577,15 +643,13 @@ const REACTIVE_BINDING = Symbol("REACTIVE_BINDING");
  * @returns {Object} A marked reactive binding descriptor object.
  *
  * @example
- * // 1. Passing a LIVE, reactive property connection
- * // Changes in the parent state will automatically reflect inside the child component.
+ * // Passing a LIVE, reactive property connection.
  * ${ChildComponent({
  *     count: bindProp(() => ctx.count)
  * })}
  *
  * @example
- * // 2. Passing a STATIC primitive snapshot (By Value)
- * // The child receives a static snapshot copy locked at whatever value ctx.count was during this render pass.
+ * // Passing a STATIC primitive snapshot (By Value).
  * ${ChildComponent({
  *     count: ctx.count
  * })}
@@ -593,8 +657,9 @@ const REACTIVE_BINDING = Symbol("REACTIVE_BINDING");
 export function bindProp(getterFn) {
 	return {
 		[REACTIVE_BINDING]: true,
-		// This getter executes the arrow function later, tunneling directly
-		// into the parent proxy's active tracking signal upon access.
+
+		// This getter executes the arrow function later, tunneling
+		// directly into the parent's active tracking signal.
 		get value() {
 			return getterFn();
 		},
@@ -609,7 +674,9 @@ export function bindProp(getterFn) {
  */
 export function isReactiveProp(prop) {
 	return (
-		prop !== null && typeof prop === "object" && prop[REACTIVE_BINDING] === true
+		prop !== null &&
+		typeof prop === "object" &&
+		prop[REACTIVE_BINDING] === true
 	);
 }
 

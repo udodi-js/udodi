@@ -12,8 +12,6 @@ Use `@teleport` for UI that needs to escape its parent's layout, overflow, or st
 * toasts;
 * overlay menus.
 
----
-
 ## Basic Usage
 
 ```html
@@ -30,8 +28,6 @@ When the directive is processed, Udodi:
 4. Registers cleanup with the current component scope.
 
 The original element is not cloned or recreated.
-
----
 
 ## Targets
 
@@ -69,7 +65,7 @@ Any valid selector accepted by `document.querySelector()` can be used:
 
 Only the **first matching element** is used.
 
-If the selector is invalid or does not match an element, Udodi warns and leaves the element where it was.
+If the selector is invalid or does not match an element, Udodi throws an `@teleport` error; see [Error Handling](#error-handling). The element is left in its original location; no placeholder is created, no cleanup is registered, and the `@teleport` attribute is not removed.
 
 ### `overlay`
 
@@ -84,8 +80,6 @@ The special value `overlay` uses Udodi's managed overlay root:
 The overlay root is created when it is first requested.
 
 This is the recommended target when the application does not need to provide its own portal container.
-
----
 
 ## Example
 
@@ -111,7 +105,7 @@ const Dialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div>
       <button @on="click=openDialog">
         Open
@@ -136,8 +130,6 @@ render(Dialog(), "#app");
 Here, `@if` controls the **lifetime** of the dialog, while `@teleport` controls its **DOM location**.
 
 When `open` becomes truthy, the dialog is mounted and then moved to the overlay root. When `open` becomes falsy, the `@if` branch is unmounted, which also cleans up the teleported element.
-
----
 
 ## How It Works
 
@@ -180,8 +172,6 @@ The placeholder remains at the original location while the element lives under t
 
 The placeholder does **not** cause the element to return automatically to its original location. It provides a stable marker for the framework's lifecycle bookkeeping.
 
----
-
 ## Lifecycle and Cleanup
 
 Teleportation is tied to the scope in which the directive is processed.
@@ -204,8 +194,6 @@ Component destroyed
 
 This is particularly important when `@teleport` is used inside `@if` or another scoped structure.
 
----
-
 ## One-Shot Behavior
 
 `@teleport` is **not reactive**.
@@ -221,8 +209,6 @@ The target is resolved when the directive is processed:
 Changing component state does not cause the element to be teleported to another target.
 
 If the application needs different targets, the structural lifecycle should be controlled explicitly, for example by conditionally mounting different elements.
-
----
 
 ## With `@if`
 
@@ -261,8 +247,6 @@ overlay root
 
 When `open` becomes false, the `@if` branch is unmounted and the teleported element is removed.
 
----
-
 ## With `@show`
 
 `@show` controls visibility without mounting or unmounting the element:
@@ -285,11 +269,21 @@ The distinction is:
 
 Use `@if` when the overlay should only exist while active. Use `@show` when the teleported element should remain mounted.
 
----
+## Error Handling
 
-## Missing Targets
+`@teleport` treats missing targets, missing parents, and duplicate registration as **hard failures**. This avoids leaving the DOM in an inconsistent state.
 
-If a selector does not resolve to an element:
+Errors are reported through the directive error helper and include the component context when available:
+
+```text
+@teleport: <message>
+```
+
+(or the equivalent formatted message produced by `directiveMessage(context, "@teleport", …)`).
+
+### Missing or Invalid Targets
+
+If a selector does not resolve to an element (or is otherwise invalid):
 
 ```html
 <div @teleport="#does-not-exist">
@@ -299,27 +293,37 @@ If a selector does not resolve to an element:
 
 Udodi:
 
-* throw an `@teleport` error;
+* throws an `@teleport` error (`Target not found: …`);
 * leaves the element in its original location;
 * does not create a placeholder;
 * does not register teleport cleanup;
 * does not remove the `@teleport` attribute.
 
-The same applies when a selector is invalid and cannot be processed.
+The same applies when a selector cannot be processed by `document.querySelector()`.
 
-This allows a failed teleport to degrade safely without removing the element from the document.
+### Missing Parent
 
----
+If the element has no parent node at the time of processing, Udodi throws:
 
-## Duplicate Registration
+```text
+@teleport: Element has no parent node.
+```
 
-Udodi prevents the same element from being registered for teleportation more than once.
+No placeholder is created and the element is left untouched.
 
-If an element has already been registered, subsequent processing is ignored.
+### Duplicate Registration
+
+Udodi prevents the same element from being teleported more than once.
+
+If an element has already been registered for teleportation, subsequent processing throws:
+
+```text
+@teleport: Element is already teleported. Duplicate @teleport is not allowed.
+```
 
 This protects against duplicate lifecycle registrations and duplicate cleanup handlers.
 
----
+Because the failure occurs before any DOM mutation, a failed teleport never partially applies.
 
 ## Nested Content
 
@@ -341,8 +345,6 @@ Existing bindings and event listeners remain associated with the moved DOM subtr
 
 Nested components can also be used inside teleported content.
 
----
-
 ## Teleport and Component Boundaries
 
 Teleport changes the DOM position of an element but does not change the component context that owns it.
@@ -361,8 +363,6 @@ The `close` handler remains bound to the same component context after the elemen
 
 Teleport is therefore a **DOM-placement mechanism**, not a context or component-boundary mechanism.
 
----
-
 ## Behavior
 
 `@teleport`:
@@ -376,24 +376,23 @@ Teleport is therefore a **DOM-placement mechanism**, not a context or component-
 * Registers lifecycle cleanup with the current scope.
 * Removes the teleported element during scope cleanup if it is still connected.
 * Removes the placeholder during cleanup.
-* Prevents duplicate teleport registration.
-* Throws when the target is missing or invalid.
+* Prevents duplicate teleport registration (throws on duplicates).
+* Throws when the target is missing or invalid, when the element has no parent, or when a duplicate is detected.
 * Removes `@teleport` after a successful teleport.
 * Does not reactively change the teleport target.
-
----
+* On failure, leaves the element in place with no placeholder, no cleanup registration, and the attribute intact.
 
 ## Syntax Summary
 
-| Form                      | Behavior                              |
-| ------------------------- | ------------------------------------- |
-| `@teleport="#modal-root"` | Move to the first `#modal-root` match |
-| `@teleport=".portal"`     | Move to the first `.portal` match     |
-| `@teleport="overlay"`     | Move to Udodi's overlay root          |
-| Missing target            | Throw an error and leave the element in place   |
-| Invalid selector          | Throw an error and leave the element in place   |
-
----
+| Form                      | Behavior                                      |
+| ------------------------- | --------------------------------------------- |
+| `@teleport="#modal-root"` | Move to the first `#modal-root` match         |
+| `@teleport=".portal"`     | Move to the first `.portal` match             |
+| `@teleport="overlay"`     | Move to Udodi's overlay root                  |
+| Missing target            | Throw an error and leave the element in place |
+| Invalid selector          | Throw an error and leave the element in place |
+| No parent node            | Throw an error and leave the element in place |
+| Duplicate `@teleport`     | Throw an error                                |
 
 ## Constraints
 
@@ -407,9 +406,10 @@ Teleport is therefore a **DOM-placement mechanism**, not a context or component-
 | Cleanup             | Teleported content is removed with its owning scope |
 | Reactivity          | `@teleport` does not retarget reactively            |
 | Failed target       | Element remains in its original location            |
+| Missing parent      | Hard failure (throws)                               |
+| Duplicate           | Hard failure (throws)                               |
 | Runtime attribute   | Removed after a successful teleport                 |
-
----
+| Error reporting     | Uses `directiveMessage(context, "@teleport", …)`    |
 
 ## Minimal Example
 
@@ -419,7 +419,7 @@ import { createComponent, html, render } from "udodi";
 const Toast = createComponent({
   name: "Toast",
 
-  template: () => html`
+  template: html`
     <div @teleport="overlay" class="toast">
       Saved successfully.
     </div>
@@ -432,13 +432,3 @@ render(Toast(), "#app");
 The toast is created as part of the component template but is moved into Udodi's overlay root during binding.
 
 When the `Toast` component is destroyed, the teleported element is removed as part of its scope cleanup.
-
----
-
-## Next Steps
-
-* [`@if`](./if.md) — conditionally mount and unmount content
-* [`@show`](./show.md) — toggle visibility without unmounting
-* [`@class`](./class.md) — reactive CSS classes
-* [`@style`](./style.md) — reactive inline styles
-* [Template Overview](./overview.md) — template directive fundamentals

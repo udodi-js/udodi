@@ -25,12 +25,10 @@ The runtime also manages the interaction mechanics that commonly accompany modal
 
 Udodi deliberately keeps visual design separate from runtime behavior. The runtime injects only the structural CSS required to position and operate the overlay; application styles control the appearance of the dialog.
 
----
-
 ## How the Pieces Fit Together
 
-| API                           | Role                                                                                                     |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| API                           | Role                                                |
+| ----------------------------- | --------------------------------------------------- |
 | `openModal(render, options?)` | Opens an overlay, mounts it under the shared overlay root, and returns a Promise for its closing result. |
 | `close(result?)`              | Helper passed to the `render` function. Closes that specific overlay and resolves its Promise.           |
 | `closeTopModal(result?)`      | Closes the top-most overlay currently on the stack.                                                      |
@@ -94,8 +92,6 @@ The runtime lifecycle is approximately:
 ```
 
 The important distinction is that the **overlay lifecycle** is owned by the runtime, while the **dialog content** is owned by the application.
-
----
 
 ## Opening an Overlay
 
@@ -212,14 +208,12 @@ Promise resolves with result
 
 See [Opening Overlays](./opening.md) for more content patterns and details about the Promise contract.
 
----
-
 ## Closing Overlays
 
 An overlay can be closed through several mechanisms.
 
-| Mechanism                    | Behavior                                                                                       |
-| ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| Mechanism                    | Behavior                               |
+| ---------------------------- | -------------------------------------- |
 | `close(result)`              | Closes the overlay associated with the current render function and resolves its Promise.       |
 | `closeTopModal(result?)`     | Closes the top-most overlay.                                                                   |
 | Backdrop click               | Closes the overlay with `false` when both backdrop rendering and backdrop closing are enabled. |
@@ -258,8 +252,6 @@ Closing is guarded against repeated execution: once an overlay has been marked c
 
 See [Closing Overlays](./closing.md).
 
----
-
 ## Overlay Options
 
 `openModal()` accepts an optional configuration object:
@@ -294,8 +286,6 @@ The default host `z-index` is `9999`. Providing `zIndex` overrides that value on
 
 See [Overlay Options](./options.md).
 
----
-
 ## The Shared Overlay Root
 
 All overlays are mounted under a shared root:
@@ -311,8 +301,6 @@ The root is created on demand and appended directly to `document.body`.
 This gives overlays a predictable location outside the normal application component hierarchy and makes the overlay layer independent of the application's ordinary layout structure.
 
 The runtime also injects its structural overlay stylesheet when `openModal()` is first used. The stylesheet is injected only once.
-
----
 
 ## Host Structure
 
@@ -367,8 +355,6 @@ background: rgba(0, 0, 0, 0.5);
 
 Application styles remain responsible for the dialog's visual design.
 
----
-
 ## Stacking
 
 Overlays are maintained in a stack:
@@ -411,8 +397,6 @@ Scroll locking is independent of the stack itself. Each overlay that opens with 
 
 See [Overlay Stacking](./stacking.md).
 
----
-
 ## Accessibility
 
 The runtime provides several pieces of dialog-oriented accessibility behavior.
@@ -443,8 +427,6 @@ The runtime provides the structural accessibility behavior, but the application 
 
 See [Accessibility](./accessibility.md).
 
----
-
 ## What the Runtime Owns vs What You Own
 
 The Overlay system deliberately separates runtime mechanics from application content and presentation.
@@ -465,8 +447,6 @@ The Overlay system deliberately separates runtime mechanics from application con
 | Per-overlay `zIndex` application | Choosing appropriate `zIndex` values    |
 
 This separation allows the runtime to provide consistent overlay behavior without forcing an application into a particular visual design.
-
----
 
 ## Runtime CSS
 
@@ -515,47 +495,35 @@ An Overlay can be thought of as three cooperating layers:
 
 ```text
 Application (dialog component / content)
-                  │
-                  │
-                  ▼
+                    │
+                    │
+                    ▼
     ┌───────────────────────────────┐
-    │       Overlay Panel           │
+    │         Overlay Panel         │
     │                               │
-    │       application UI          │
+    │        application UI         │
     └───────────────────────────────┘
-                  ▲
-                  │
+                    ▲
+                    │
     ┌───────────────────────────────┐
-    │       Overlay Layer           │
+    │         Overlay Layer         │
     │                               │
-    │  focus + centering + keyboard │
+    │ focus + centering + keyboard  │
     └───────────────────────────────┘
-                  ▲
-                  │
+                    ▲
+                    │
     ┌───────────────────────────────┐
-    │       Overlay Host            │
+    │         Overlay Host          │
     │                               │
-    │       backdrop + viewport     │
+    │      backdrop + viewport      │
     └───────────────────────────────┘
-                  ▲
-                  │
-          #udodi-overlay-root
+                    ▲
+                    │
+           #udodi-overlay-root
 ```
 
 The application primarily owns the content inside the panel.
 
 The runtime owns the layers surrounding that content and coordinates them with the global overlay stack.
-
----
-
-## Related Guides
-
-| Guide                                   | Description                                                            |
-| --------------------------------------- | ---------------------------------------------------------------------- |
-| **[Opening Overlays](./opening.md)**    | Render functions, content patterns, and the Promise contract.          |
-| **[Closing Overlays](./closing.md)**    | `close()`, `closeTopModal()`, and close results.                       |
-| **[Overlay Options](./options.md)**     | Backdrop, Escape, scroll lock, focus trap, `zIndex`, and host classes. |
-| **[Overlay Stacking](./stacking.md)**   | Multiple overlays, top-most behavior, and nested overlays.             |
-| **[Accessibility](./accessibility.md)** | Dialog semantics, focus management, and keyboard behavior.             |
 
 For precise public API signatures, see the **[Overlay API Reference](../api/overlay.md)**.

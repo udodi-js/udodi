@@ -6,33 +6,31 @@ Persistence is opt-in. It does not change how the Store is used: `get()`, `set()
 
 For the global Store API, see [Creating Stores](./creating.md). For feature modules, see [Store Registry](./registry.md).
 
----
-
 ## How Persistence Fits the Store
 
 The Store and IndexedDB have different responsibilities:
 
 ```text
-             Application
-                  │
-                  ▼
-          ┌───────────────┐
-          │  Udodi Store  │
-          │               │
-          │ get / set     │
-          │ update / touch│
-          └───────┬───────┘
-                  │
-          persisted keys only
-                  │
-                  ▼
-          ┌───────────────┐
-          │  Persistence  │
-          │    Layer      │
-          └───────┬───────┘
-                  │
-                  ▼
-              IndexedDB
+        Application
+             │
+             ▼
+    ┌─────────────────┐
+    │   Udodi Store   │
+    │                 │
+    │ get / set       │
+    │ update / touch  │
+    └────────┬────────┘
+             │
+    persisted keys only
+             │
+             ▼
+     ┌───────────────┐
+     │  Persistence  │
+     │    Layer      │
+     └───────┬───────┘
+             │
+             ▼
+         IndexedDB
 ```
 
 The Store remains the source of truth for in-memory application state.
@@ -48,8 +46,6 @@ const theme = store.get("theme");
 ```
 
 The same code works whether `theme` is persisted or not.
-
----
 
 ## Enabling Persistence
 
@@ -86,8 +82,6 @@ store.persist([
 
 Duplicate keys are normalized automatically.
 
----
-
 ## Persisting Module State
 
 Store modules expose the same persistence API using local module keys:
@@ -117,32 +111,30 @@ user  → auth:user
 
 Application code therefore works entirely with local module keys.
 
----
-
 ## How Persistence Works
 
 Calling `persist()` establishes a persistence controller:
 
 ```text
 persist(keys, options)
-        │
-        ▼
-   open IndexedDB
-        │
-        ▼
-   hydrate? ───── yes ───► restore saved values
-        │
-        ▼
-   subscribe to keys
-        │
-        ▼
-   state changes
-        │
-        ▼
-   schedule persistence
-        │
-        ▼
-   IndexedDB transaction
+    │
+    ▼
+open IndexedDB
+    │
+    ▼
+hydrate?  ────  yes  ───►  restore saved values
+    │
+    ▼
+subscribe to keys
+    │
+    ▼
+state changes
+    │
+    ▼
+schedule persistence
+    │
+    ▼
+IndexedDB transaction
 ```
 
 The important part is that hydration happens before persistence subscriptions are installed when `hydrate` is enabled. This prevents restored values from immediately being treated as new changes and written back to IndexedDB.
@@ -168,8 +160,6 @@ await controller.ready;
 ```
 
 Use `ready` when application startup needs to wait until persisted state has been restored.
-
----
 
 ## Persistence Options
 
@@ -200,8 +190,6 @@ const controller = store.persist(
 | `onError` | `console.warn` | Receives IndexedDB errors. |
 
 Modules use the same options. Their internal namespace prefix ensures that persisted keys belonging to different modules do not collide.
-
----
 
 ## The Persistence Controller
 
@@ -382,8 +370,6 @@ stop()
 | `clear()` | Removed | Unchanged | Continue persisting |
 | `stop()` | Kept | Unchanged | No longer persisted |
 
----
-
 ## Hydration
 
 Hydration restores previously persisted values into the Store.
@@ -444,8 +430,6 @@ store.persist(
 
 In this mode, existing IndexedDB values are not restored into the Store. Future changes are still persisted.
 
----
-
 ## What Gets Stored
 
 Before values are written to IndexedDB, Udodi converts them into structured-clone-friendly data.
@@ -487,8 +471,6 @@ removeOnUndefined: false
 ```
 
 the persistence layer retains `undefined` rather than deleting the IndexedDB entry.
-
----
 
 ## Debouncing Writes
 
@@ -550,8 +532,6 @@ await controller.flush();
 
 writes pending changes immediately.
 
----
-
 ## Error Handling
 
 IndexedDB operations can fail; for example, while opening the database, hydrating data, or writing a transaction.
@@ -581,8 +561,6 @@ even if IndexedDB persistence encounters an error.
 
 A failed write is re-queued only when there is not already a newer pending value for that same key. This prevents an older failed write from overwriting a newer queued value.
 
----
-
 ## Inactive Controllers
 
 Persistence gracefully handles environments where IndexedDB cannot be used.
@@ -592,17 +570,15 @@ If IndexedDB is unavailable, setup fails, or no keys are supplied, the returned 
 An inactive controller has:
 
 ```text
-ready  → false
-flush  → no-op
-clear  → no-op
-stop   → no-op
+ready  →  false
+flush  →  no-op
+clear  →  no-op
+stop   →  no-op
 ```
 
 The Store itself continues to work normally.
 
 This is an important property of the design: persistence is an optional capability, not a prerequisite for using Store state.
-
----
 
 ## Persistence and Store Lifecycle
 
@@ -620,8 +596,6 @@ Persistence is tied to the lifecycle of the Store keys it manages.
 You therefore do not need to manually stop a controller before deleting a persisted key or destroying its owning module.
 
 The Store handles the associated persistence registration as part of key removal.
-
----
 
 ## Persistence and Modules
 
@@ -668,8 +642,6 @@ destroyStore("auth");
 ```
 
 its tracked state keys are removed and their persistence registrations are stopped automatically.
-
----
 
 ## Full Example
 
@@ -763,30 +735,28 @@ The important sequence is:
 
 ```text
 Application starts
-      │
-      ▼
+    │
+    ▼
 persist()
-      │
-      ▼
+    │
+    ▼
 await controller.ready
-      │
-      ▼
+    │
+    ▼
 hydrated Store state
-      │
-      ▼
+    │
+    ▼
 normal synchronous Store usage
-      │
-      ▼
+    │
+    ▼
 Store changes
-      │
-      ▼
+    │
+    ▼
 debounced persistence
-      │
-      ▼
+    │
+    ▼
 IndexedDB
 ```
-
----
 
 ## When to Persist
 
@@ -800,15 +770,13 @@ IndexedDB
 
 Persistence is particularly useful when the Store owns the state independently of a server-data lifecycle.
 
-For asynchronous server data, caching, invalidation, retries, and mutations, prefer [Query Pool](../query-pool/README.md) rather than using persisted Store keys as a replacement for a server-data cache.
+For asynchronous server data, caching, invalidation, retries, and mutations, prefer [Query Pool](../query-pool/index.md) rather than using persisted Store keys as a replacement for a server-data cache.
 
 ### Be deliberate with sensitive data
 
 IndexedDB is client-side storage. Persisting authentication tokens or other sensitive values should be an explicit security decision.
 
 Do not assume that because a value is stored in IndexedDB rather than `localStorage`, it is automatically safe from application-level compromise.
-
----
 
 ## Store Persistence vs Query Pool
 
@@ -835,12 +803,3 @@ A Query Pool entry says:
 > "This is asynchronous data whose freshness and request lifecycle Udodi manages."
 
 Keeping those responsibilities separate prevents the Store from becoming an ad-hoc server-data cache.
-
----
-
-## Next Steps
-
-* **[Creating Stores](./creating.md)** — Global state, actions, batching, selectors, and subscriptions.
-* **[Store Registry](./registry.md)** — Feature modules, reactive state, actions, and destruction.
-* **[Store Overview](./overview.md)** — Store mental model, state ownership, and when to use Store versus Query Pool.
-* **[Store API Reference](../api/store.md)** — Exact persistence signatures, options, and return values.

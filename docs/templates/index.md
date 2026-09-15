@@ -6,8 +6,6 @@ A template describes the DOM structure of a component. Udodi directives, identif
 
 Templates are designed to remain close to HTML while providing the reactive behavior needed to build interactive interfaces.
 
----
-
 ## Templates in Components
 
 A component defines its markup through the `template` option.
@@ -26,7 +24,7 @@ const Greeting = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <div>
       <p>Hello, <span @text="userName"></span></p>
     </div>
@@ -39,8 +37,6 @@ render(Greeting(), "#app");
 The template remains ordinary HTML, with Udodi directives added where dynamic behavior is required.
 
 A component template must produce exactly one root element when mounted.
-
----
 
 ## Directives
 
@@ -58,27 +54,25 @@ The directive connects the DOM event to the component's `save` method.
 
 Udodi provides directives for common UI operations:
 
-| Directive | Purpose |
-|-----------|---------|
-| [`@text`](./text.md) | Bind an element's text content |
-| [`@bind`](./bind.md) | Bind form control values to component data |
-| [`@on`](./on.md) | Handle DOM events |
-| [`@ref`](./ref.md) | Register a DOM element reference |
-| [`@if`](./if.md) | Conditionally render content |
-| [`@show`](./show.md) | Toggle element visibility |
-| [`@for`](./for.md) | Render repeated content |
-| [`@class`](./class.md) | Manage element classes |
-| [`@style`](./style.md) | Manage inline styles |
-| [`@attr`](./attr.md) | Bind element attributes |
-| [`@teleport`](./teleport.md) | Render content at another DOM target |
+| Directive                    | Purpose                                    |
+| ---------------------------- | ------------------------------------------ |
+| [`@text`](./text.md)         | Bind an element's text content             |
+| [`@bind`](./bind.md)         | Bind form control values to component data |
+| [`@on`](./on.md)             | Handle DOM events                          |
+| [`@ref`](./ref.md)           | Register a DOM element reference           |
+| [`@if`](./if.md)             | Conditionally render content               |
+| [`@show`](./show.md)         | Toggle element visibility                  |
+| [`@for`](./for.md)           | Render repeated content                    |
+| [`@class`](./class.md)       | Manage element classes                     |
+| [`@style`](./style.md)       | Manage inline styles                       |
+| [`@attr`](./attr.md)         | Bind element attributes                    |
+| [`@teleport`](./teleport.md) | Render content at another DOM target       |
 
-Form-specific directives such as `@form`, `@validate`, and `@submit` are documented under [Forms](../forms/).
-
----
+Form-specific directives such as `@form`, `@validate`, and `@submit` are documented under [Forms](../forms/index.md).
 
 ## Template Expressions
 
-Directive values are evaluated against the component's internal context.
+Directive values are evaluated against the component's template context.
 
 This allows templates to access values exposed by the component, including state, computed values, methods, props, and standard library helpers provided by the template runtime.
 
@@ -94,7 +88,7 @@ const Greeting = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <p @text="userName | capitalise"></p>
   `,
 });
@@ -102,22 +96,22 @@ const Greeting = createComponent({
 
 In this example:
 
-- `userName` resolves to the component's state value.
-- `capitalise` is a standard library helper.
-- The `|` pipeline operator passes the value of `userName` through capitalise. `@text` renders the resulting value as the element's text content.
+* `userName` resolves to the component's state value.
+* `capitalise` resolves to a standard library helper.
+* The `|` pipeline operator passes the value of `userName` through `capitalise`.
+* `@text` renders the resulting value as the element's text content.
 
 The expression:
 
-```html
+```text
 userName | capitalise
 ```
 
 therefore reads the `userName` value and transforms it before rendering.
 
-More complex expression syntax, including the supported operators and
-pipeline syntax, is documented in [Template DSL](./dsl.md).
+The template DSL supports paths, function calls, pipelines, conditional expressions, literals, and directive-specific binding syntax.
 
----
+More complex expression syntax is documented in [Template DSL](./dsl.md).
 
 ## Reactive Bindings
 
@@ -135,7 +129,7 @@ const Counter = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <span @text="count"></span>
   `,
 });
@@ -145,9 +139,7 @@ When `count` changes, the `@text` binding updates the element's text content.
 
 This is part of Udodi's fine-grained reactive model. A reactive binding tracks the values it reads rather than requiring the entire component template to be rendered again.
 
-See [Reactivity](../reactivity/README.md) for the underlying reactive system.
-
----
+See [Reactivity](../reactivity/index.md) for the underlying reactive system.
 
 ## Text Content
 
@@ -157,7 +149,7 @@ Use `@text` when an element's text content should come from a template expressio
 <span @text="userName"></span>
 ```
 
-The value is evaluated reactively and applied to the element's `textContent`.
+The value is evaluated and applied to the element's `textContent`.
 
 For static text, use normal HTML:
 
@@ -168,8 +160,6 @@ For static text, use normal HTML:
 Use `@text` when the content depends on component data.
 
 See [`@text`](./text.md).
-
----
 
 ## Form Binding
 
@@ -191,11 +181,9 @@ The runtime handles the appropriate value behavior for supported form controls, 
 
 See [`@bind`](./bind.md) for the supported control types and binding behavior.
 
----
-
 ## Events
 
-Use `@on` to connect DOM events to component methods.
+Use `@on` to connect DOM events to component methods or other supported handler expressions.
 
 For example:
 
@@ -213,11 +201,35 @@ methods: {
 </button>
 ```
 
-The event expression identifies the DOM event and the component handler that should be invoked.
+The event expression identifies the DOM event and the handler that should be invoked.
 
-`@on` also supports event modifiers and handler arguments. See [`@on`](./on.md) for the complete event syntax.
+### Multiple Event Bindings
 
----
+A single `@on` directive can contain multiple event bindings:
+
+```html
+<button @on="click=save mouseover=highlight">
+  Save
+</button>
+```
+
+Each binding defines an independent event-handler relationship.
+
+Modifiers can also be specified independently:
+
+```html
+<form @on="submit.prevent=save keydown.stop=handleKey"></form>
+```
+
+`@on` handlers can use the supported function-call syntax and handler arguments:
+
+```html
+<button @on="click=save:message">
+  Save
+</button>
+```
+
+See [`@on`](./on.md) for the complete event syntax, modifiers, and handler behavior.
 
 ## Conditional Rendering
 
@@ -243,8 +255,6 @@ Use conditional rendering when the presence of the content itself should depend 
 
 See [`@if`](./if.md).
 
----
-
 ## Conditional Visibility
 
 Use `@show` when an element should remain mounted while its visibility changes.
@@ -260,8 +270,6 @@ Use `@show` when an element should remain mounted while its visibility changes.
 This makes `@show` useful when the DOM element should remain available while its visibility changes.
 
 See [`@show`](./show.md).
-
----
 
 ## Rendering Lists
 
@@ -282,24 +290,23 @@ Supported forms:
 </li>
 ```
 
-`item` and optional `index` are loop-local names. `items` is any expression that evaluates to an array.
+`item` and optional `index` are loop-local names. `items` is an expression that evaluates to a collection supported by `@for`.
 
 An optional `@key` can provide stable identity for reconciliation. List-specific syntax and behavior are documented in [`@for`](./for.md).
-
----
 
 ## Classes and Styles
 
 Use `@class` and `@style` when classes or inline styles need to respond to template values.
 
 ### Classes
-Static quoted class lists, or dynamic bindings using conditionals and expressions that return a string class list, or array class list:
+
+`@class` supports static class values as well as dynamic expressions, including conditional expressions and expressions that produce class values.
 
 ```html
-<!-- static (applied once) -->
+<!-- static -->
 <div @class="'panel elevated'"></div>
 
-<!-- dynamic: conditionally adds "active" and resolves sizeClass -->
+<!-- dynamic -->
 <div
   class="panel"
   @class="isActive=>'active' sizeClass"
@@ -308,16 +315,26 @@ Static quoted class lists, or dynamic bindings using conditionals and expression
 </div>
 ```
 
-### Inline styles
-Static CSS declaration string, or dynamic bindings that return a CSS string, object, or array of pairs:
+In the dynamic example:
+
+* `isActive=>'active'` conditionally contributes the `active` class.
+* `sizeClass` resolves a class value from the component context.
+
+Class expressions can produce supported class values such as strings or arrays.
+
+### Inline Styles
+
+`@style` supports static CSS declaration strings and dynamic expressions that produce supported style values.
 
 ```html
 <!-- static -->
 <div @style="'opacity:0.5;color:red'"></div>
 
-<!-- dynamic (binding evaluates to style payload) -->
+<!-- dynamic -->
 <div @style="boxStyles"></div>
 ```
+
+Dynamic style values can be provided in supported forms such as CSS strings, style objects, or arrays of style pairs.
 
 Normal HTML attributes remain appropriate for static values:
 
@@ -339,36 +356,40 @@ style: css`
 
 Use:
 
-- `style` for component CSS  
-- `@class` for reactive class changes  
-- `@style` for reactive inline style changes  
+* `style` for component CSS
+* `@class` for reactive class changes
+* `@style` for reactive inline style changes
 
 See [`@class`](./class.md), [`@style`](./style.md), and [Component Styles](../fundamentals/styles.md).
 
----
-
 ## Attributes
 
-Use `@attr` when HTML attributes need to be controlled by template expressions.
+Use `@attr` when HTML attributes need to be dynamically controlled by template expressions.
 
 Bindings are space-separated `name=expression` pairs:
 
 ```html
-<input @attr="disabled=isDisabled title=tooltip" />
+<input @attr="disabled=isDisabled=>'disabled' title=tooltip" />
 <a @attr="href=url aria-label=label"></a>
 ```
 
-Each expression may return a string, number, or boolean. `null`, `undefined`, or `""` removes the attribute contributed by that binding (restoring a base attribute if one existed).
+`@attr` supports one or more attribute bindings. Each binding is evaluated independently and can return a `string`, `number`, and `boolean`.
 
-Static attributes should remain ordinary HTML:
+Returning `null`, `undefined`, or `""` removes the attribute contributed by that binding. If the attribute originally existed on the element, its original value is restored.
+
+Static attributes can remain on the element alongside `@attr`:
 
 ```html
-<input disabled />
+<input class="field" @attr="disabled=isDisabled=>'disabled'" />
+```
+
+Use ordinary HTML attributes for values that do not need to be controlled dynamically:
+
+```html
+<input disabled class="field" />
 ```
 
 See [`@attr`](./attr.md).
-
----
 
 ## DOM References
 
@@ -394,8 +415,6 @@ Prefer declarative directives when the behavior can be expressed directly in the
 
 See [`@ref`](./ref.md).
 
----
-
 ## Teleporting Content
 
 Use `@teleport` when content needs to be rendered into another DOM target.
@@ -404,9 +423,7 @@ This is useful for UI that needs to escape its normal DOM position, such as laye
 
 See [`@teleport`](./teleport.md).
 
-For higher-level modal and layered UI behavior, see [Overlay](../overlay/README.md).
-
----
+For higher-level modal and layered UI behavior, see [Overlay](../overlay/index.md).
 
 ## Nested Components
 
@@ -433,8 +450,6 @@ Parent component
 
 Component inputs and live property bindings are documented in [Props](../fundamentals/props.md).
 
----
-
 ## Template and Reactivity
 
 Templates are integrated directly with Udodi's fine-grained reactivity system.
@@ -458,9 +473,7 @@ When the relevant reactive value changes, the binding can update the affected DO
 
 This is one of the main differences between Udodi's template model and component systems based primarily on whole-component re-rendering.
 
-See [Reactivity Overview](../reactivity/overview.md).
-
----
+See [Reactivity Overview](../reactivity/index.md).
 
 ## Template Lifecycle
 
@@ -493,8 +506,6 @@ The template declares the desired structure and behavior. The runtime performs t
 When the component is unmounted, the runtime removes the resources associated with the mounted component, including directive and reactive cleanup.
 
 See [Lifecycle](../fundamentals/lifecycle.md).
-
----
 
 ## Template Rules
 
@@ -536,7 +547,33 @@ Prefer expressing UI behavior through directives and component methods.
 
 Use direct DOM access through `@ref` when imperative browser APIs are actually required.
 
----
+### Directive-Specific Syntax
+
+The shared template DSL provides common expression forms, but individual directives may accept different value shapes.
+
+For example, `@attr` and `@on` support multiple named bindings:
+
+```html
+<a @attr="href=url title=tooltip"></a>
+<button @on="click=save mouseover=highlight"></button>
+```
+
+Other directives normally consume a single expression:
+
+```html
+<span @text="user.name"></span>
+```
+
+Likewise, conditional expressions can contain another supported expression on their right-hand side:
+
+```text
+isActive => activeClass
+isActive => getClass:size
+```
+
+Do not assume that syntax valid for one directive is automatically valid for another.
+
+See [Template DSL](./dsl.md) for the shared expression language and directive expression rules.
 
 ## Template DSL
 
@@ -546,40 +583,26 @@ For example:
 
 ```html
 <span @text="name"></span>
-<button @on="click=save">Save</button>
+<button @on="click=save"></button>
 <div @show="visible"></div>
+<div @class="isActive=>'active' sizeClass"></div>
 ```
+
+The DSL supports:
+
+* Paths such as `user.name`
+* Function calls such as `save:message`
+* Pipelines such as `userName | capitalise`
+* Conditional expressions such as `isActive=>'active'`
+* Literal values such as `'Hello'`, `42`, and `true`
+* Directive-specific bindings such as `href=url`
+* Multiple bindings where the directive supports them
 
 The individual directives build on this expression system, but each directive has its own value semantics and syntax.
 
 Do not assume that the syntax of one directive applies to another.
 
-See [Template DSL](./dsl.md) for the expression language and directive expression rules.
-
----
-
-## Where to Go Next
-
-| Goal | Guide |
-|------|--------|
-| Understand template syntax | [Template DSL](./dsl.md) |
-| Bind text content | [`@text`](./text.md) |
-| Bind form controls | [`@bind`](./bind.md) |
-| Handle DOM events | [`@on`](./on.md) |
-| Access DOM elements | [`@ref`](./ref.md) |
-| Conditionally render content | [`@if`](./if.md) |
-| Toggle visibility | [`@show`](./show.md) |
-| Render collections | [`@for`](./for.md) |
-| Manage classes | [`@class`](./class.md) |
-| Manage inline styles | [`@style`](./style.md) |
-| Bind attributes | [`@attr`](./attr.md) |
-| Teleport content | [`@teleport`](./teleport.md) |
-| Understand component context | [Context](../fundamentals/context.md) |
-| Understand reactivity | [Reactivity Overview](../reactivity/overview.md) |
-| Build forms | [Forms](../forms/README.md) |
-| Build modals and layered UI | [Overlay](../overlay/README.md) |
-
----
+See [Template DSL](./dsl.md) for the complete expression language and directive expression rules.
 
 ## Summary
 
@@ -587,13 +610,12 @@ Udodi templates combine standard HTML with a focused set of `@` directives.
 
 Use templates to:
 
-- describe component markup  
-- bind reactive values to DOM content and properties  
-- handle DOM events  
-- conditionally render content  
-- render collections  
-- manage classes, styles, and attributes  
-- access DOM elements when imperative access is required  
-- compose components  
-
-Start with the [Template DSL](./dsl.md) to understand template expressions, then use the individual directive guides for directive-specific syntax and behavior.
+* describe component markup
+* bind reactive values to DOM content and properties
+* handle DOM events, including multiple event bindings
+* conditionally render content
+* render collections
+* manage classes, styles, and attributes
+* access DOM elements when imperative access is required
+* compose components
+* express dynamic values through the template DSL

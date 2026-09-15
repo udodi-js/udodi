@@ -18,8 +18,6 @@ You will learn how to:
 
 By the end of this guide, you will have a small counter application that demonstrates the basic structure of Udodi component.
 
----
-
 ## Installation
 
 If you have not installed Udodi yet, see the [Installation](./installation.md) guide.
@@ -78,8 +76,6 @@ const Counter = createComponent({
     console.log("Counter component unmounted");
   },
 
-  // Interceptors run before a root state assignment is committed.
-  // Return a transformed value, or `undefined` to cancel the update.
   interceptors: {
     count(value) {
       // Keep count non-negative.
@@ -103,7 +99,7 @@ const Counter = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <main class="counter">
       <h1>Counter</h1>
 
@@ -118,8 +114,6 @@ const Counter = createComponent({
 
 render(Counter(), "#app");
 ```
-
-> **Note:** The `css` and `html` helpers are pass-through tagged templates. They do not change the runtime behavior of your styles or templates, but can provide better syntax highlighting and editor support.
 
 This component demonstrates the main options available when defining Udodi component:
 
@@ -317,7 +311,7 @@ interceptors: {
 
 Interceptors are useful when state assignments need normalization, transformation, or validation before the new value is committed.
 
-Learn more in [Interceptors](./fundamentals/interceptor.md).
+Learn more in [Interceptors](./fundamentals/interceptors.md).
 
 
 ### Component Styles
@@ -356,7 +350,7 @@ The `template` property defines the component's HTML. It may be a string or a fu
 The rendered template must have **exactly one root element**.
 
 ```js
-template: () => html`
+template: html`
   <main class="counter">
     <h1>Counter</h1>
 
@@ -379,7 +373,7 @@ In this example:
 
 The optional `html` tagged template is a pass-through helper intended primarily for editor syntax highlighting and future tooling.
 
-Learn more in [Templates and Directives](./templates/) and [Template DSL](./templates/dsl.md).
+Learn more in [Templates and Directives](./templates/index.md) and [Template DSL](./templates/dsl.md).
 
 
 ## Mount the Application
@@ -413,7 +407,7 @@ render(Counter(), document.getElementById("app"));
 
 Your application is now running.
 
-When you click **+**:
+When you click **`+`**:
 
 1. The `increment` method changes `count`.
 2. Udodi detects the reactive state change.
@@ -499,7 +493,7 @@ const Counter = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <main class="counter">
       <h1>Counter</h1>
 
@@ -578,42 +572,29 @@ The template DSL intentionally avoids arbitrary JavaScript expressions. Template
 
 ## Where to Go Next
 
-### Learn Components
-
-* [Components](./fundamentals/components.md)
-* [State](./fundamentals/state.md)
-* [Methods](./fundamentals/methods.md)
-* [Computed Values](./fundamentals/computed.md)
-* [Watchers](./fundamentals/watch.md)
-* [Interceptors](./fundamentals/interceptor.md)
-* [Lifecycle](./fundamentals/lifecycle.md)
-* [Props](./fundamentals/props.md)
-* [Context](./fundamentals/context.md)
-* [Component Styles](./fundamentals/styles.md)
-
 ### Learn Reactivity
 
-Start with the [Reactivity Overview](./reactivity/overview.md).
+Start with the [Reactivity Overview](./reactivity/index.md).
 
 ### Learn Templates
 
-Start with the [Template Overview](./templates/overview.md).
+Start with the [Template Overview](./templates/index.md).
 
 ### Build Forms
 
-See the [Forms Overview](./forms/overview.md).
+See the [Forms Overview](./forms/index.md).
 
 ### Manage Application State
 
-Explore [Udodi Store](./store/).
+Explore [Udodi Store](./store/index.md).
 
 ### Manage Asynchronous Data
 
-Explore [Query Pool](./query-pool/).
+Explore [Query Pool](./query-pool/index.md).
 
 ### Build Modals and Dialogs
 
-See the [Overlay system](./overlay/).
+See the [Overlay system](./overlay/index.md).
 
 ### Explore the API
 

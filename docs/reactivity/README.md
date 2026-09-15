@@ -4,20 +4,16 @@ Udodi uses fine-grained reactivity to update only the parts of the interface tha
 
 Learn how Udodi’s reactive primitives work together, including signals, effects, computed values, reactive objects, collections, and explicit dependency notification.
 
----
-
 ## Guides
 
-* [Reactivity Overview](./overview.md)
+* [Reactivity Overview](./index.md)
 * [Signals](./signals.md)
 * [Effects](./effects.md)
 * [Reactive State](./state.md)
 * [Reactive Collections](./collections.md)
 * [Using `touch()`](./touch.md)
 
-**Start here → [Reactivity Overview](./overview.md)**
-
----
+**Start here → [Reactivity Overview](./index.md)**
 
 ## What Reactivity Means in Udodi
 
@@ -39,8 +35,6 @@ signal / reactive property
 
 This is the foundation of fine-grained updates: the runtime does not re-evaluate an entire component tree when a single field changes.
 
----
-
 ## Core Primitives
 
 | Primitive | Role |
@@ -53,8 +47,6 @@ This is the foundation of fine-grained updates: the runtime does not re-evaluate
 | **`touch()`** | Explicitly notify dependents after an in-place nested mutation |
 
 These primitives form the foundation for component `state()`, `computed` properties, watchers, and template directives.
-
----
 
 ## Shallow by Default
 
@@ -84,8 +76,6 @@ state.items.push({ id: 1 });
 
 This model keeps the dependency graph small and predictable while still supporting common collection updates without ceremony.
 
----
-
 ## Scheduling
 
 Reactive jobs are batched and flushed in a microtask.
@@ -95,8 +85,6 @@ Reactive jobs are batched and flushed in a microtask.
 - Jobs scheduled during a flush run in a subsequent pass until the queue is empty.
 
 You normally do not schedule work yourself; `set`, collection mutations, and `touch()` drive the queue.
-
----
 
 ## How the Pieces Fit Together
 
@@ -121,20 +109,16 @@ watch: { }         → effects over declared deps
 template bindings  → effects that update the DOM
 ```
 
----
-
 ## When to Reach for Each Guide
 
 | Goal | Guide |
 |------|--------|
-| Understand the overall model | [Reactivity Overview](./overview.md) |
+| Understand the overall model | [Reactivity Overview](./index.md) |
 | Work with the lowest-level primitive | [Signals](./signals.md) |
 | Run code when dependencies change | [Effects](./effects.md) |
 | Use reactive objects and interceptors | [Reactive State](./state.md) |
 | Mutate arrays, Maps and Sets reactively | [Reactive Collections](./collections.md) |
 | Notify after nested in-place changes | [Using `touch()`](./touch.md) |
-
----
 
 ## Design Notes
 
@@ -146,11 +130,9 @@ template bindings  → effects that update the DOM
 
 These choices keep the runtime small and the mental model stable as applications grow.
 
----
-
 ## Next Steps
 
-* [Reactivity Overview](./overview.md) — start here for the full picture  
+* [Reactivity Overview](./index.md) — start here for the full picture  
 * [Signals](./signals.md) — the primitive reactive cell  
 * [Effects](./effects.md) — dependency tracking and re-execution  
 * [Reactive State](./state.md) — `reactive()` and interceptors  

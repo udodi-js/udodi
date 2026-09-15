@@ -11,7 +11,7 @@ documented separately under [Forms](../forms/README.md).
 
 ## Guides
 
-* [Template Overview](./overview.md)
+* [Template Overview](./index.md)
 * [Template DSL](./dsl.md)
 * [`@text`](./text.md)
 * [`@bind`](./bind.md)
@@ -25,7 +25,7 @@ documented separately under [Forms](../forms/README.md).
 * [`@attr`](./attr.md)
 * [`@teleport`](./teleport.md)
 
-**Start here → [Template Overview](./overview.md)**
+**Start here → [Template Overview](./index.md)**
 
 ---
 
@@ -124,7 +124,7 @@ See [Reactivity](../reactivity/README.md) for the underlying reactive system.
 
 | Goal | Guide |
 |------|--------|
-| Big picture and mental model | [Template Overview](./overview.md) |
+| Big picture and mental model | [Template Overview](./index.md) |
 | Expression syntax and DSL rules | [Template DSL](./dsl.md) |
 | Display reactive text | [`@text`](./text.md) |
 | Two-way inputs | [`@bind`](./bind.md) |
@@ -142,8 +142,8 @@ See [Reactivity](../reactivity/README.md) for the underlying reactive system.
 
 ## Next Steps
 
-* [Template Overview](./overview.md) — start here  
+* [Template Overview](./index.md) — start here  
 * [Template DSL](./dsl.md) — expression and directive syntax  
-* [Reactivity Overview](../reactivity/overview.md) — how bindings stay in sync  
+* [Reactivity Overview](../reactivity/index.md) — how bindings stay in sync  
 * [Components](../fundamentals/components.md) — where `template` lives on a component  
 * [Forms](../forms/README.md) — `@form`, `@validate`, `@submit`  

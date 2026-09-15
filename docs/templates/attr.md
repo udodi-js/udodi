@@ -6,8 +6,6 @@ Use it when an attribute value depends on component state. For fixed values, use
 
 `@attr` works at the **attribute level**: values are written with `setAttribute()` and removed with `removeAttribute()`. It does not assign DOM properties such as `element.disabled` or `element.value`.
 
----
-
 ## Basic Usage
 
 ```html
@@ -45,8 +43,6 @@ state() {
 
 Each binding is evaluated as part of the same reactive effect.
 
----
-
 ## Example
 
 ```js
@@ -74,8 +70,6 @@ render(DocLink(), "#app");
 ```
 
 When `href` or `label` changes, the corresponding HTML attribute is updated automatically.
-
----
 
 ## Binding Values
 
@@ -128,8 +122,6 @@ The resulting attribute is:
 <div tabindex="2"></div>
 ```
 
----
-
 ## Boolean Attributes
 
 `@attr` uses `setAttribute()` and therefore does **not** interpret JavaScript booleans as HTML boolean-attribute presence.
@@ -172,8 +164,6 @@ When it is falsy, the dynamic `disabled` attribute is removed.
 
 See [Template DSL](./dsl.md) for supported conditional expressions.
 
----
-
 ## Static Attribute Values
 
 A standalone quoted string is **not** a valid `@attr` directive:
@@ -204,8 +194,6 @@ state() {
   };
 }
 ```
-
----
 
 ## Base Attributes
 
@@ -240,8 +228,6 @@ For example, if `url` becomes `null`, the element returns to:
 
 This allows reactive attributes to temporarily override normal HTML attributes without permanently destroying their original values.
 
----
-
 ## Dynamic Ownership
 
 `@attr` tracks the attributes produced by the directive separately from the element's original attributes.
@@ -265,8 +251,6 @@ HTML attributes
 Only attributes previously produced by `@attr` are considered for removal or restoration during subsequent evaluations.
 
 This prevents unrelated attributes from being modified by the directive.
-
----
 
 ## Diffing
 
@@ -295,14 +279,12 @@ Conceptually:
                   │
                   ▼
           compare with previous
-        ┌──────────┴──────────┐
-        ▼                     ▼
-  restore / remove       set changed
+       ┌──────────┴──────────┐
+       ▼                     ▼
+ restore / remove       set changed
 ```
 
 This avoids unnecessary `setAttribute()` and `removeAttribute()` calls.
-
----
 
 ## Multiple Bindings
 
@@ -333,8 +315,6 @@ The resulting `title` comes from `secondTitle`.
 
 The merged result contains each target attribute only once.
 
----
-
 ## Reactive Attributes
 
 Because dynamic `@attr` bindings run inside a reactive effect, dependencies are tracked automatically.
@@ -361,8 +341,6 @@ This makes `@attr` suitable for state-dependent values such as:
 * `data-*`
 * custom attributes
 
----
-
 ## `@attr` vs Other Directives
 
 | Need                      | Prefer                 |
@@ -385,8 +363,6 @@ For example:
 ```
 
 Each directive owns a different part of the element's behavior.
-
----
 
 ## Attributes vs DOM Properties
 
@@ -424,8 +400,6 @@ input.value = value;
 
 For two-way form state, use [`@bind`](./bind.md).
 
----
-
 ## Example
 
 ```js
@@ -442,7 +416,7 @@ const Avatar = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <a @attr="href=profileUrl">
       <img @attr="src=src alt=alt" />
     </a>
@@ -461,8 +435,6 @@ alt         ──► alt
 ```
 
 Changing any of these state values updates only its corresponding attribute.
-
----
 
 ## Behavior
 
@@ -483,8 +455,6 @@ Changing any of these state values updates only its corresponding attribute.
 * Removes the `@attr` attribute after setup.
 * Disposes its reactive effect with the component scope.
 
----
-
 ## Syntax Summary
 
 | Form                           | Behavior                                             |
@@ -495,8 +465,6 @@ Changing any of these state values updates only its corresponding attribute.
 | `null` / `undefined` / `""`    | Drop the dynamic attribute or restore its base value |
 | Other values                   | Convert with `String(value)`                         |
 | Duplicate target               | Later binding wins                                   |
-
----
 
 ## Constraints
 
@@ -510,8 +478,6 @@ Changing any of these state values updates only its corresponding attribute.
 | DOM properties     | Not assigned; use the appropriate property-oriented directive |
 | Diffing            | Only changed dynamic attributes are written                   |
 | Runtime attribute  | `@attr` is removed after binding                              |
-
----
 
 ## Minimal Example
 
@@ -528,7 +494,7 @@ const Avatar = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <img @attr="src=src alt=alt" />
   `,
 });
@@ -537,14 +503,3 @@ render(Avatar(), "#app");
 ```
 
 The `src` and `alt` attributes are kept synchronized with component state.
-
----
-
-## Next Steps
-
-* [`@class`](./class.md) — reactive CSS classes
-* [`@style`](./style.md) — reactive inline styles
-* [`@bind`](./bind.md) — two-way form bindings
-* [`@ref`](./ref.md) — element references
-* [Template DSL](./dsl.md) — binding and expression syntax
-* [Template Overview](./overview.md) — template directive fundamentals

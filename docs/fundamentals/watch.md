@@ -35,7 +35,7 @@ const Counter = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <main>
       <p>Count: <span @text="count"></span></p>
       <button @on="click=increment">+</button>
@@ -57,8 +57,6 @@ Use watchers for side effects such as:
 * responding to state changes that cannot be represented as derived data
 
 If you only need to calculate a value for the UI, use a [computed value](./computed.md) instead.
-
----
 
 ## Defining Watchers
 
@@ -106,8 +104,6 @@ this.countChange
 ```
 
 The label only identifies the watcher configuration. The runtime iterates over the watcher entries directly rather than registering their names as component context keys.
-
----
 
 ## Handler Signature
 
@@ -167,8 +163,6 @@ This is important when using multiple dependencies: the handler can determine bo
 
 The runtime constructs these two objects on every watcher evaluation and calls the handler with them when at least one dependency has changed.
 
----
-
 ## Handler Context
 
 The handler is called with the component's **public context as `this`**:
@@ -225,8 +219,6 @@ Use `newValues` and `oldValues` for the dependency snapshots. Use `this` when th
 
 The runtime invokes the handler with `publicContextMembrane` as its `this` value.
 
----
-
 ## Top-Level Dependencies
 
 Watcher dependencies are **top-level state keys**.
@@ -268,8 +260,6 @@ watch: {
 The watcher observes the root `user` value. It does not independently subscribe to `user.name`.
 
 This follows Udodi's shallow component reactivity model: watcher dependencies are tracked at the first level of the component state.
-
----
 
 ## Nested State and `touch()`
 
@@ -343,8 +333,6 @@ Root replacement produces a new root value and therefore notifies dependents.
 
 See [State](./state.md) and [Using `touch()`](../reactivity/touch.md).
 
----
-
 ## Initial Evaluation Is Skipped
 
 When a watcher is created, Udodi performs an initial evaluation to establish the previous values of its dependencies.
@@ -379,17 +367,12 @@ At least one changed?
   No        Yes
    │         │
    ▼         ▼
-stop     handler(
-          newValues,
-          oldValues
-        )
+ stop     handler(newValues, oldValues)
 ```
 
 The implementation maintains a `prevValues` object for each watcher. On the first effect execution, the current dependency values are stored and `initialized` is set without invoking the handler. On later executions, the handler runs only when `Object.is()` detects a difference.
 
 This prevents the initial state from being interpreted as a change.
-
----
 
 ## Change Detection
 
@@ -436,8 +419,6 @@ previousUser === currentUser
 This is why `touch()` is important when an object is mutated in place and dependents need to be notified.
 
 The watcher implementation explicitly uses `Object.is(previous, current)` for each dependency.
-
----
 
 ## Multiple Dependencies
 
@@ -490,8 +471,6 @@ handler(newValues, oldValues) {
 
 The handler receives a complete snapshot of the declared dependencies, not a map containing only the changed keys.
 
----
-
 ## Multiple Watchers
 
 A component can define multiple independent watchers:
@@ -532,8 +511,6 @@ Each watcher maintains its own dependency snapshot and change detection.
 
 Do not make application logic depend on the execution order of multiple watchers that happen to respond to the same state change.
 
----
-
 ## Watcher Labels Are Not Context Keys
 
 Watcher labels do not become root-level component properties.
@@ -565,8 +542,6 @@ This differs from:
 * `props`
 
 whose names become part of the component's root namespace. The component registry validates those namespaces for collisions, while watcher labels are simply configuration entries.
-
----
 
 ## Watchers and Methods
 
@@ -601,8 +576,6 @@ This keeps the responsibilities separate:
 * the **method** contains reusable behavior
 
 The method can then be called from elsewhere in the component without duplicating the persistence logic.
-
----
 
 ## Watchers and Computed Values
 
@@ -652,8 +625,6 @@ A useful rule is:
 
 > **Use computed values to derive data. Use watchers to react to changes with side effects.**
 
----
-
 ## Watchers, Computed Values, and Methods
 
 The three APIs have distinct responsibilities:
@@ -700,14 +671,12 @@ Conceptually:
 ```text
 state
   │
-  ├──> computed ──> derived value
+  ├──► computed ──► derived value
   │
-  └──> watch ─────> side effect
+  └──► watch ─────► side effect
 
-methods ──────────> explicit behavior
+methods ──────────► explicit behavior
 ```
-
----
 
 ## Synchronizing with the Global Store
 
@@ -764,7 +733,7 @@ const Counter = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <button @on="click=increment">
       Count: <span @text="count"></span>
     </button>
@@ -825,8 +794,6 @@ callback(next, prev)
 
 Use component `watch` when reacting to component state. Use `store.subscribe()` when reacting directly to global store state.
 
----
-
 ## Persisting State with a Watcher
 
 A watcher can persist a component value:
@@ -849,8 +816,6 @@ watch: {
 Because the initial watcher handler is skipped, this runs only after a subsequent `count` change.
 
 If the application already uses Udodi's global store persistence facilities, it may be preferable to persist the store key directly rather than introducing a component watcher solely for persistence.
-
----
 
 ## Synchronizing an External System
 
@@ -886,8 +851,6 @@ this.user = {
 
 when the external system needs to be notified.
 
----
-
 ## Reacting to Several Fields Together
 
 ```js
@@ -921,8 +884,6 @@ newValues.body === oldValues.body;
 
 the handler still receives both keys.
 
----
-
 ## Comparing Previous and Current Values
 
 `oldValues` is useful when behavior depends on the transition between states rather than only the current value:
@@ -945,8 +906,6 @@ watch: {
 ```
 
 Because the initial handler invocation is skipped, `oldValues` represents the value captured by the previous watcher evaluation when the handler actually runs.
-
----
 
 ## Triggering Asynchronous Work
 
@@ -971,7 +930,7 @@ methods: {
 },
 ```
 
-For asynchronous data fetching, prefer the [Query Pool](../query-pool/overview.md) instead of managing requests directly inside a watcher.
+For asynchronous data fetching, prefer the [Query Pool](../query-pool/index.md) instead of managing requests directly inside a watcher.
 
 The Query Pool is designed for reactive queries and mutations and provides capabilities such as:
 
@@ -986,9 +945,7 @@ The Query Pool is designed for reactive queries and mutations and provides capab
 
 A watcher is primarily a reactive side-effect trigger. It does not itself provide request cancellation, caching, stale-result handling, or a concurrency policy.
 
-Use a watcher when a state change needs to trigger a side effect that does not require query lifecycle management. For reactive data fetching or other managed asynchronous workflows, use the [Query Pool](../query-pool/overview.md) instead.
-
----
+Use a watcher when a state change needs to trigger a side effect that does not require query lifecycle management. For reactive data fetching or other managed asynchronous workflows, use the [Query Pool](../query-pool/index.md) instead.
 
 ## Watchers and Cleanup
 
@@ -1037,8 +994,6 @@ For resources whose lifetime should span the entire mounted component, `onMount`
 
 See [Lifecycle](./lifecycle.md).
 
----
-
 ## Avoiding Feedback Loops
 
 A watcher can update state, but care is required when it writes to one of its own dependencies.
@@ -1079,8 +1034,6 @@ watch: {
 
 For transformations that should happen whenever a root state value is assigned, an [interceptor](./interceptors.md) may be a better fit.
 
----
-
 ## Watchers and Interceptors
 
 Interceptors and watchers operate at different stages of state updates.
@@ -1103,11 +1056,7 @@ watch: {
     deps: ["count"],
 
     handler(newValues, oldValues) {
-      console.log(
-        oldValues.count,
-        "→",
-        newValues.count,
-      );
+      console.log(oldValues.count, "→", newValues.count);
     },
   },
 },
@@ -1119,8 +1068,6 @@ Use:
 * **watchers** to react to changes in committed reactive state
 
 See [Interceptors](./interceptors.md).
-
----
 
 ## Watchers and State Replacement
 
@@ -1163,8 +1110,6 @@ touch(this, "user");
 
 or replace the root value.
 
----
-
 ## Constraints
 
 | Constraint             | Behavior                                                                |
@@ -1182,8 +1127,6 @@ or replace the root value.
 | Watcher lifetime       | Watcher effects are scoped to the component instance                    |
 | External resources     | Resources created by handlers require their own cleanup                 |
 | Feedback loops         | Writing watched state can trigger the watcher again                     |
-
----
 
 ## Minimal Example
 
@@ -1219,7 +1162,7 @@ const Counter = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <button @on="click=increment">
       Count: <span @text="count"></span>
     </button>
@@ -1230,16 +1173,3 @@ render(Counter(), "#app");
 ```
 
 The initial `count` value is recorded without invoking the handler. Each subsequent change to `count` produces a `newValues` / `oldValues` pair and invokes the handler.
-
----
-
-## Next Steps
-
-* [Components](./components.md) — the component model and root-level behavior
-* [State](./state.md) — reactive state and shallow updates
-* [Computed Values](./computed.md) — derived values instead of side effects
-* [Methods](./methods.md) — explicit actions and reusable behavior
-* [Interceptors](./interceptors.md) — transforming or cancelling root-level state writes
-* [Lifecycle](./lifecycle.md) — mounting, unmounting, and cleanup
-* [Using `touch()`](../reactivity/touch.md) — notifying after nested mutations
-* [Reactivity Overview](../reactivity/overview.md) — signals, effects, and reactive primitives

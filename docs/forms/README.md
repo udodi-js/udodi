@@ -33,7 +33,7 @@ These directives work together rather than operating independently. `@form` esta
 
 | Guide                                                              | Description                                                                                                         |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| **[Forms Overview](./overview.md)**                                | Understand the form system, its architecture, and how forms, fields, validation, and submission fit together.       |
+| **[Forms Overview](./index.md)**                                | Understand the form system, its architecture, and how forms, fields, validation, and submission fit together.       |
 | **[Creating a Form](./creating.md)**                               | Register a form with `@form` and configure its validation strategy.                                                 |
 | **[Working with Fields](./fields.md)**                             | Learn about field registration, names, field state, and the form controller's field API.                            |
 | **[Validation](./validation.md)**                                  | Define field validators, use built-in validation patterns, create custom validators, and access validation context. |
@@ -42,7 +42,7 @@ These directives work together rather than operating independently. `@form` esta
 | **[Form Controllers](./controllers.md)**                           | Use the reactive form controller API for reading state, managing fields, setting errors, resetting forms, and more. |
 | **[Async Validation](./async.md)**                                 | Build asynchronous validators with `AbortSignal`, cancellation, and race-condition safety.                          |
 
-**Start here → [Forms Overview](./overview.md)**
+**Start here → [Forms Overview](./index.md)**
 
 ---
 
@@ -345,6 +345,6 @@ See **[Form Submission](./submission.md)** for the full submission lifecycle.
 
 Form directives are part of Udodi's template DSL, but their behavior is specific to form state and validation.
 
-For the broader template system and general-purpose directives such as `@bind`, `@on`, `@text`, `@attr`, and `@class`, see **[Templates and Directives](../templates/README.md)**.
+For the broader template system and general-purpose directives such as `@bind`, `@on`, `@text`, `@attr`, and `@class`, see **[Templates and Directives](../templates/index.md)**.
 
 For the complete public form API, see **[Form API Reference](../api/form.md)**.

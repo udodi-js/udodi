@@ -6,8 +6,6 @@ This guide takes a closer look at the structure of a Udodi component and explain
 
 If you are completely new to Udodi, start with the [Quick Start](./quick-start.md) first.
 
----
-
 ## A Complete Component
 
 A component can be created with `createComponent()`:
@@ -88,7 +86,7 @@ const Counter = createComponent({
 		}
 	`,
 
-	template: () => html`
+	template: html`
 		<main class="counter">
 			<h1>Counter</h1>
 
@@ -454,7 +452,7 @@ Interceptors are useful for:
 - Enforcing state constraints
 - Rejecting invalid assignments
 
-Learn more in [Interceptors](./fundamentals/interceptor.md).
+Learn more in [Interceptors](./fundamentals/interceptors.md).
 
 
 ## Component Styles
@@ -485,7 +483,7 @@ const Counter = createComponent({
 		}
 	`,
 
-	template: () => html`
+	template: html`
 		<main class="counter">
 			<h1>Counter</h1>
 		</main>
@@ -503,7 +501,7 @@ Learn more in [Component Styles](./fundamentals/styles.md) and [CSS Scoping](./a
 The `template` option defines the component's declarative HTML:
 
 ```js
-template: () => html`
+template: html`
   <main class="counter">
     <h1>Counter</h1>
 
@@ -713,7 +711,7 @@ const UserProfile = createComponent({
 		}
 	`,
 
-	template: () => html`
+	template: html`
 		<section class="profile">
 			<!-- Component markup. -->
 		</section>
@@ -824,7 +822,7 @@ const Counter = createComponent({
 		}
 	`,
 
-	template: () => html`
+	template: html`
 		<main class="counter">
 			<h1>Counter</h1>
 
@@ -845,21 +843,3 @@ const Counter = createComponent({
 
 render(Counter(), "#app");
 ```
-
-
-## Where to Go Next
-
-Now that you understand the anatomy of a Udodi component, continue with the concept that matches what you want to build:
-
-- [State](./fundamentals/state.md) — Learn how reactive component state works.
-- [Computed Values](./fundamentals/computed.md) — Create values derived from reactive state.
-- [Methods](./fundamentals/methods.md) — Define reusable component behavior.
-- [Watchers](./fundamentals/watch.md) — Respond to top-level state changes.
-- [Interceptors](./fundamentals/interceptor.md) — Transform or cancel state assignments.
-- [Lifecycle](./fundamentals/lifecycle.md) — Manage component setup and cleanup.
-- [Props](./fundamentals/props.md) — Pass data between components.
-- [Context](./fundamentals/context.md) — Understand the component context.
-- [Component Styles](./fundamentals/styles.md) — Define component-scoped styles.
-- [Templates and Directives](./templates/) — Learn Udodi's declarative template system.
-
-For a broader overview of the framework, return to the [Quick Start](./quick-start.md).

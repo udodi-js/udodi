@@ -1,6 +1,6 @@
 {
     "name": "udodi",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "A lightweight UI/component framework",
     "private": false,
     "type": "module",
@@ -31,7 +31,12 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "test:ui": "vitest --ui",
-        "prepublishOnly": "npm run build"
+        "prepublishOnly": "npm run build",
+        "docs:dev": "vitepress dev docs",
+        "docs:build": "vitepress build docs",
+        "docs:preview": "vitepress preview docs",
+        "sponsors:generate": "node scripts/sponsors/generate-sponsors.js",
+        "backers:generate": "node scripts/sponsors/generate-backers.js"
     },
     "keywords": [
         "ui",
@@ -57,6 +62,7 @@
         "happy-dom": "^20.10.2",
         "tsup": "^8.5.1",
         "typescript": "^6.0.3",
+        "vitepress": "^2.0.0-alpha.20",
         "vitest": "^4.1.8"
     }
 }

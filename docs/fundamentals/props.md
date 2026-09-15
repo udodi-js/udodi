@@ -6,8 +6,6 @@ By default, props are **static values** captured when the component instance is 
 
 Props are inputs to a component. They do not become child-owned state, and Udodi does not provide automatic two-way prop mutation.
 
----
-
 ## Passing Props
 
 Pass props by calling the component factory with an object:
@@ -18,7 +16,7 @@ import { createComponent, html, render } from "udodi";
 const Greeter = createComponent({
   name: "Greeter",
 
-  template: () => html`
+  template: html`
     <p>Hello, <span @text="userName"></span></p>
   `,
 });
@@ -26,7 +24,7 @@ const Greeter = createComponent({
 const Page = createComponent({
   name: "Page",
 
-  template: () => html`
+  template: html`
     <section>
       ${Greeter({ userName: "Ada" })}
     </section>
@@ -66,15 +64,13 @@ const Profile = createComponent({
     console.log(ctx.userName);
   },
 
-  template: () => html`
+  template: html`
     <p @text="caption"></p>
   `,
 });
 ```
 
 There is no separate `props` namespace in the public context.
-
----
 
 ## Props and the Public Context
 
@@ -84,7 +80,7 @@ Props are installed on the component instance and exposed through the same publi
 const UserCard = createComponent({
   name: "UserCard",
 
-  template: () => html`
+  template: html`
     <article>
       <h2 @text="userName"></h2>
       <p @text="role"></p>
@@ -115,8 +111,6 @@ ctx.role;
 depending on whether the code receives the public context as `this` or an explicit `ctx`.
 
 The component does not need to know whether a root value came from `state`, `computed`, or `props`; the public context resolves the registered root key.
-
----
 
 ## Static Props
 
@@ -178,8 +172,6 @@ Child prop
 
 Use a static prop when the child only needs the supplied value and does not need to track subsequent parent changes.
 
----
-
 ## Reactive Props with `bindProp()`
 
 Use `bindProp()` when the child should remain connected to a reactive value owned by the parent.
@@ -190,7 +182,7 @@ import { bindProp, createComponent, html, render } from "udodi";
 const Child = createComponent({
   name: "Child",
 
-  template: () => html`
+  template: html`
     <p @text="userName"></p>
   `,
 });
@@ -210,7 +202,7 @@ const Parent = createComponent({
     },
   },
 
-  template: (ctx) => html`
+  template: html`
     <section>
       ${Child({
         userName: bindProp(() => ctx.userName),
@@ -233,8 +225,7 @@ The child does not own the value. It reads through the binding to the parent's r
 ```text
 Static prop
 
-Parent value ─────────► Child prop
-                         snapshot
+Parent value ────► Child prop snapshot
 
 
 Reactive prop
@@ -279,15 +270,13 @@ const Child = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <p @text="greeting"></p>
   `,
 });
 ```
 
 When the parent changes the bound `userName`, the child's reactive reads can observe the updated value.
-
----
 
 ## Bound Props Are Read-Only from the Child
 
@@ -341,8 +330,6 @@ Child
 Parent
 ```
 
----
-
 ## Static vs Reactive Props
 
 Use the two forms for different purposes:
@@ -360,8 +347,6 @@ Use the two forms for different purposes:
 A useful rule is:
 
 > **Use a static prop for a value. Use `bindProp()` for a live parent-owned value. Use state for a child-owned value.**
-
----
 
 ## Callback Props
 
@@ -381,7 +366,7 @@ const Dialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div class="dialog">
       <button @on="click=confirm">Yes</button>
       <button @on="click=cancel">No</button>
@@ -404,8 +389,6 @@ The callback is a normal prop value and therefore follows the normal static-prop
 
 This is generally what you want for event-style callbacks.
 
----
-
 ## Live Callback Props
 
 If the callback reference itself needs to remain connected to a changing parent value, it can be passed through `bindProp()`:
@@ -427,8 +410,6 @@ Child({
 The first form provides a live binding. The second provides the function reference that exists when the child is created.
 
 Most event-style callback props should simply be passed as ordinary props.
-
----
 
 ## Root-Level Name Uniqueness
 
@@ -496,8 +477,6 @@ User({
 
 The prop registry is checked for each component instance. This is important because props are supplied at instance creation rather than declared as fixed component-definition keys.
 
----
-
 ## Reserved Names
 
 Props cannot use names reserved by the component runtime.
@@ -544,8 +523,6 @@ User({
 });
 ```
 
----
-
 ## Props in Templates
 
 Props are referenced directly by their root-level names.
@@ -562,8 +539,6 @@ The template resolver looks up the root name through the component's public cont
 
 This means state, computed values, methods, and props can all participate in the template's root-level lookup model.
 
----
-
 ## Props in Computed Values
 
 Computed functions receive the public context and can derive values from props:
@@ -578,7 +553,7 @@ const Profile = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <p @text="displayName"></p>
   `,
 });
@@ -602,8 +577,6 @@ The computed value then derives from the current values exposed by those binding
 
 See [Computed Values](./computed.md).
 
----
-
 ## Props in Methods
 
 Methods access props through `this`, just like other public context values:
@@ -619,7 +592,7 @@ const Profile = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <button @on="click=logProfile">
       Log profile
     </button>
@@ -644,8 +617,6 @@ A method does not automatically make a prop reactive. If the prop is static, it 
 
 See [Methods](./methods.md).
 
----
-
 ## Props in Lifecycle Hooks
 
 Props are available through the public context in lifecycle hooks:
@@ -662,7 +633,7 @@ const Profile = createComponent({
     console.log("Unmounting profile for", ctx.userName);
   },
 
-  template: () => html`
+  template: html`
     <div class="profile"></div>
   `,
 });
@@ -671,8 +642,6 @@ const Profile = createComponent({
 This makes props suitable for configuring resources initialized during `onMount`.
 
 See [Lifecycle](./lifecycle.md).
-
----
 
 ## Props and Watchers
 
@@ -692,7 +661,7 @@ const Child = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <p @text="label"></p>
   `,
 });
@@ -707,8 +676,6 @@ Child({
 ```
 
 Use [Watchers](./watch.md) for side effects and [Computed Values](./computed.md) for derived values.
-
----
 
 ## Props and Nested Values
 
@@ -740,8 +707,6 @@ For nested parent state, follow the normal shallow reactivity rules of the ownin
 
 See [State](./state.md) and [Using `touch()`](../reactivity/touch.md).
 
----
-
 ## Composition Example
 
 The following example demonstrates both forms of props:
@@ -757,7 +722,7 @@ import {
 const Badge = createComponent({
   name: "Badge",
 
-  template: () => html`
+  template: html`
     <span class="badge" @text="label"></span>
   `,
 });
@@ -765,7 +730,7 @@ const Badge = createComponent({
 const UserCard = createComponent({
   name: "UserCard",
 
-  template: () => html`
+  template: html`
     <article class="card">
       <h2 @text="userName"></h2>
       ${Badge({
@@ -814,8 +779,6 @@ Here:
 * `UserCard` reads the parent's current `userName`.
 * `UserCard` does not own or replace the parent's state.
 
----
-
 ## What Props Are Not
 
 Props are **not**:
@@ -848,8 +811,6 @@ method / callback
 
 This separation keeps ownership explicit.
 
----
-
 ## Static Props vs `bindProp()`
 
 The distinction can be summarized as follows:
@@ -863,8 +824,6 @@ The distinction can be summarized as follows:
 | Reactive connection | No                               | Yes                            |
 | Child writes        | Not child-owned state            | Should be treated as read-only |
 | Typical use         | Labels, configuration, callbacks | Live parent state              |
-
----
 
 ## Constraints
 
@@ -880,8 +839,6 @@ The distinction can be summarized as follows:
 | Shallow semantics            | Nested objects follow the underlying reactive state's shallow behavior |
 | Instance-specific validation | Props are validated when the component instance is created             |
 
----
-
 ## Minimal Example
 
 ```js
@@ -890,19 +847,14 @@ import { createComponent, html, render } from "udodi";
 const Hello = createComponent({
   name: "Hello",
 
-  template: () => html`
+  template: html`
     <p>
       Hello, <span @text="label"></span>
     </p>
   `,
 });
 
-render(
-  Hello({
-    label: "World",
-  }),
-  "#app"
-);
+render(Hello({ label: "World" }), "#app");
 ```
 
 For a fixed value, a normal prop is sufficient.
@@ -914,17 +866,3 @@ Hello({
   label: bindProp(() => ctx.label),
 });
 ```
-
----
-
-## Next Steps
-
-* [Components](./components.md) — component creation and composition
-* [State](./state.md) — component-owned reactive state
-* [Methods](./methods.md) — reading props and callback props
-* [Computed Values](./computed.md) — deriving values from props and state
-* [Watchers](./watch.md) — reacting to reactive dependencies
-* [Lifecycle](./lifecycle.md) — using props during mount and unmount
-* [Context](./context.md) — the public context membrane
-* [Reactivity Overview](../reactivity/overview.md) — reactive values and bindings
-* [Using `touch()`](../reactivity/touch.md) — notifying after nested mutations

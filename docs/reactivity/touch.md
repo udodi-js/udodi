@@ -4,8 +4,6 @@
 
 Use it when shallow reactivity does not see the change on its own.
 
----
-
 ## Why `touch()` Exists
 
 Reactive objects are shallow. Nested plain objects and deep fields inside collections are not auto-tracked:
@@ -27,8 +25,6 @@ touch(state, "user");      // effect runs
 
 `touch` does **not** change the stored value. It only fires the property’s trigger so subscribers re-run.
 
----
-
 ## Signature
 
 ```js
@@ -47,8 +43,6 @@ touch(state, "user");   // true when state.user is a reactive property
 touch(state, "missing"); // false if there is no signal for that key
 ```
 
----
-
 ## When to Use It
 
 | Situation | Use `touch`? |
@@ -59,8 +53,6 @@ touch(state, "missing"); // false if there is no signal for that key
 | Structural collection method (`push`, `set`, …) | No — already notifies |
 | Replacing the root property (`state.user = next`) | No — setter notifies |
 | Primitive write (`state.count++`) | No — setter notifies |
-
----
 
 ## Nested Objects
 
@@ -91,8 +83,6 @@ state.settings = {
 
 Both approaches notify dependents of `settings`. Prefer replacement when it stays readable; use `touch` when in-place mutation is required (performance, shared references, third-party APIs).
 
----
-
 ## Arrays
 
 Structural methods already notify:
@@ -120,8 +110,6 @@ state.items = state.items.map((row, index) =>
 );
 ```
 
----
-
 ## Maps and Sets
 
 ```js
@@ -142,8 +130,6 @@ for (const user of state.selected) {
 touch(state, "selected");
 ```
 
----
-
 ## Component Context
 
 Inside component methods, `this` is the public context. `touch` accepts that context because it resolves `proxy._state` when present:
@@ -159,8 +145,6 @@ methods: {
 
 You can also touch the underlying reactive state if you hold a reference to it; the public context form is the usual pattern in components.
 
----
-
 ## Signals
 
 Raw signals expose an equivalent idea as the third tuple element:
@@ -174,8 +158,6 @@ triggerUser(); // same role as touch for a single signal
 
 For reactive objects, prefer `touch(proxy, key)` so you target a specific property’s subscribers.
 
----
-
 ## What `touch` Does Not Do
 
 - It does **not** deep-walk the object or invent subscriptions to nested fields.  
@@ -187,8 +169,6 @@ For reactive objects, prefer `touch(proxy, key)` so you target a specific proper
 touch(state, "user"); // only dependents of state.user
 // dependents of state.count are unaffected
 ```
-
----
 
 ## Patterns
 
@@ -214,8 +194,6 @@ touch(state, "draft");
 state.filters = { ...state.filters, query: q };
 ```
 
----
-
 ## API Summary
 
 ```js
@@ -231,8 +209,6 @@ const ok = touch(proxy, key);
 | Returns | `boolean` — whether a trigger ran |
 | Scheduling | Same microtask batching as normal writes |
 
----
-
 ## Constraints
 
 | Behavior | Detail |
@@ -241,13 +217,3 @@ const ok = touch(proxy, key);
 | No value change | Reference and contents unchanged by `touch` itself |
 | Collections | Structural methods already call `touch` internally |
 | Failure | Returns `false` for non-reactive targets or unknown keys |
-
----
-
-## Next Steps
-
-* [Reactive State](./state.md) — shallow rules and interceptors  
-* [Reactive Collections](./collections.md) — when collections notify on their own  
-* [Signals](./signals.md) — `trigger` on raw signals  
-* [Effects](./effects.md) — what re-runs after a touch  
-* [Reactivity Overview](./overview.md) — full model  

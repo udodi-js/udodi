@@ -24,7 +24,7 @@ The Query Pool is intended for **server state and asynchronous work**. For share
 
 | Guide | Description |
 | --- | --- |
-| **[Query Pool Overview](./overview.md)** | Understand the Query Pool model, its state ownership boundary, and how queries, mutations, dependencies, caching, and workers fit together. |
+| **[Query Pool Overview](./index.md)** | Understand the Query Pool model, its state ownership boundary, and how queries, mutations, dependencies, caching, and workers fit together. |
 | **[Queries](./queries.md)** | Create local and worker-backed queries, execute them with `fetch()` and `refresh()`, and work with reactive query state. |
 | **[Query Lifecycle](./lifecycle.md)** | Understand query execution states, lifecycle transitions, cancellation, reactive fields, and reset behavior. |
 | **[Query Registry](./registry.md)** | Register worker modules and make them available to module-backed queries and mutations. |
@@ -36,7 +36,7 @@ The Query Pool is intended for **server state and asynchronous work**. For share
 | **[Query Pool and Workers](./workers.md)** | Execute module-backed queries and mutations through the Main Worker and Compute Worker Pool. |
 | **[Transferable Data](./transfers.md)** | Use Transferable Object transport for large binary inputs and understand ownership and caching implications. |
 
-**Start here → [Query Pool Overview](./overview.md)**
+**Start here → [Query Pool Overview](./index.md)**
 
 ---
 
@@ -151,7 +151,7 @@ This example demonstrates the fundamental Query Pool relationships:
 8. Query and mutation execution can be cancelled through their handles.
 9. Worker-backed execution is available when asynchronous computation should leave the UI thread.
 
-For the complete execution model, see [Query Pool Overview](./overview.md).
+For the complete execution model, see [Query Pool Overview](./index.md).
 
 ---
 
@@ -622,7 +622,7 @@ Termination:
 
 Existing query handles remain as JavaScript objects after termination. If their state should be reset or references released, handle that explicitly with `reset()` or by dropping the references.
 
-See [Query Pool Overview](./overview.md) for the broader lifecycle and ownership model.
+See [Query Pool Overview](./index.md) for the broader lifecycle and ownership model.
 
 ---
 
@@ -656,7 +656,7 @@ See [Udodi Store](../store/README.md) for application state management.
 
 | If you want to... | Start with |
 | --- | --- |
-| Understand the architecture and state boundary | [Query Pool Overview](./overview.md) |
+| Understand the architecture and state boundary | [Query Pool Overview](./index.md) |
 | Create and execute queries | [Queries](./queries.md) |
 | Understand query states and transitions | [Query Lifecycle](./lifecycle.md) |
 | Register worker modules | [Query Registry](./registry.md) |

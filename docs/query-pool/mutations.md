@@ -19,8 +19,6 @@ Unlike queries, mutations do not automatically execute when registered. A mutati
 
 For asynchronous reads, see [Queries](./queries.md). For the mutation lifecycle model, see [Query Lifecycle](./lifecycle.md). For the queries affected after a successful mutation, see [Invalidation](./invalidation.md).
 
----
-
 ## The Mutation Model
 
 A mutation is registered under a unique string key:
@@ -69,29 +67,27 @@ await createUser.mutate({
 The basic lifecycle is:
 
 ```text
-mutation registration
-        │
-        ▼
-      idle
-        │
-        │ mutate(input)
-        ▼
-     loading
-      /    \
-     /      \
-success    error
-   │          │
-   └────┬─────┘
-        │
-     next mutate()
-        │
-        ▼
-     loading
+ mutation registration
+          │
+          ▼
+        idle
+          │
+          │ mutate(input)
+          ▼
+       loading
+        /    \
+       /      \
+   success    error
+     │          │
+     └────┬─────┘
+          │
+    next mutate()
+          │
+          ▼
+       loading
 ```
 
 `cancel()` can stop a loading mutation without discarding its previous successful data.
-
----
 
 ## Registering a Mutation
 
@@ -173,8 +169,6 @@ See [Query Registry](./registry.md) and [Query Pool and Workers](./workers.md).
 
 A mutation definition uses the local `execute` path or the worker module path; they are not combined for the same mutation.
 
----
-
 ## Running a Mutation
 
 Call `mutate(input)` to execute the mutation:
@@ -218,8 +212,6 @@ console.log(createUser.error);
 
 This makes it possible to use the mutation directly from component templates, effects, or computed values without copying its lifecycle into component state.
 
----
-
 ## Mutation State
 
 A mutation exposes reactive state describing its most recent execution.
@@ -257,8 +249,6 @@ const status = computed(() => {
 
 Reading these fields from an effect, computed value, or template establishes a reactive dependency on the corresponding mutation state.
 
----
-
 ## Variables
 
 `variables` contains the input from the most recent call to `mutate()`.
@@ -293,8 +283,6 @@ const message = computed(() => {
 
 `variables` represents mutation input. It should not be confused with `data`, which represents the successful result returned by the mutation.
 
----
-
 ## Mutation Status
 
 Mutations use the same lifecycle vocabulary as queries:
@@ -323,7 +311,7 @@ Calling `mutate()` transitions it to `loading`:
 const promise = deleteUser.mutate({ id: 42 });
 
 console.log(deleteUser.loading); // true
-console.log(deleteUser.status); // "loading"
+console.log(deleteUser.status);  // "loading"
 
 await promise;
 
@@ -331,8 +319,6 @@ console.log(deleteUser.status); // "success" or "error"
 ```
 
 A subsequent `mutate()` starts another execution.
-
----
 
 ## Execution Context
 
@@ -369,8 +355,6 @@ mutation.cancel();
 to propagate cancellation to the underlying request.
 
 See [Query Cancellation](./cancellation.md) for the complete cancellation model.
-
----
 
 ## Optimistic Updates
 
@@ -428,30 +412,28 @@ const createUser = pool.mutation("createUser", {
 The flow is:
 
 ```text
-mutate(input)
-     │
-     ▼
- onMutate()
-     │
-     ├── read previous query data
-     │
-     └── optimistic setQueryData()
-     │
-     ▼
- execute()
-     │
-   ┌─┴──────────┐
-   │            │
-success       error
-   │            │
-   ▼            ▼
-invalidate   onError()
-             rollback
+      mutate(input)
+           │
+           ▼
+       onMutate()
+           │
+           ├── read previous query data
+           │
+           ├── optimistic setQueryData()
+           │
+           ▼
+        execute()
+           │
+    ┌──────┴──────┐
+    │             │
+ success        error
+    │             │
+    ▼             ▼
+invalidate     onError()
+               rollback
 ```
 
 Optimistic updates are therefore query-data updates, not a separate mutation state store.
-
----
 
 ## Mutation Context
 
@@ -511,14 +493,12 @@ onMutate()
     └── returns rollback information
              │
              ▼
-        mutation context
+      mutation context
              │
        ┌─────┴─────┐
        ▼           ▼
    onError()    onSuccess()
 ```
-
----
 
 ## Mutation Hooks
 
@@ -600,8 +580,6 @@ const updatePost = pool.mutation("updatePost", {
 });
 ```
 
----
-
 ## Query Data Updates
 
 `setQueryData()` changes query data without executing its source or worker module.
@@ -647,8 +625,6 @@ reactive consumers update
 `setQueryData()` does not execute the query's source.
 
 If the server must be contacted, the mutation's `execute` or module performs that work.
-
----
 
 ## Rollback
 
@@ -705,9 +681,9 @@ The complete state flow is:
                  mutate()
                     │
                     ▼
-               onMutate()
+                onMutate()
                     │
-             optimistic data
+              optimistic data
                     │
                     ▼
                  execute
@@ -725,8 +701,6 @@ The complete state flow is:
 ```
 
 A successful mutation normally invalidates the affected queries so the authoritative server state can replace the optimistic value.
-
----
 
 ## Invalidating Queries
 
@@ -750,12 +724,12 @@ Mutation
    ├── perform write
    │
    └── invalidates: ["users"]
-                     │
-                     ▼
-                  users
-                     │
-                     ▼
-                  refresh
+                        │
+                        ▼
+                      users
+                        │
+                        ▼
+                     refresh
 ```
 
 For more advanced dependency graphs, an invalidation entry can specify whether dependents should also participate:
@@ -771,8 +745,6 @@ invalidates: [
 ```
 
 See [Invalidation](./invalidation.md) for the complete invalidation model.
-
----
 
 ## Invalidation Options
 
@@ -820,8 +792,6 @@ invalidates: [
 ```
 
 can refresh `users` and its dependent queries using a forced execution.
-
----
 
 ## Mutation Execution Options
 
@@ -907,8 +877,6 @@ invalidate queries
 
 The invalidation work itself remains separate from the mutation's own execution lifecycle.
 
----
-
 ## Cancellation
 
 A mutation can be cancelled while it is loading:
@@ -957,8 +925,6 @@ execute: async (input, { signal }) => {
 
 See [Query Cancellation](./cancellation.md).
 
----
-
 ## Resetting a Mutation
 
 `reset()` clears the mutation's execution state:
@@ -972,11 +938,11 @@ It returns the mutation to `idle` and clears its current state.
 Conceptually:
 
 ```text
-          loading
-             │
-             │ reset()
-             ▼
-           idle
+    loading
+       │
+       │ reset()
+       ▼
+     idle
 ```
 
 This differs from `cancel()`:
@@ -998,8 +964,6 @@ reset()
 Use `cancel()` when the operation should stop but its existing successful result should remain available.
 
 Use `reset()` when the mutation should return to its initial state.
-
----
 
 ## Streaming Mutations
 
@@ -1050,8 +1014,6 @@ Streaming applies to worker-module execution. Local `execute` functions receive 
 
 See [Query Pool and Workers](./workers.md) for worker execution details.
 
----
-
 ## Transferable Data
 
 Worker-backed mutations use structured cloning by default.
@@ -1078,8 +1040,6 @@ Typical transferable values include:
 Because transferring detaches the object from the sender, transferable mutation input is not treated as reusable cached input.
 
 See [Transferable Data](./transfers.md).
-
----
 
 ## Optimistic Update + Server Result
 
@@ -1140,8 +1100,6 @@ After success, invalidation allows the query to obtain the authoritative server 
 
 This pattern avoids treating optimistic state as authoritative server state.
 
----
-
 ## Error Handling
 
 A failed mutation transitions to `"error"` and exposes the thrown value through `error`:
@@ -1179,8 +1137,6 @@ const message = computed(() => {
 
 An `onError` hook can additionally perform rollback or other error handling.
 
----
-
 ## Success Handling
 
 `onSuccess` receives the mutation result, the input, and mutation context:
@@ -1206,14 +1162,12 @@ mutation succeeds
       ├── onSuccess()
       │
       └── invalidation
-             │
-             ▼
+              │
+              ▼
        affected queries
 ```
 
 The mutation's own status describes the mutation; invalidated query statuses describe their own refresh executions.
-
----
 
 ## A Complete CRUD Example
 
@@ -1272,32 +1226,30 @@ await createUser.mutate({
 The complete operation is:
 
 ```text
-mutate(input)
-     │
-     ▼
- onMutate()
-     │
-     ├── snapshot users
-     └── optimistic users update
-     │
-     ▼
- execute(input)
-     │
-   ┌─┴─────────────┐
-   │               │
-success           error
-   │               │
-   ▼               ▼
-onSuccess()     onError()
-   │               │
-   ▼               ▼
-invalidate      rollback
-   │
-   ▼
+        mutate(input)
+            │
+            ▼
+        onMutate()
+            │
+            ├── snapshot users
+            ├── optimistic users update
+            │
+            ▼
+        execute(input)
+            │
+    ┌───────┴───────┐
+    │               │
+ success          error
+    │               │
+    ▼               ▼
+onSuccess()      onError()
+    │               │
+    ▼               ▼
+invalidate       rollback
+    │
+    ▼
 refresh users
 ```
-
----
 
 ## Mutation vs Query
 
@@ -1321,51 +1273,49 @@ The most important distinction is:
 
 > A query represents reusable asynchronous read state; a mutation represents an explicit asynchronous write operation.
 
----
-
 ## Mutation Lifecycle Summary
 
 A mutation starts in `idle` and only begins execution when `mutate()` is called:
 
 ```text
           mutate(input)
-                │
-                ▼
+               │
+               ▼
           ┌─────────┐
           │ loading │
           └────┬────┘
                │
           ┌────┴────┐
           │         │
-        success    error
+       success    error
           │         │
           ▼         ▼
-      ┌─────────┐ ┌─────────┐
-      │ success │ │  error  │
-      └─────────┘ └─────────┘
+    ┌─────────┐ ┌─────────┐
+    │ success │ │  error  │
+    └─────────┘ └─────────┘
           │         │
           └────┬────┘
                │
-        mutate() again
+         mutate() again
                │
                ▼
           ┌─────────┐
           │ loading │
           └─────────┘
 
-        cancel() while loading
-                │
-                ▼
-          ┌───────────┐
-          │ cancelled │
-          └───────────┘
+     cancel() while loading
+               │
+               ▼
+         ┌───────────┐
+         │ cancelled │
+         └───────────┘
 
-        reset() from any state
-                │
-                ▼
-            ┌──────┐
-            │ idle │
-            └──────┘
+      reset() from any state
+               │
+               ▼
+           ┌──────┐
+           │ idle │
+           └──────┘
 ```
 
 Optimistic updates and invalidation sit around this lifecycle rather than replacing it:
@@ -1383,13 +1333,11 @@ Optimistic updates and invalidation sit around this lifecycle rather than replac
           success        error
              │             │
              ▼             ▼
-       onSuccess()      onError()
+        onSuccess()     onError()
              │             │
              ▼             ▼
        invalidation     rollback
 ```
-
----
 
 ## Reactive UI Example
 
@@ -1402,7 +1350,7 @@ const saveUser = pool.mutation("saveUser", {
 
 const buttonLabel = computed(() => {
   if (saveUser.loading) {
-    return "Saving…";
+    return "Saving...";
   }
 
   if (saveUser.error) {
@@ -1433,8 +1381,6 @@ let saved = false;
 
 The mutation handle is the reactive representation of the asynchronous write lifecycle.
 
----
-
 ## Cleanup
 
 Mutation handles remain available after execution.
@@ -1460,22 +1406,5 @@ pool.terminate();
 terminates worker infrastructure and cancels in-flight mutations.
 
 See [Query Pool Overview](./overview.md) for the complete pool lifecycle.
-
----
-
-## Next Steps
-
-| Goal | Guide |
-| --- | --- |
-| Create asynchronous reads | [Queries](./queries.md) |
-| Understand mutation status and transitions | [Query Lifecycle](./lifecycle.md) |
-| Perform optimistic updates | This guide |
-| Roll back failed writes | This guide |
-| Refresh affected queries | [Invalidation](./invalidation.md) |
-| Understand dependency execution | [Query Dependencies](./dependencies.md) |
-| Cancel asynchronous work | [Query Cancellation](./cancellation.md) |
-| Execute mutations in workers | [Query Pool and Workers](./workers.md) |
-| Transfer large binary inputs | [Transferable Data](./transfers.md) |
-| Register worker modules | [Query Registry](./registry.md) |
 
 The [Query Pool API Reference](../api/query-pool.md) is the authoritative source for exact mutation signatures, hook arguments, execution options, and return values.

@@ -27,14 +27,14 @@ The system is intentionally small: Udodi manages the mechanics of an overlay, wh
 
 | Guide | Description |
 | --- | --- |
-| **[Overlay Overview](./overview.md)** | Understand the Overlay model, shared root, host structure, and lifecycle. |
+| **[Overlay Overview](./index.md)** | Understand the Overlay model, shared root, host structure, and lifecycle. |
 | **[Opening Overlays](./opening.md)** | Open overlays with `openModal()`, render their content, and work with the returned Promise. |
 | **[Closing Overlays](./closing.md)** | Close overlays with `close()`, and `closeTopModal()`, and return results to the caller. |
 | **[Overlay Options](./options.md)** | Configure backdrop behavior, Escape handling, scroll locking, focus trapping, `zIndex`, and host classes. |
 | **[Overlay Stacking](./stacking.md)** | Work with multiple open overlays and understand top-most overlay behavior. |
 | **[Accessibility](./accessibility.md)** | Understand dialog semantics, focus management, keyboard navigation, and focus restoration. |
 
-**Start here → [Overlay Overview](./overview.md)**
+**Start here → [Overlay Overview](./index.md)**
 
 ---
 
@@ -383,7 +383,7 @@ This separation keeps the runtime predictable while allowing overlays to match t
 
 ## Related Documentation
 
-* **[Overlay Overview](./overview.md)** — Overlay architecture and lifecycle.
+* **[Overlay Overview](./index.md)** — Overlay architecture and lifecycle.
 * **[Opening Overlays](./opening.md)** — Opening and rendering overlays.
 * **[Closing Overlays](./closing.md)** — Closing overlays and returning results.
 * **[Overlay Options](./options.md)** — Overlay configuration.

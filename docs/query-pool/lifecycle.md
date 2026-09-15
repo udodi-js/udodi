@@ -23,8 +23,6 @@ For dependency execution and in-flight reuse, see [Query Dependencies](./depende
 
 For abort behavior, see [Query Cancellation](./cancellation.md).
 
----
-
 ## Lifecycle Status
 
 A query's `status` is one of five values:
@@ -49,8 +47,6 @@ console.log(users.status);
 The query handle is returned synchronously. Its initial execution starts asynchronously, so the handle can be observed immediately even though execution has not yet completed.
 
 `status` is reactive. Reading it inside an effect, computed value, or template establishes a dependency on that field.
-
----
 
 ## Reactive Fields
 
@@ -101,8 +97,6 @@ There is normally no need to copy `loading`, `error`, or `status` into component
 
 The query handle itself is reactive.
 
----
-
 ## The Basic Lifecycle
 
 The normal lifecycle is:
@@ -141,8 +135,6 @@ The normal lifecycle is:
 A new execution from `success`, `error`, or `cancelled` goes through `"loading"` again.
 
 `reset()` is the operation that returns the query to `"idle"` while clearing its execution state.
-
----
 
 ## Starting an Execution
 
@@ -210,8 +202,6 @@ users.status;  // "success"
 users.data;    // fetched users
 ```
 
----
-
 ## In-Flight Deduplication
 
 Starting an execution does not necessarily mean starting new asynchronous work.
@@ -253,8 +243,6 @@ The pool can reuse the active execution rather than treating both calls as indep
 Use `force` when a new execution must supersede the existing in-flight work.
 
 See [Query Dependencies](./dependencies.md) for the complete execution and deduplication model.
-
----
 
 ## Success
 
@@ -301,8 +289,6 @@ users.data;
 ```
 
 The important rule is that only a successful result replaces query data during normal execution.
-
----
 
 ## Error
 
@@ -364,8 +350,6 @@ This is useful for interfaces that should display stale-but-known data together 
 When a dependency fails, dependent execution is represented using `QueryDependencyError` so the execution plan can preserve the root query's original error where appropriate.
 
 See [Query Dependencies](./dependencies.md).
-
----
 
 ## Cancellation
 
@@ -432,8 +416,6 @@ source: async (signal) => {
 
 See [Query Cancellation](./cancellation.md).
 
----
-
 ## Superseded Executions
 
 A query can also have an execution superseded by a newer execution.
@@ -473,15 +455,13 @@ current execution   │
     ▼               │
 commit result       │
                     │
-       Execution A resolves later
+        Execution A resolves later
                     │
                     ▼
-              ignored as stale
+            ignored as stale
 ```
 
 A forced execution therefore provides latest-run-wins protection rather than exposing the superseded execution as a separate visible lifecycle.
-
----
 
 ## Reset
 
@@ -517,7 +497,7 @@ reset()
    ├── clear input
    ├── clear chunks
    ├── clear error
-   └── status → "idle"
+   └── status  →  "idle"
 ```
 
 ### When to Use Each
@@ -539,8 +519,6 @@ console.log(users.status); // "idle"
 console.log(users.data);   // undefined
 console.log(users.error);  // null
 ```
-
----
 
 ## Streaming Lifecycle
 
@@ -643,8 +621,6 @@ Chunks belonging to an older, superseded execution are ignored.
 
 See [Query Pool and Workers](./workers.md) and [Transferable Data](./transfers.md).
 
----
-
 ## Cache and Lifecycle
 
 Caching can cause an execution to complete without calling the query's `source` or worker module.
@@ -660,14 +636,14 @@ When a configured cache entry is still fresh and the execution is not forced:
                 no           yes
                 │             │
                 ▼             ▼
-             execute      cache fresh?
-                              /    \
-                            no      yes
-                            │        │
-                            ▼        ▼
-                         execute   use cached
-                                      │
-                                      ▼
+             execute     cache fresh?
+                            /    \
+                          no      yes
+                          │        │
+                          ▼        ▼
+                      execute   use cached
+                                   │
+                                   ▼
                                 status = success
 ```
 
@@ -733,8 +709,6 @@ query executes
 
 See [Caching](./caching.md) and [Invalidation](./invalidation.md).
 
----
-
 ## Initial Registration
 
 Registering a query returns its handle synchronously:
@@ -753,7 +727,7 @@ Conceptually:
 pool.query("users", definition)
           │
           ├──────────────► returns handle
-          │                 status = "idle"
+          │                status = "idle"
           │
           └──────────────► starts initial plan asynchronously
                                   │
@@ -805,8 +779,6 @@ users.error;  // Error("Network failure")
 ```
 
 This makes query registration synchronous while execution remains asynchronous.
-
----
 
 ## Query Data Across Lifecycle Events
 
@@ -868,8 +840,6 @@ The UI can therefore distinguish:
 
 without maintaining duplicate request state.
 
----
-
 ## Reactive Lifecycle Example
 
 A query's lifecycle fields are ordinary reactive state from the perspective of consumers.
@@ -911,8 +881,6 @@ const label = computed(() => {
 ```
 
 This computation depends on `loading` and `data`. It does not need to react to unrelated query fields simply because they changed.
-
----
 
 ## Mutation Lifecycle
 
@@ -982,7 +950,7 @@ The mutation's own lifecycle is independent from the lifecycle of queries it inv
 For example:
 
 ```text
-mutation
+ mutation
     │
     ▼
  loading
@@ -1006,8 +974,6 @@ A successful mutation does not mean that every invalidated query has also succee
 
 See [Mutations](./mutations.md) and [Invalidation](./invalidation.md).
 
----
-
 ## Lifecycle Summary
 
 The query lifecycle can be summarized as:
@@ -1029,7 +995,7 @@ The query lifecycle can be summarized as:
                               │
                   ┌───────────┼────────────┐
                   │           │            │
-               success      error      cancel / abort
+               success      error    cancel / abort
                   │           │            │
                   ▼           ▼            ▼
              ┌─────────┐ ┌─────────┐ ┌───────────┐
@@ -1046,7 +1012,7 @@ The query lifecycle can be summarized as:
                          └─────────┘
 
 
-             reset() from any lifecycle state
+              reset() from any lifecycle state
                               │
                               ▼
                          ┌─────────┐
@@ -1066,19 +1032,3 @@ The practical rules are:
 8. Only the current execution may commit results.
 9. Fresh cache can satisfy execution without calling the source/module.
 10. Streaming adds chunk-level state without changing the core lifecycle model.
-
----
-
-## Next Steps
-
-| Topic | Guide |
-| --- | --- |
-| Create queries and use `fetch()` / `refresh()` | [Queries](./queries.md) |
-| Abort in-flight work | [Query Cancellation](./cancellation.md) |
-| Build dependency graphs, understand execution order and in-flight reuse | [Query Dependencies](./dependencies.md) |
-| Configure TTL and cache reuse | [Caching](./caching.md) |
-| Mark queries stale and trigger refresh | [Invalidation](./invalidation.md) |
-| Perform asynchronous writes | [Mutations](./mutations.md) |
-| Run work in workers | [Query Pool and Workers](./workers.md) |
-| Transfer large binary values | [Transferable Data](./transfers.md) |
-| Understand the overall Query Pool architecture | [Query Pool Overview](./overview.md) |

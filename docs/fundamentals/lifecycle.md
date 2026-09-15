@@ -1,12 +1,15 @@
 # Lifecycle
 
-An Udodi component follows a managed lifecycle:
+An Udodi component follows a managed lifecycle with these stages:
 
-**create → initialize → mount → active → unmount → cleanup**
+1. **Create**
+2. **Initialize**
+3. **Mount**
+4. **Active**
+5. **Unmount**
+6. **Cleanup**
 
 The runtime owns the component's reactive scopes, directive bindings, DOM listeners, root registration, and component-scoped cleanup. You can participate through `onMount`, `onUnmount`, and `ctx.cleanup(fn)`.
-
----
 
 ## Lifecycle Overview
 
@@ -56,8 +59,6 @@ Unmount / removal
 
 The exact internal ordering is an implementation detail. What matters to application code is that `onUnmount` is invoked during teardown and registered cleanup callbacks and reactive resources are subsequently disposed as part of the component's teardown.
 
----
-
 ## `onMount`
 
 `onMount` runs after the component has been mounted and its DOM bindings have been established.
@@ -70,7 +71,7 @@ const Example = createComponent({
     console.log("mounted", root, ctx);
   },
 
-  template: () => html`
+  template: html`
     <div>Example</div>
   `,
 });
@@ -105,8 +106,6 @@ onMount(root, ctx) {
 
 `onMount` is optional.
 
----
-
 ## `onUnmount`
 
 `onUnmount` is called when the component is being torn down.
@@ -119,7 +118,7 @@ const Example = createComponent({
     console.log("unmounting", root);
   },
 
-  template: () => html`
+  template: html`
     <div>Example</div>
   `,
 });
@@ -142,8 +141,6 @@ onMount(root, ctx) {
 ```
 
 Errors thrown during unmount cleanup are handled by the runtime so that one failing cleanup does not prevent the remaining teardown work from being attempted.
-
----
 
 ## `ctx.cleanup(fn)`
 
@@ -175,8 +172,6 @@ The callback is executed when the component's mount scope is disposed.
 * You normally register them from `onMount` or code that runs after mount.
 
 Do not treat `ctx.cleanup(fn)` as a lifecycle hook or as a function that returns a disposer. It is a way to add teardown work to the component's existing cleanup scope.
-
----
 
 ## Automatic Cleanup
 
@@ -210,8 +205,6 @@ watch: {
 
 Its reactive effect is associated with the component and is disposed automatically when the component is torn down.
 
----
-
 ## Watchers and Computed Values
 
 Watchers and computed values are created as component-scoped reactive resources.
@@ -244,8 +237,6 @@ When the component is unmounted, the watcher scope is disposed.
 Computed values likewise belong to the component's computed scope and are cleaned up with the component.
 
 See [Watchers](./watch.md) and [Computed Values](./computed.md).
-
----
 
 ## Mounting and the DOM
 
@@ -283,8 +274,6 @@ onUnmount(root, ctx) {
 
 Nested component placeholders are resolved as part of mounting. Child components therefore receive their own lifecycle and cleanup management.
 
----
-
 ## Explicit Unmount
 
 When you control the component lifecycle, prefer explicit unmounting.
@@ -301,8 +290,6 @@ instance.unmount();
 The mounted instance provides the lifecycle boundary for the component.
 
 Use explicit unmounting when the application knows that a component is no longer needed. This makes teardown intentional and predictable.
-
----
 
 ## DOM Removal
 
@@ -323,8 +310,6 @@ The root-removal observer allows Udodi to clean up component-scoped resources ev
 
 Explicit unmounting is still preferable when application code controls the lifecycle.
 
----
-
 ## Cleanup During Mount Failure
 
 Mounting can establish resources before the complete mount operation finishes. The runtime therefore associates mount-time resources with the component's mount scope.
@@ -340,8 +325,6 @@ This is particularly important for:
 
 Application code should therefore register external resource cleanup as soon as the resource is acquired.
 
----
-
 ## Lifecycle and State
 
 State is created per component instance during initialization:
@@ -356,7 +339,7 @@ const Counter = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <button @text="count"></button>
   `,
 });
@@ -367,8 +350,6 @@ Each call that creates an instance receives its own state.
 State remains reactive while the instance is active. When the component is torn down, the reactive resources associated with the instance are disposed.
 
 See [State](./state.md).
-
----
 
 ## Lifecycle and Interceptors
 
@@ -387,8 +368,6 @@ An interceptor is part of the state's root write path. It does not need a separa
 Nested mutations and `touch()` do not invoke interceptors.
 
 See [Interceptors](./interceptors.md).
-
----
 
 ## Lifecycle and Methods
 
@@ -422,8 +401,6 @@ methods: {
 
 For resources that should begin automatically when mounted, `onMount` is usually the clearer place to create them.
 
----
-
 ## Lifecycle and Props
 
 Props are established when the component instance is created and remain available through the public context while the instance is active.
@@ -432,7 +409,7 @@ Props are established when the component instance is created and remain availabl
 const Greeter = createComponent({
   name: "Greeter",
 
-  template: () => html`
+  template: html`
     <p>Hello, <span @text="userName"></span></p>
   `,
 });
@@ -445,8 +422,6 @@ Greeter({
 Reactive prop values remain connected while the instance is active. Their associated resources are disposed when the component is torn down.
 
 See [Props](./props.md).
-
----
 
 ## A Complete Example
 
@@ -479,7 +454,7 @@ const Clock = createComponent({
     console.log("Clock unmounting", root);
   },
 
-  template: () => html`
+  template: html`
     <p class="clock">
       <span @text="now"></span>
     </p>
@@ -493,8 +468,6 @@ const instance = render(Clock(), "#app");
 ```
 
 The timer belongs to the component's mount scope. When the component is unmounted, the registered cleanup callback clears it automatically.
-
----
 
 ## Lifecycle Rules
 
@@ -512,8 +485,6 @@ The timer belongs to the component's mount scope. When the component is unmounte
 | DOM removal is observed           | Registered roots can be cleaned up when removed externally                         |
 | Explicit unmount is preferred     | Use the component/instance unmount API when lifecycle is under application control |
 
----
-
 ## Minimal Example
 
 ```js
@@ -530,7 +501,7 @@ const Banner = createComponent({
     });
   },
 
-  template: () => html`
+  template: html`
     <div class="banner">Hello</div>
   `,
 });
@@ -542,16 +513,3 @@ const instance = render(Banner(), "#app");
 ```
 
 The component adds its mounted state in `onMount` and registers the corresponding reversal with `ctx.cleanup()`. The runtime executes that cleanup when the component is torn down.
-
----
-
-## Next Steps
-
-* [Components](./components.md) — the component model and mount flow
-* [State](./state.md) — instance state and reactive updates
-* [Watchers](./watch.md) — effects and automatic watcher disposal
-* [Computed Values](./computed.md) — derived values and computed scope cleanup
-* [Methods](./methods.md) — component behavior
-* [Context](./context.md) — public context, `cleanup`, and `refs`
-* [Props](./props.md) — component inputs
-* [Interceptors](./interceptors.md) — root-level state write interception

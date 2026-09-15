@@ -6,19 +6,15 @@ This guide presents practical structures that can start small and evolve as an a
 
 The layouts below describe a **browser (client) Udodi application**. They are not a Node.js server skeleton. For APIs and full-stack repos, see [Client vs server](#client-vs-server).
 
----
-
 ## Principles
 
 A maintainable Udodi application generally follows these principles:
 
-1. **Start minimal** — A single entry file and a small number of components are sufficient for a small application.
-2. **Introduce structure as needed** — Add directories when the application develops a genuine organizational need.
-3. **Keep state close to its owner** — Prefer component state for local concerns. Introduce Store or Query Pool when state becomes shared or requires asynchronous lifecycle management.
-4. **Prefer feature-based organization at scale** — Technical directories work well for smaller applications; feature boundaries become more useful as applications grow.
-5. **Keep the core conceptually lean** — Routing and other application-level concerns should remain outside the core runtime unless they are explicitly provided by a companion package.
-
----
+1. **Start minimal**: A single entry file and a small number of components are sufficient for a small application.
+2. **Introduce structure as needed**: Add directories when the application develops a genuine organizational need.
+3. **Keep state close to its owner**: Prefer component state for local concerns. Introduce Store or Query Pool when state becomes shared or requires asynchronous lifecycle management.
+4. **Prefer feature-based organization at scale**: Technical directories work well for smaller applications; feature boundaries become more useful as applications grow.
+5. **Keep the core conceptually lean**: Routing and other application-level concerns should remain outside the core runtime unless they are explicitly provided by a companion package.
 
 ## A Small Application
 
@@ -51,7 +47,7 @@ const App = createComponent({
     };
   },
 
-  template: () => html`
+  template: html`
     <main>
       <h1 @text="message"></h1>
     </main>
@@ -63,8 +59,6 @@ render(App(), document.getElementById("app"));
 ```
 
 This structure is sufficient for a prototype or small application. Introduce additional modules and directories when a file becomes difficult to maintain or when responsibilities naturally separate.
-
----
 
 ## A Growing Application
 
@@ -117,8 +111,6 @@ my-app/
 
 These directories are optional. Do not create `query/`, `store/`, `forms/`, or `overlays/` until the application actually uses those systems.
 
----
-
 ## Application Entry
 
 The application entry point should be responsible primarily for **bootstrapping the application**.
@@ -154,8 +146,6 @@ index.html
 
 Keep feature-specific implementation out of the entry module whenever possible. Its primary responsibility should remain application initialization and mounting.
 
----
-
 ## Components
 
 Reusable components can initially live in a shared `components/` directory:
@@ -189,7 +179,7 @@ export const UserCard = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <article class="card">
       <h2 @text="name"></h2>
     </article>
@@ -203,8 +193,6 @@ Recommended practices:
 * Keep component-specific styles with the component.
 * Extract unrelated functionality when a component module becomes difficult to navigate.
 * Move genuinely shared components into an appropriate shared location as the application grows.
-
----
 
 ## Pages
 
@@ -230,8 +218,6 @@ Home
 You do not need a router to use a `pages/` directory. Until routing is introduced, views can be selected through application state, navigation helpers, or application-specific logic.
 
 Routing itself is an application-level concern and may be provided by a future or separate Udodi companion package.
-
----
 
 ## Where State Lives
 
@@ -263,8 +249,6 @@ For example:
 * User data loaded from an API, including caching and invalidation, belongs in Query Pool.
 
 Avoid placing all application state in Store simply for consistency. Keeping local state local reduces unnecessary coupling.
-
----
 
 ## Udodi Store Modules
 
@@ -303,9 +287,7 @@ export const auth = defineStore("auth", {
 
 Initialize or register Store modules from the application entry point or from a dedicated Store initialization module when appropriate.
 
-See [Udodi Store](./store/) for the complete Store API and organization patterns.
-
----
+See [Udodi Store](./store/index.md) for the complete Store API and organization patterns.
 
 ## Query Pool modules
 
@@ -380,9 +362,7 @@ Remote / asynchronous data?
 
 Reusable HTTP or external I/O helpers can live in `services/` and be consumed by query `source` functions or mutation `execute` functions. If an operation is used only once, keeping it with the query or mutation is usually simpler.
 
-For queries, mutations, caching, dependencies, workers, and lifecycle APIs, see [Query Pool](./query-pool/).
-
----
+For queries, mutations, caching, dependencies, workers, and lifecycle APIs, see [Query Pool](./query-pool/index.md).
 
 ## Forms and Overlays
 
@@ -414,9 +394,7 @@ Overlay content is typically implemented as a normal Udodi component. Overlay li
 
 The directory name does not have any special meaning to Udodi.
 
-See [Forms](./forms/) and [Overlay](./overlay/) for details.
-
----
+See [Forms](./forms/index.md) and [Overlay](./overlay/index.md) for details.
 
 ## Component Styles and Global CSS
 
@@ -448,8 +426,6 @@ Keeping component-specific styles close to their component improves ownership an
 
 See [Component Styles](./fundamentals/styles.md) and [CSS Scoping](./advanced/css-scoping.md).
 
----
-
 ## Services and Utilities
 
 ### `services/`
@@ -476,8 +452,6 @@ utils/
 ```
 
 If a function is used only by one component or feature, keep it close to that owner until reuse justifies extraction.
-
----
 
 ## Feature-Based Organization
 
@@ -523,8 +497,6 @@ Cross-feature primitives belong under `shared/`.
 
 This structure is particularly useful when multiple developers or teams work on different application domains.
 
----
-
 ## Technical vs. Feature Organization
 
 Neither organizational model is required by Udodi. Choose based on application size, domain boundaries, and team structure.
@@ -538,8 +510,6 @@ Neither organizational model is required by Udodi. Choose based on application s
 A technical structure can evolve into a feature-based structure without requiring a change to Udodi itself.
 
 The appropriate time to reorganize is when finding and maintaining related code becomes more difficult than the cost of moving it.
-
----
 
 ## Client vs server
 
@@ -600,8 +570,6 @@ Client `services/` or Query Pool `source` functions call **your** API routes (`/
 
 Server layout should follow your chosen backend framework (routes, controllers, handlers, etc.), independent of Udodi’s client conventions.
 
----
-
 ## Recommended Starting Point
 
 For a new application, keep the initial structure small:
@@ -626,8 +594,6 @@ overlays/    → overlay content and related organization
 ```
 
 This keeps the project structure proportional to the application's actual complexity.
-
----
 
 ## State and Data Decision Guide
 
@@ -668,8 +634,6 @@ Opening and coordinating an overlay
 
 Do not introduce global state simply because a value is used by more than one component. Consider whether the value represents **shared application state** or **asynchronous resource state** before choosing Store or Query Pool.
 
----
-
 ## What to Avoid
 
 Udodi does not require any particular framework-style project taxonomy. Avoid introducing structure that does not correspond to an actual application need.
@@ -686,8 +650,6 @@ In particular:
 
 The objective is not to maximize the number of directories. The objective is to make ownership and dependencies clear.
 
----
-
 ## Summary
 
 | Layer          | Primary responsibility                                                            |
@@ -703,16 +665,3 @@ The objective is not to maximize the number of directories. The objective is to 
 Start with the smallest structure that keeps the application understandable. Introduce Store, Query Pool, Forms, Overlays, or feature boundaries when the application's requirements justify them.
 
 Udodi provides the runtime systems; **the application determines the directory structure**.
-
----
-
-## Where to Go Next
-
-* [Your First Component](./first-component.md) — Learn the anatomy of a Udodi component
-* [Fundamentals](./fundamentals/) — Explore the component model and core concepts
-* [Reactivity](./reactivity/) — Learn about signals, effects, computed values, and fine-grained updates
-* [Udodi Store](./store/) — Manage shared and persistent application state
-* [Query Pool](./query-pool/) — Manage asynchronous queries, mutations, caching, dependencies, and workers
-* [Forms](./forms/) — Build forms and manage validation and submission
-* [Overlay](./overlay/) — Build modals, dialogs, and layered UI
-* [Advanced Topics](./advanced/) — Explore architecture, rendering, performance, and deeper runtime behavior

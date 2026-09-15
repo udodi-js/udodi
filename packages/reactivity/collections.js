@@ -39,6 +39,8 @@ const SET_MUTATION_METHODS = new Set([
  * - fill
  * - copyWithin
  *
+ * Direct array index and length assignments are also tracked.
+ *
  * Deep mutations are not tracked:
  *
  * ```js
@@ -93,6 +95,49 @@ export function reactiveArray(
 			}
 
 			return value;
+		},
+
+		/**
+		 * Tracks direct structural writes to array indexes and length.
+		 *
+		 * Array mutation methods continue to notify explicitly through
+		 * their wrappers above. The scheduler deduplicates any resulting
+		 * notifications within the same microtask flush.
+		 *
+		 * @param {Array} target
+		 * @param {string|symbol} prop
+		 * @param {*} value
+		 * @param {Object} receiver
+		 * @returns {boolean}
+		 */
+		set(target, prop, value, receiver) {
+			const result = Reflect.set(
+				target,
+				prop,
+				value,
+				receiver,
+			);
+
+			if (prop === "length") {
+				touch(owner, key);
+				return result;
+			}
+
+			// Numeric array index.
+			const index =
+				typeof prop === "string"
+					? +prop
+					: NaN;
+
+			if (
+				index === index &&
+				index >= 0 &&
+				(index | 0) === index
+			) {
+				touch(owner, key);
+			}
+
+			return result;
 		},
 	});
 

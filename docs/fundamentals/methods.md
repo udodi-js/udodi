@@ -31,7 +31,7 @@ const Counter = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <main>
       <p>Count: <span @text="count"></span></p>
 
@@ -46,8 +46,6 @@ render(Counter(), "#app");
 ```
 
 Methods are exposed as root-level names on the component context, making them available to templates and other component code.
-
----
 
 ## Defining Methods
 
@@ -84,8 +82,6 @@ methods: {
 
 Method definitions are validated for root-level namespace collisions when `createComponent()` is called.
 
----
-
 ## The Method Context
 
 When Udodi invokes a registered method, `this` refers to the component's **public context**.
@@ -119,8 +115,6 @@ Through `this`, a method can:
 The method is invoked with the public context as its `this` value. Udodi does not expose the internal runtime context to the method.
 
 This is important because state access through `this` continues to pass through the component's public context and reactive state system.
-
----
 
 ## Updating State
 
@@ -176,8 +170,6 @@ The assignment to `this.count` goes through the reactive state layer.
 
 See [Interceptors](./interceptors.md).
 
----
-
 ## Methods in Templates
 
 Methods can be referenced by name through Udodi's template DSL.
@@ -197,8 +189,6 @@ The most common use of methods is handling DOM events with `@on`:
 The method name is resolved from the component context and invoked when the event occurs.
 
 No JavaScript function expression is required in the template.
-
----
 
 ## Methods as Resolvers
 
@@ -233,8 +223,6 @@ The first token identifies the method. Additional tokens are resolved according 
 Methods used as resolvers are still ordinary component methods. The template runtime simply resolves their arguments and invokes them.
 
 See [Template DSL](../templates/dsl.md).
-
----
 
 ## Calling Other Methods
 
@@ -271,8 +259,6 @@ methods: {
   },
 },
 ```
-
----
 
 ## Methods and Computed Values
 
@@ -312,8 +298,6 @@ A useful rule is:
 > **Methods perform behavior; computed values describe derived data.**
 
 See [Computed Values](./computed.md).
-
----
 
 ## Methods and Reactivity
 
@@ -404,8 +388,6 @@ Watchers observe **top-level reactive state keys**. Nested mutations are not ind
 
 See [Watchers](./watch.md).
 
----
-
 ## Methods and Watchers
 
 Methods and watchers can work together when a state change needs to trigger behavior.
@@ -450,8 +432,6 @@ const Counter = createComponent({
 The method contains reusable behavior, while the watcher determines **when** that behavior should run.
 
 Notice that the watcher does not receive `count` directly. It receives `newValues` and `oldValues`, from which the relevant dependency is selected.
-
----
 
 ## Methods and Nested State
 
@@ -509,8 +489,6 @@ Use `touch()` when you want to preserve the existing object while explicitly not
 
 See [State](./state.md) and [Using `touch()`](../reactivity/touch.md).
 
----
-
 ## Methods and Props
 
 Methods can read component props through the same public context:
@@ -525,7 +503,7 @@ const Greeter = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <button @on="click=greet">Greet</button>
   `,
 });
@@ -542,8 +520,6 @@ Greeter({
 Regular props are value snapshots. When a live reactive connection is required, Udodi supports explicitly reactive props.
 
 See [Props](./props.md).
-
----
 
 ## Async Methods
 
@@ -591,8 +567,6 @@ Then expose that state declaratively:
 
 This keeps UI state inside the component's reactive model instead of requiring imperative DOM updates.
 
----
-
 ## Accessing Element References
 
 When a method needs direct access to a DOM element, use `@ref` and `this.refs`:
@@ -621,8 +595,6 @@ Refs are appropriate when an operation inherently requires a DOM element, such a
 * interacting with a browser API
 
 Prefer declarative bindings when direct DOM access is unnecessary.
-
----
 
 ## Registering Cleanup
 
@@ -694,8 +666,6 @@ This keeps ownership of the subscription with the component that created it.
 
 Cleanup is also used when mounting fails after the mount scope has been established, allowing resources registered in that scope to be released.
 
----
-
 ## Methods and Lifecycle
 
 Methods can be used by lifecycle hooks because lifecycle hooks receive the same public component context:
@@ -727,8 +697,6 @@ onUnmount(root, ctx) {
 ```
 
 The component's computed and watcher scopes are cleaned up as part of the component unmount process. Resource callbacks registered through `this.cleanup()` belong to the mount scope and are cleaned up by the mounting lifecycle.
-
----
 
 ## Root-Level Names
 
@@ -796,8 +764,6 @@ methods: {
 
 Udodi validates these names and reports collisions with the component name and conflicting namespace.
 
----
-
 ## What Methods Are Not
 
 ### Not derived state
@@ -841,8 +807,6 @@ Methods contain behavior.
 * State-change side effects belong in `watch`.
 * Actions and reusable imperative logic belong in `methods`.
 
----
-
 ## Constraints
 
 | Constraint           | Behavior                                                                   |
@@ -860,8 +824,6 @@ Methods contain behavior.
 | DOM access           | Registered refs are available through `this.refs`                          |
 | Cleanup              | `this.cleanup(fn)` registers `fn` with the component's mount cleanup scope |
 | Watch handlers       | Watch handlers receive `newValues` and `oldValues` objects keyed by `deps` |
-
----
 
 ## Minimal Example
 
@@ -883,7 +845,7 @@ const Toggle = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <button @on="click=toggle">
       <span @text="on"></span>
     </button>
@@ -894,17 +856,3 @@ render(Toggle(), "#app");
 ```
 
 The method performs the state transition, while Udodi's reactive state system updates consumers of `on`.
-
----
-
-## Next Steps
-
-* [Components](./components.md) — component structure and root-level namespace rules
-* [State](./state.md) — reactive state that methods can update
-* [Computed Values](./computed.md) — derived values and automatic dependency tracking
-* [Watchers](./watch.md) — responding to state changes with `newValues` and `oldValues`
-* [Props](./props.md) — values supplied to component instances
-* [Interceptors](./interceptors.md) — transforming or cancelling root state assignments
-* [Context](./context.md) — the public component context
-* [Templates](../templates/README.md) — directive and method resolution
-* [Using `touch()`](../reactivity/touch.md) — notifying after nested mutations

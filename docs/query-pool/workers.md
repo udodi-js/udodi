@@ -14,14 +14,14 @@ This separation is important:
 │  reactive state   lifecycle      cache   dependencies        │
 │  invalidation     cancellation   execution identity          │
 │                                                              │
-│       ┌──────────────────────┐                               │
-│       │ local source/execute │                               │
-│       └──────────────────────┘                               │
+│        ┌──────────────────────┐                              │
+│        │ local source/execute │                              │
+│        └──────────────────────┘                              │
 │                    │                                         │
 │                    │ module-backed work                      │
 │                    ▼                                         │
 │              Worker Bridge                                   │
-└────────────────────┬─────────────────────────────────────────┘
+└─────────────────── │ ────────────────────────────────────────┘
                      │
                      ▼
               ┌─────────────┐
@@ -38,8 +38,6 @@ This separation is important:
 The UI thread therefore does not become responsible for worker lifecycle or worker state. It interacts with the same query and mutation handles regardless of whether execution is local or worker-backed.
 
 For module registration, see [Query Registry](./registry.md). For zero-copy transport, see [Transferable Data](./transfers.md).
-
----
 
 ## When to Use Workers
 
@@ -82,8 +80,6 @@ A useful distinction is:
 ```
 
 Workers are therefore about **where computation executes**, not about whether an operation returns a promise.
-
----
 
 ## Worker Architecture
 
@@ -143,8 +139,6 @@ Query Pool
              └── "Execute this module."
 ```
 
----
-
 ## Enabling Workers
 
 Enable the worker backend when creating the pool:
@@ -177,8 +171,6 @@ pool.registerModule("heavySort", {
 
 The module can be registered, but the pool still needs worker execution enabled before a module-backed definition can execute through the worker backend.
 
----
-
 ## Registering a Worker Module
 
 A worker module is registered with a module key and descriptor:
@@ -206,7 +198,7 @@ The application does not create or communicate with `Worker` instances directly.
 Instead:
 
 ```text
-sorted.fetch()
+ sorted.fetch()
       │
       ▼
  Query Pool
@@ -225,8 +217,6 @@ sorted.fetch()
 ```
 
 This means the query retains the same API whether its execution is local or worker-backed.
-
----
 
 ## Worker Module Files
 
@@ -259,8 +249,6 @@ await sorted.fetch({
 ```
 
 The exact exported function used by a module can be configured through the module descriptor. See [Query Registry](./registry.md) for module descriptors and export configuration.
-
----
 
 ## Worker Queries
 
@@ -306,8 +294,6 @@ The distinction is:
 
 Do not combine a worker module with a local `source` / `compute` on the same query definition.
 
----
-
 ## Worker Mutations
 
 The same worker backend can execute mutations:
@@ -348,8 +334,6 @@ Query Pool
 ```
 
 Only the mutation's execution body moves into the worker runtime.
-
----
 
 ## Local and Worker Work Can Coexist
 
@@ -394,8 +378,6 @@ Compute Worker
 ```
 
 This is one of the important architectural properties of the worker backend: worker execution is **per definition**, not a separate Query Pool.
-
----
 
 ## Execution Path
 
@@ -464,8 +446,6 @@ the execution path is approximately:
 
 The final execution-identity check is important. A worker may finish after its query has already been cancelled or superseded. Its result must not overwrite the state produced by a newer execution.
 
----
-
 ## Module Synchronization
 
 Worker modules are registered through the Query Pool registry rather than manually imported by every Compute Worker.
@@ -476,25 +456,23 @@ Conceptually:
 
 ```text
 pool.registerModule()
-        │
-        ▼
-   module registry
-        │
-        ▼
+         │
+         ▼
+  module registry
+         │
+         ▼
  worker bridge sync
-        │
-        ▼
-   Main Worker
-        │
-        ▼
- Compute Workers
+         │
+         ▼
+    Main Worker
+         │
+         ▼
+  Compute Workers
 ```
 
 This allows the Query Pool to keep module registration centralized while the worker runtime handles execution.
 
 For the complete registration model, including descriptors and export names, see [Query Registry](./registry.md).
-
----
 
 ## Streaming
 
@@ -566,8 +544,6 @@ streamed = false
 Chunks belong to the execution that produced them. Chunks arriving from a superseded execution are ignored.
 
 See [Query Lifecycle](./lifecycle.md) for the complete streaming lifecycle.
-
----
 
 ## Transferable Data
 
@@ -651,8 +627,6 @@ This is why transferable handling is part of the Query Pool worker transport rat
 
 See [Transferable Data](./transfers.md) for the detailed transport model.
 
----
-
 ## Caching Still Happens in the Query Pool
 
 Worker execution does not create a separate worker cache.
@@ -674,7 +648,7 @@ The decision to use the cache happens before the worker module needs to execute:
 sorted.fetch()
       │
       ▼
- Query Pool
+  Query Pool
       │
       ├── fresh cache?
       │      │
@@ -683,13 +657,13 @@ sorted.fetch()
       │ ◄─── no
       │
       ▼
- Worker execution
+Worker execution
       │
       ▼
    result
       │
       ▼
- Query Pool cache
+Query Pool cache
 ```
 
 Thus a fresh cache entry can prevent an expensive worker invocation altogether.
@@ -697,8 +671,6 @@ Thus a fresh cache entry can prevent an expensive worker invocation altogether.
 The worker backend does not alter the Query Pool's caching semantics.
 
 See [Caching](./caching.md).
-
----
 
 ## Dependencies and Workers
 
@@ -721,11 +693,11 @@ Refreshing the dependent query produces a plan such as:
 refresh("processed")
         │
         ▼
-      raw
+       raw
         │
         │ dependency satisfied
         ▼
-   processed
+    processed
         │
         ▼
   worker module
@@ -745,8 +717,6 @@ This means all of the normal plan rules still apply:
 - cancellation and execution identity prevent stale results from committing
 
 See [Query Dependencies](./dependencies.md).
-
----
 
 ## Cancellation
 
@@ -801,8 +771,6 @@ Existing successful data remains available.
 
 See [Query Cancellation](./cancellation.md).
 
----
-
 ## Worker Errors
 
 Worker execution errors become normal Query Pool execution errors.
@@ -838,13 +806,11 @@ local source ────────┐
                  Query Pool
                      │
                      ▼
-                 same handle
+                same handle
                      ▲
                      │
 worker module ───────┘
 ```
-
----
 
 ## Worker Concurrency
 
@@ -889,8 +855,6 @@ This is particularly useful for dependency graphs containing independent worker-
 
 The Query Pool still determines which nodes are ready; the Compute Worker Pool provides the execution capacity.
 
----
-
 ## Worker Execution Does Not Change Reactivity
 
 A worker query is still an ordinary reactive Query Pool handle:
@@ -926,10 +890,8 @@ That is a deliberate abstraction:
           └───────────┬───────────┘
                       ▼
                 same reactive
-                    API
+                     API
 ```
-
----
 
 ## Local vs Worker Execution
 
@@ -951,8 +913,6 @@ That is a deliberate abstraction:
 
 The choice therefore belongs to the work definition, not to the reactive consumer.
 
----
-
 ## Choosing Between Local and Worker Execution
 
 A useful rule is:
@@ -964,7 +924,7 @@ Is the operation primarily I/O?
       yes
        │
        ▼
-   local source
+  local source
 
 
        no
@@ -976,7 +936,7 @@ Is the operation CPU-heavy or long-running?
       yes
        │
        ▼
-   worker module
+  worker module
 ```
 
 For example, fetching data:
@@ -1010,8 +970,6 @@ pool.query("processedUsers", {
 
 This gives the application a single asynchronous graph while allowing each node to use the execution backend appropriate to its workload.
 
----
-
 ## Worker Lifecycle
 
 Worker infrastructure belongs to the lifetime of the Query Pool.
@@ -1037,7 +995,7 @@ It is therefore appropriate when the entire pool is no longer needed:
 createQueryPool()
        │
        ▼
- worker infrastructure
+worker infrastructure
        │
        ├── queries
        ├── mutations
@@ -1047,7 +1005,7 @@ createQueryPool()
 pool.terminate()
        │
        ▼
- worker infrastructure released
+worker infrastructure released
 ```
 
 Do not use `terminate()` as a replacement for ordinary query cancellation. Use:
@@ -1057,8 +1015,6 @@ query.cancel();
 ```
 
 when only one execution should stop.
-
----
 
 ## Complete Example
 
@@ -1131,30 +1087,28 @@ pool.terminate();
 The resulting architecture is:
 
 ```text
-             Query Pool
-                  │
-                  ▼
-                users
-                  │
-            local source
-                  │
-                  ▼
-             sortedUsers
-                  │
-            worker module
-                  │
-                  ▼
-               report
-                  │
-            worker module
-                  │
-                  ▼
-           Compute Workers
+        Query Pool
+            │
+            ▼
+          users
+            │
+       local source
+            │
+            ▼
+        sortedUsers
+            │
+      worker module
+            │
+            ▼
+          report
+            │
+      worker module
+            │
+            ▼
+     Compute Workers
 ```
 
 The key point is that the dependency graph, cache, lifecycle, and reactive state remain centralized in the Query Pool, while the expensive module executions are distributed to the worker backend.
-
----
 
 ## Worker Design Principles
 
@@ -1226,8 +1180,6 @@ API works for both local and worker-backed queries.
 
 That keeps worker execution an implementation detail rather than a second programming model.
 
----
-
 ## API Summary
 
 | Surface | Role |
@@ -1241,20 +1193,5 @@ That keeps worker execution an implementation detail rather than a second progra
 | `transfer: true` | Opt into transferable input transport |
 | `cancel()` | Cancel the current execution |
 | `pool.terminate()` | Tear down worker infrastructure |
-
----
-
-## Next Steps
-
-| Topic | Guide |
-| --- | --- |
-| Register worker modules | [Query Registry](./registry.md) |
-| Transfer large binary values | [Transferable Data](./transfers.md) |
-| Create module-backed queries | [Queries](./queries.md) |
-| Create module-backed mutations | [Mutations](./mutations.md) |
-| Understand cancellation | [Query Cancellation](./cancellation.md) |
-| Understand dependency plans, in-flight reuse, and force | [Query Dependencies](./dependencies.md) |
-| Understand streaming state | [Query Lifecycle](./lifecycle.md) |
-| Overall architecture | [Query Pool Overview](./overview.md) |
 
 For exact worker options, module descriptors, and message contracts, see the [Query Pool API Reference](../api/query-pool.md).

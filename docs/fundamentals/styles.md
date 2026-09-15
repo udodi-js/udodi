@@ -4,8 +4,6 @@ A component can declare CSS through the `style` option.
 
 Udodi treats component styles as **component-owned CSS** and associates non-empty styles with a scope. When the component is mounted, the runtime marks the component's DOM boundary so the registered CSS can be applied to that component tree without becoming ordinary global CSS.
 
----
-
 ## Defining Styles
 
 The `style` option accepts a CSS string.
@@ -29,7 +27,7 @@ const Card = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <article class="card">
       <h2 class="title">Hello</h2>
       <p>Body</p>
@@ -56,8 +54,6 @@ style: `
 
 However, **css\`...\`** is preferred when writing component CSS because it gives editors and tooling a clear CSS template context.
 
----
-
 ## Component Style Registration
 
 Component styles are associated with the component when the component definition is created.
@@ -67,20 +63,20 @@ For a component with non-empty CSS, Udodi creates a scope for that style and reg
 The important distinction is:
 
 ```text
-Component definition
-        │
-        │ non-empty style
-        ▼
-   style registration
-        │
-        ▼
-     scope id
-        │
-        ▼
-     mount()
-        │
-        ▼
-  scoped component DOM
+ Component definition
+          │
+          │ non-empty style
+          ▼
+  style registration
+          │
+          ▼
+      scope ID
+          │
+          ▼
+       mount()
+          │
+          ▼
+ scoped component DOM
 ```
 
 The CSS is not inserted into the DOM separately for every component instance.
@@ -88,8 +84,6 @@ The CSS is not inserted into the DOM separately for every component instance.
 Instead, the style registration is shared by the component definition's scope.
 
 This allows multiple instances of the same component to use the same registered CSS.
-
----
 
 ## Empty and Missing Styles
 
@@ -99,7 +93,7 @@ These are equivalent from the perspective of component styling:
 
 ```js
 createComponent({
-  template: () => html`<div></div>`,
+  template: html`<div></div>`,
 });
 ```
 
@@ -108,13 +102,11 @@ and:
 ```js
 createComponent({
   style: "",
-  template: () => html`<div></div>`,
+  template: html`<div></div>`,
 });
 ```
 
 An empty style does not create any CSS scope.
-
----
 
 ## CSS Scoping
 
@@ -168,8 +160,6 @@ Do **not** write:
 
 The runtime establishes the scope boundary for you.
 
----
-
 ## Scope Boundaries
 
 When a styled component is mounted, Udodi marks its component DOM boundary with a generated scope identifier.
@@ -188,8 +178,6 @@ For nested component trees, Udodi also establishes the appropriate scope boundar
 
 This is important because component composition should not cause a parent's selectors to become effectively global.
 
----
-
 ## Nested Components
 
 Every component definition that contains non-empty CSS has its own style scope.
@@ -206,7 +194,7 @@ const Child = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <span class="label">Child</span>
   `,
 });
@@ -220,7 +208,7 @@ const Parent = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <div>
       <span class="label">Parent</span>
       ${Child()}
@@ -236,23 +224,19 @@ Conceptually:
 ```text
 Parent scope
 └── Parent DOM
-    ├── .label        ← Parent styles apply
+    ├── .label        ←  Parent styles apply
     │
     └── Child scope
-        └── .label    ← Child styles apply
+        └── .label    ←  Child styles apply
 ```
 
 The purpose of the boundary is to prevent the parent's component CSS from leaking into the child's component tree as though it were global CSS.
 
 The child establishes its own styling boundary.
 
----
-
 ## Styling the Component Root
 
-A component's root element is the CSS `@scope` root.
-
-To style the root element itself, use the `:scope` pseudo-class:
+A component's root element is the CSS `@scope` root. To style the root element itself, use the `:scope` pseudo-class:
 
 ```js
 const Card = createComponent({
@@ -271,7 +255,7 @@ const Card = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <article>
       <h2 class="title">Hello</h2>
       <p>Body</p>
@@ -303,8 +287,6 @@ You do not need to add a generated scope class or attribute to the element yours
 
 The runtime manages the scope markers.
 
----
-
 ## Multiple Component Instances
 
 A component definition can be mounted more than once:
@@ -332,8 +314,6 @@ Card definition
 
 This avoids repeatedly inserting identical component CSS as instances are mounted.
 
----
-
 ## Shared Style Element
 
 Registered component styles are collected by Udodi's runtime style system.
@@ -359,14 +339,12 @@ Component styles
       └── ...
              │
              ▼
-      #udodi-styles
+       #udodi-styles
 ```
 
 This means component styles do not require a separate `<style>` element for every component instance.
 
 The shared stylesheet is updated when registered component styles need to be rendered.
-
----
 
 ## Style Registration and Mounting
 
@@ -384,7 +362,7 @@ createComponent()
       └── register component style
                   │
                   ▼
-              scope id
+               scope ID
                   │
                   │
                 mount()
@@ -397,8 +375,6 @@ createComponent()
 This separation is important because a component definition can exist before it is mounted.
 
 The CSS registration does not mean that a component instance has already been mounted.
-
----
 
 ## Writing Selectors
 
@@ -446,8 +422,6 @@ div {
 
 Although the component scope limits where the rule applies, explicit component classes communicate styling intent more clearly.
 
----
-
 ## Selector Semantics
 
 Component scoping limits the scope in which selectors are matched. It does **not** rewrite selectors into generated class names.
@@ -478,13 +452,9 @@ Your template can continue to use:
 <h2 class="title">Hello</h2>
 ```
 
----
-
 ## Dynamic Styling
 
-The `style` option is intended for static component CSS.
-
-It is not a reactive style declaration.
+The `style` option is intended for static component CSS. It is not a reactive style declaration.
 
 For styles that change because of component state or computed values, use the template styling directives.
 
@@ -498,7 +468,7 @@ Use `@class` when the styling change is represented by a class.
 <div class="card" @class="'featured elevated'"></div>
 ```
 
-**Dynamic classes** — space-separated bindings. A binding can be:
+**Dynamic classes** use space-separated bindings. A binding can be:
 
 - a conditional: `condition=>'className'` (adds the class when the condition is truthy)
 - an expression that evaluates to a class string or array of class names
@@ -539,7 +509,7 @@ Use `@style` when values should be applied as inline styles.
 <div @style="'color:red;background:blue'"></div>
 ```
 
-**Dynamic styles** — space-separated bindings. Each binding may evaluate to:
+**Dynamic styles** use space-separated bindings. Each binding may evaluate to:
 
 - a CSS declaration string (`"opacity:0.5;color:red"`)
 - an object (`{ opacity: 0.5, color: "red" }`)
@@ -569,11 +539,9 @@ The distinction is:
 
 | Mechanism              | Use                              |
 |------------------------|----------------------------------|
-| `style:` **css\`...\`**    | Static component CSS             |
+| `style:`               | Static component CSS             |
 | `@class`               | Reactive class changes           |
 | `@style`               | Reactive inline style changes    |
-
----
 
 ## Example: Component Variant
 
@@ -610,7 +578,7 @@ const Card = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <article
       class="card"
       @class="featured=>'featured'"
@@ -635,8 +603,6 @@ style
 @class
   └── reactive class state
 ```
-
----
 
 ## Component Styles Are Not Global CSS
 
@@ -690,8 +656,6 @@ style: css`
 
 This keeps component ownership separate from application-wide design infrastructure.
 
----
-
 ## CSS Custom Properties
 
 Component styles can use normal CSS custom properties.
@@ -707,11 +671,7 @@ style: css`
 
 Because CSS custom properties participate in normal CSS inheritance, they can also be supplied by an ancestor when that is appropriate for the application's styling architecture.
 
-Component scoping does not turn CSS custom properties into component-local state.
-
-They remain CSS variables governed by the browser's CSS cascade and inheritance rules.
-
----
+Component scoping does not turn CSS custom properties into component-local state. They remain CSS variables governed by the browser's CSS cascade and inheritance rules.
 
 ## Browser Support
 
@@ -722,8 +682,6 @@ Therefore, component styles require a browser environment that supports the CSS 
 Udodi does **not** emulate `@scope` by rewriting every selector into generated class names.
 
 If support for older browsers is required, account for that at the application/browser compatibility level rather than assuming the component-style runtime provides a CSS `@scope` polyfill.
-
----
 
 ## `css` Tagged Template
 
@@ -749,8 +707,6 @@ It does **not**:
 
 The runtime ultimately works with the resulting CSS string.
 
----
-
 ## Scope IDs
 
 Scope identifiers are runtime-generated.
@@ -773,8 +729,6 @@ Do **not**:
 
 Use normal component markup and selectors instead.
 
----
-
 ## Scope Markers
 
 The runtime uses scope markers to establish the component's CSS boundary.
@@ -784,27 +738,23 @@ These markers are runtime metadata rather than application markup.
 Conceptually:
 
 ```text
-scope start
-     │
-     ▼
-┌──────────────────────────┐
-│ Component DOM            │
-│                          │
-│   .card                  │
-│   .title                 │
-│   button                 │
-│                          │
-└──────────────────────────┘
-     │
-     ▼
-scope boundary
+   scope start
+        │
+        ▼
+┌───────────────┐
+│ Component DOM │
+│               │
+│   .card       │
+│   .title      │
+│   button      │
+│               │
+└───────────────┘
+        │
+        ▼
+  scope boundary
 ```
 
-They exist so the CSS `@scope` rule can identify the component's DOM region.
-
-Application code should not manipulate these markers directly.
-
----
+They exist so the CSS `@scope` rule can identify the component's DOM region. Application code should not manipulate these markers directly.
 
 ## Styling Nested Component Trees
 
@@ -820,7 +770,7 @@ const Child = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <h2 class="title">Child</h2>
   `,
 });
@@ -834,7 +784,7 @@ const Parent = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <section>
       <h1 class="title">Parent</h1>
       ${Child()}
@@ -848,8 +798,6 @@ The two `.title` selectors are associated with different component scopes.
 The parent selector is intended for the parent's component tree, while the child's own scope governs the child component.
 
 This is the primary purpose of the component-style boundary: component composition should not turn every component's CSS into one unrestricted global stylesheet.
-
----
 
 ## When to Use Component Styles
 
@@ -873,8 +821,6 @@ Component styles are particularly useful for:
 - component states and variants
 - component-specific animations
 - component-specific responsive rules
-
----
 
 ## When to Use Global Styles
 
@@ -906,8 +852,6 @@ Global styles are also appropriate for:
 - application-wide utilities
 
 Do not duplicate global infrastructure across component style declarations.
-
----
 
 ## Complete Example
 
@@ -952,7 +896,7 @@ const Button = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <button
       class="button"
       @class="active=>'active'"
@@ -974,8 +918,6 @@ Here:
 - the runtime scopes the CSS to the component;
 - the generated scope markers do not need to appear in the template.
 
----
-
 ## Constraints
 
 | Constraint | Behavior |
@@ -993,8 +935,6 @@ Here:
 | Global CSS | Use application stylesheets for resets, tokens, and shared global rules |
 | Browser support | Requires CSS `@scope` support |
 
----
-
 ## Minimal Example
 
 ```js
@@ -1009,7 +949,7 @@ const Hello = createComponent({
     }
   `,
 
-  template: () => html`
+  template: html`
     <p class="hello">Hello</p>
   `,
 });
@@ -1019,28 +959,26 @@ render(Hello(), "#app");
 
 The `.hello` selector is scoped to the Hello component. No generated scope selector needs to be added to the template.
 
----
-
 ## Summary
 
 Udodi component styling follows a simple model:
 
 ```text
-style: css`...`
-        │
-        ▼
-   CSS string
-        │
-        ▼
+ style: css`...`
+     │
+     ▼
+ CSS string
+     │
+     ▼
  component scope
-        │
-        ▼
+     │
+     ▼
  shared Udodi stylesheet
-        │
-        ▼
+     │
+     ▼
  mounted component boundary
-        │
-        ▼
+     │
+     ▼
  scoped CSS
 ```
 
@@ -1070,13 +1008,3 @@ and normal template bindings:
 ```
 
 rather than managing scope identifiers or runtime scope markers directly.
-
----
-
-## Next Steps
-
-- [Components](./components.md) — `style` as a component option
-- [Lifecycle](./lifecycle.md) — component mounting and unmounting
-- [Templates](../templates/) — `@class` and `@style`
-- [Context](./context.md) — component context
-- [CSS Scoping](../advanced/css-scoping.md) — detailed scoping behavior and boundaries

@@ -17,8 +17,6 @@ This guide covers:
 
 For opening behavior, see **[Opening Overlays](./opening.md)**.
 
----
-
 ## Close Paths
 
 Udodi provides several ways to close an open overlay:
@@ -33,8 +31,6 @@ Udodi provides several ways to close an open overlay:
 Regardless of which path initiates the close, the target overlay goes through the same closing lifecycle.
 
 The important distinction is **which overlay is targeted** and **which result is returned**.
-
----
 
 ## Closing from Content with `close()`
 
@@ -70,7 +66,7 @@ const ConfirmDialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div class="dialog">
       <button type="button" @on="click=cancel">
         Cancel
@@ -185,8 +181,6 @@ if (choice === "save") {
 
 The dialog can return an application-defined value such as `"save"` or `"discard"`, and the caller can branch on it.
 
----
-
 ## `closeTopModal()`
 
 Use `closeTopModal(result?)` when the intent is to close whichever overlay is currently at the top of the stack:
@@ -244,8 +238,6 @@ Use `closeTopModal()` when you intentionally want top-most behavior.
 
 See **[Overlay Stacking](./stacking.md)**.
 
----
-
 ## Backdrop Closing
 
 By default, overlays render a backdrop and allow a click on that backdrop to close the overlay:
@@ -290,8 +282,6 @@ const confirmed = await openModal((close) => {
 
 can return `true`, while an accidental or intentional backdrop dismissal still returns `false`.
 
----
-
 ## Escape Closing
 
 Escape closing is handled by the runtime's global keyboard listener:
@@ -328,8 +318,6 @@ Modal B  (closeOnEscape: true)  ←  Escape closes B only
 After Modal B closes, Modal A can respond to subsequent Escape presses according to its own `closeOnEscape` setting.
 
 Escape closing always resolves the target overlay's Promise with `false`.
-
----
 
 ## Close Results and Dismissal
 
@@ -386,7 +374,7 @@ const UnsavedChangesDialog = createComponent({
     },
   },
 
-  template: () => html`
+  template: html`
     <div class="dialog">
       <p>You have unsaved changes.</p>
       <button type="button" @on="click=chooseSave">Save</button>
@@ -424,8 +412,6 @@ switch (choice) {
 
 Backdrop and Escape still return `false`, so the caller can distinguish an explicit dialog choice from an external dismissal if needed.
 
----
-
 ## What Happens When an Overlay Closes
 
 All close paths converge on the same cleanup sequence as shown in the table below:
@@ -452,8 +438,6 @@ const result = await openModal((close) => {
 console.log(result);
 ```
 
----
-
 ## Idempotent Closing
 
 Closing an overlay is idempotent.
@@ -479,8 +463,6 @@ The second call does **not**:
 
 This is important when multiple close paths can potentially occur close together; for example, when application code initiates a close while another event is also being processed.
 
----
-
 ## Closing from Outside the Overlay
 
 Code outside the overlay's render function can dismiss the current top-most overlay with `closeTopModal()`:
@@ -505,8 +487,6 @@ The distinction is important:
 
 * Use **`close()`** when the overlay content knows the result it wants to return.
 * Use **`closeTopModal()`** when external code simply wants to dismiss the current top layer.
-
----
 
 ## Pattern: Confirm Then Continue
 
@@ -545,8 +525,6 @@ open confirm overlay
 
 The important part is that the destructive operation does not continue until the Promise resolves with a truthy confirmation result.
 
----
-
 ## Pattern: Multiple Results
 
 When a dialog has more than two meaningful outcomes, return a distinct value for each action:
@@ -575,8 +553,6 @@ This is often clearer than encoding several states into a boolean.
 
 The overlay system does not constrain the result type. The application decides what values represent its dialog outcomes.
 
----
-
 ## Common Mistakes
 
 | Mistake | Result |
@@ -588,8 +564,6 @@ The overlay system does not constrain the result type. The application decides w
 | Putting `() => close(false)` in `@on` | Invalid Udodi template DSL. Use a component method and callback prop. |
 | Assuming closing one nested overlay unlocks scrolling immediately | Scroll locking is reference-counted; another locking overlay can keep the document locked. |
 | Assuming Escape closes every open overlay | Only the top-most overlay can respond to Escape. |
-
----
 
 ## Choosing a Close API
 
@@ -613,17 +587,3 @@ await openModal((close) => {
 ```
 
 This keeps the component's template and methods independent of the overlay's internal stack management.
-
----
-
-## Next Steps
-
-| Goal | Guide |
-| --- | --- |
-| Open overlays and work with the Promise | **[Opening Overlays](./opening.md)** |
-| Configure backdrop and Escape behavior | **[Overlay Options](./options.md)** |
-| Understand nested overlays and top-most behavior | **[Overlay Stacking](./stacking.md)** |
-| Understand focus restoration and keyboard behavior | **[Accessibility](./accessibility.md)** |
-| Review the complete Overlay model | **[Overlay Overview](./overview.md)** |
-
-For precise public API signatures, see the **[Overlay API Reference](../api/overlay.md)**.

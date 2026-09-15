@@ -15,7 +15,7 @@ export default defineConfig({
 		exclude: ["node_modules", "dist", "playground"],
 
 		alias: {
-			udodi: path.resolve(__dirname, "./packages"),
+			udodi: path.resolve(import.meta.dirname, "./packages"),
 		},
 	},
 });
