@@ -589,8 +589,8 @@ onMounted(async () => {
 		updateActiveFromScroll();
 	}
 
-	// *************************** Sponsors (from /sponsors.json) ***************************
-	const SPONSORS_URL = '/sponsors.json';
+	// *************************** Sponsors (from R2 / CDN) ***************************
+    const SPONSORS_URL = 'https://cdn.udodi.dev/sponsors/sponsors.json';
 
 	const prefersReducedMotion = window.matchMedia(
 		'(prefers-reduced-motion: reduce)'
@@ -791,7 +791,7 @@ onMounted(async () => {
 		let data;
 
 		try {
-			const res = await fetch(SPONSORS_URL, { credentials: 'same-origin' });
+			const res = await fetch(SPONSORS_URL);
 			if (!res.ok) throw new Error('HTTP ' + res.status);
 			data = await res.json();
 
