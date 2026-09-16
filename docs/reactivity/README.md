@@ -23,14 +23,14 @@ When reactive data is read inside an effect, computed, or template binding, Udod
 
 ```text
 signal / reactive property
-        │
-        │ read inside effect / computed / binding
-        ▼
-   dependency graph
-        │
-        │ value changes
-        ▼
- only dependent jobs re-run
+   │
+   │ read inside effect / computed / binding
+   ▼
+dependency graph
+   │
+   │ value changes
+   ▼
+only dependent jobs re-run
 ```
 
 This is the foundation of fine-grained updates: the runtime does not re-evaluate an entire component tree when a single field changes.
@@ -42,9 +42,10 @@ This is the foundation of fine-grained updates: the runtime does not re-evaluate
 | **Signal** | Lowest-level reactive cell: get, set, and manual trigger |
 | **Effect** | Runs a function and re-runs it when tracked dependencies change |
 | **Computed** | Lazily derived value that caches until its dependencies change |
-| **Reactive object** | Shallow reactive proxy backed by per-property signals |
+| **Reactive object** | Shallow reactive object with per-property signal-backed accessors |
 | **Reactive collections** | Arrays, Maps, and Sets that notify on structural mutation |
 | **`touch()`** | Explicitly notify dependents after an in-place nested mutation |
+| **`bindProp()`** | Live reactive connection when passing parent state as a child prop |
 
 These primitives form the foundation for component `state()`, `computed` properties, watchers, and template directives.
 
@@ -52,7 +53,7 @@ These primitives form the foundation for component `state()`, `computed` propert
 
 Reactive objects in Udodi are **shallow**.
 
-- Top-level properties are tracked.
+- Top-level properties present at construction are tracked.
 - Nested plain objects are **not** made reactive automatically.
 - Arrays, Maps, and Sets assigned to reactive properties are wrapped so structural mutations notify the owning property.
 - Deep field changes on nested plain objects require an explicit `touch(proxy, key)`.
@@ -90,29 +91,31 @@ You normally do not schedule work yourself; `set`, collection mutations, and `to
 
 ```text
 createSignal / reactive()
-        │
-        ├── effect()          → side effects, DOM bindings, watchers
-        │
-        ├── computed()        → derived values
-        │
-        └── collections       → reactiveArray / reactiveMap / reactiveSet
-                │
-                └── touch()   → nested / in-place notification
+ │
+ ├── effect()  →  side effects, DOM bindings, watchers
+ │
+ ├── computed()  →  derived values
+ │
+ ├── collections  →  reactiveArray / reactiveMap / reactiveSet
+ │
+ ├── touch()  →  nested / in-place notification
+ │
+ └── bindProp()  →  live parent → child prop tunnels
 ```
 
 In components, this surfaces as:
 
 ```text
-state()            → reactive object
-computed: { }      → computed getters
-watch: { }         → effects over declared deps
-template bindings  → effects that update the DOM
+state()            →  reactive object
+computed: { }      →  computed getters
+watch: { }         →  effects over declared deps
+template bindings  →  effects that update the DOM
 ```
 
 ## When to Reach for Each Guide
 
 | Goal | Guide |
-|------|--------|
+|------|-------|
 | Understand the overall model | [Reactivity Overview](./index.md) |
 | Work with the lowest-level primitive | [Signals](./signals.md) |
 | Run code when dependencies change | [Effects](./effects.md) |
@@ -123,7 +126,7 @@ template bindings  → effects that update the DOM
 ## Design Notes
 
 - **Fine-grained** — dependents subscribe to specific signals/properties, not whole components.
-- **Shallow reactive objects** — nested plain objects are not auto-proxied; use `touch()` or replace the property.
+- **Shallow reactive objects** — nested plain objects are not made reactive automatically; use `touch()` or replace the property.
 - **Collection awareness** — arrays, Maps, and Sets get structural mutation tracking when stored on reactive state.
 - **Explicit over magical** — deep mutations are opt-in via `touch()` rather than invisible deep proxies.
 - **Batched** — updates are scheduled and flushed asynchronously in microtasks.
@@ -132,8 +135,8 @@ These choices keep the runtime small and the mental model stable as applications
 
 ## Next Steps
 
-* [Reactivity Overview](./index.md) — start here for the full picture  
-* [Signals](./signals.md) — the primitive reactive cell  
-* [Effects](./effects.md) — dependency tracking and re-execution  
-* [Reactive State](./state.md) — `reactive()` and interceptors  
-* [Using `touch()`](./touch.md) — nested mutation notification  
+* [Reactivity Overview](./index.md) — start here for the full picture
+* [Signals](./signals.md) — the primitive reactive cell
+* [Effects](./effects.md) — dependency tracking and re-execution
+* [Reactive State](./state.md) — `reactive()` and interceptors
+* [Using `touch()`](./touch.md) — nested mutation notification
