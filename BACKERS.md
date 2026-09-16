@@ -9,5 +9,5 @@ Thank you — every contribution makes a real difference.
 ## Sponsors
 
 <p align="center">
-  <img src="https://udodi.dev/sponsors/backers.svg" alt="Udodi Sponsors and Backers" width="100%" />
+  <img src="https://cdn.udodi.dev/sponsors/backers.svg" alt="Udodi Sponsors and Backers" width="100%" />
 </p>
