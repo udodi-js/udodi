@@ -28,25 +28,28 @@ touch(state, "user");      // effect runs
 ## Signature
 
 ```js
-touch(proxy, key) → boolean
+touch(proxy, key)  →  boolean
 ```
 
 | Argument | Description |
 |----------|-------------|
-| `proxy` | Reactive object from `reactive()`, or a component context that exposes `_state` |
+| `proxy` | Reactive object from `reactive()`, or a component context registered as a touch target by the runtime |
 | `key` | Root property name (`string` or `symbol`) |
 
-Returns `true` if a trigger was found and invoked, otherwise `false` (unknown proxy or key).
+Returns `true` when the proxy is a known reactive target (or registered alias) and the key type is valid. Returns `false` when the key is not a string/symbol, or the proxy is not reactive / not registered.
 
 ```js
-touch(state, "user");   // true when state.user is a reactive property
-touch(state, "missing"); // false if there is no signal for that key
+touch(state, "user");    // true when state is reactive
+touch(state, "missing"); // true if state is reactive (trigger no-ops for unknown keys)
+touch({}, "user");       // false — not a reactive target
 ```
+
+Only properties that were present when `reactive()` was called have signals. Touching a key that was never reactive has no subscribers to notify.
 
 ## When to Use It
 
 | Situation | Use `touch`? |
-|-----------|----------------|
+|-----------|--------------|
 | Nested field on a plain object | Yes |
 | Deep field on an object inside an array/Map/Set | Yes |
 | Array index assignment (`items[i] = x`) | Yes (or prefer methods / replace) |
@@ -132,7 +135,7 @@ touch(state, "selected");
 
 ## Component Context
 
-Inside component methods, `this` is the public context. `touch` accepts that context because it resolves `proxy._state` when present:
+Inside component methods, `this` is the public context. The runtime registers that context as a touch target for the component’s reactive state, so you can call `touch` on `this` directly:
 
 ```js
 methods: {
@@ -160,10 +163,10 @@ For reactive objects, prefer `touch(proxy, key)` so you target a specific proper
 
 ## What `touch` Does Not Do
 
-- It does **not** deep-walk the object or invent subscriptions to nested fields.  
-- It does **not** replace or clone the property value.  
-- It does **not** notify other keys — only the key you pass.  
-- It does **not** run if `key` is missing or the proxy is not reactive.
+- It does **not** deep-walk the object or invent subscriptions to nested fields.
+- It does **not** replace or clone the property value.
+- It does **not** notify other keys — only the key you pass.
+- It does **not** create a reactive property for keys that were never installed by `reactive()`.
 
 ```js
 touch(state, "user"); // only dependents of state.user
@@ -204,9 +207,9 @@ const ok = touch(proxy, key);
 
 | Item | Detail |
 |------|--------|
-| `proxy` | Reactive proxy or component context with `_state` |
+| `proxy` | Reactive object, or component context registered as a touch target |
 | `key` | `string` or `symbol` root property |
-| Returns | `boolean` — whether a trigger ran |
+| Returns | `boolean` — whether the proxy was a known target (key type valid) |
 | Scheduling | Same microtask batching as normal writes |
 
 ## Constraints
@@ -215,5 +218,6 @@ const ok = touch(proxy, key);
 |----------|--------|
 | Shallow notify | Only the named root property’s subscribers |
 | No value change | Reference and contents unchanged by `touch` itself |
-| Collections | Structural methods already call `touch` internally |
-| Failure | Returns `false` for non-reactive targets or unknown keys |
+| Collections | Structural methods already notify the owning property |
+| Unknown keys | No-op if the key has no signal; still returns `true` for a valid reactive proxy |
+| Failure | Returns `false` for non-reactive targets or invalid key types |

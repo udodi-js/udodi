@@ -1,6 +1,6 @@
 # Reactive State
 
-The `reactive()` creates a **shallow reactive object**: each own property is backed by a signal. Reading a property tracks the active effect; writing notifies that property’s subscribers.
+`reactive()` creates a **shallow reactive object**: each own property present at construction is backed by a signal. Reading a property tracks the active effect; writing notifies that property’s subscribers.
 
 Component `state()` is built on top of `reactive()`.
 
@@ -18,11 +18,11 @@ effect(() => {
   console.log(state.count, state.name);
 });
 
-state.count++;     // effect re-runs
+state.count++;      // effect re-runs
 state.name = "Lin"; // effect re-runs
 ```
 
-Only properties present on the initial object (and later managed through the proxy’s reactive path) participate as tracked fields. Nested plain objects are not made reactive automatically.
+Only properties present on the initial object become reactive. Properties added later through ordinary assignment are not tracked. Nested plain objects are not made reactive automatically.
 
 ## Shallow Reactivity
 
@@ -58,8 +58,8 @@ This keeps the dependency graph small and avoids the cost and surprises of deep 
 ## Reading and Writing
 
 ```js
-const n = state.count;  // track if an effect is active
-state.count = n + 1;    // notify if value changed (Object.is)
+const n = state.count; // track if an effect is active
+state.count = n + 1;   // notify if value changed (Object.is)
 ```
 
 Writes use the same equality rule as signals: `Object.is`. Assigning an identical value does not notify.
@@ -84,7 +84,7 @@ const state = reactive(
   },
 );
 
-state.age = -5;  // becomes 0
+state.age = -5;   // becomes 0
 state.count = -1; // ignored; count stays 0
 ```
 
@@ -108,9 +108,9 @@ const state = reactive({
   meta: new Map(),
 });
 
-state.items.push({ id: 1 }); // notifies "items"
-state.tags.add("ui");        // notifies "tags"
-state.meta.set("v", 1);      // notifies "meta"
+state.items.push({ id: 1 });  // notifies "items"
+state.tags.add("ui");         // notifies "tags"
+state.meta.set("version", 1); // notifies "meta"
 ```
 
 Replacing the collection also notifies:
@@ -121,19 +121,19 @@ state.items = [{ id: 2 }];
 
 Deep mutations inside collection elements still need `touch` or replacement of the element/property. See [Reactive Collections](./collections.md).
 
-## Identity and the Proxy
+## Identity
 
-`reactive()` returns a **proxy**. The proxy is what effects and the rest of the system should hold.
+`reactive()` returns a plain object whose reactive properties are installed as accessors (not a JavaScript `Proxy`). Effects and the rest of the system should hold and use that object.
 
 ```js
 const state = reactive({ count: 0 });
 
 effect(() => {
-  console.log(state.count); // always use the proxy
+  console.log(state.count); // always use the returned reactive object
 });
 ```
 
-Do not dig out an internal target object and mutate that; writes must go through the proxy (or through APIs that call `touch` on the proxy).
+Do not bypass the accessors. Writes must go through the reactive object (or through APIs that call `touch` on it).
 
 ## Component State
 
@@ -167,9 +167,9 @@ render(Counter(), "#app");
 
 Rules of thumb:
 
-- `state()` must be a **function** that returns a **fresh object** for each instance.  
-- Returning the same object for multiple instances triggers a warning.  
-- Root keys from state, computed, methods, and props must not collide.  
+- `state()` must be a **function** that returns a **fresh object** for each instance.
+- Returning the same object for multiple instances triggers a warning.
+- Root keys from state, computed, methods, and props must not collide.
 - Nested plain objects follow the same shallow rules as standalone `reactive()`.
 
 ## `touch()` for Nested Data
@@ -197,7 +197,7 @@ Both patterns notify dependents of `user`. `touch` avoids allocating a new objec
 | Value | Behavior |
 |-------|----------|
 | Nested plain object fields | Not tracked unless you `touch` or replace the parent property |
-| Properties added only on the raw target (bypassing the proxy) | Not reactive |
+| Properties added after construction | Not reactive (no signal is created) |
 | Non-object primitives held in signals | Fully tracked via get/set |
 | Objects marked `__udodi_reactive__` | Not wrapped again |
 
@@ -217,17 +217,17 @@ const state = reactive(initialState?, options?);
 | `touch(state, key)` | Notify dependents of `key` after in-place nested mutation |
 | Collection assignment | Arrays, Maps, Sets are wrapped for structural notifications |
 
-Returns a proxy. Use that proxy for all reads and writes.
+Returns a reactive object (plain object with signal-backed accessors). Use that object for all reads and writes.
 
 ## Mental Model
 
 ```text
 reactive({ count: 0, user: { name: "Ada" } })
-        │
-        ├── count  → signal (get/set/trigger)
-        │
-        └── user   → signal holding a plain object
-                     │
-                     └── user.name  → not a signal
-                                      (use replace or touch)
+  │
+  ├── count → signal (get/set/trigger)
+  │
+  └── user → signal holding a plain object
+                │
+                └── user.name → not a signal
+                    (use replace or touch)
 ```
