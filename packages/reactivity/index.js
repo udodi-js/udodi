@@ -107,7 +107,7 @@ const effectStack = [];
 let currentEffect = null;
 
 /**
- * Creates a reactive signal - a primitive reactive value with getter, setter,
+ * Creates a reactive signal: a primitive reactive value with getter, setter,
  * and manual trigger support.
  *
  * Signals are the foundation of the reactivity system. They track dependencies

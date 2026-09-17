@@ -33,7 +33,8 @@
         "test:ui": "vitest --ui",
         "prepublishOnly": "npm run build",
         "docs:dev": "vitepress dev docs",
-        "docs:build": "vitepress build docs",
+        "docs:sync": "node scripts/sync-roadmap.js",
+        "docs:build": "npm run docs:sync && vitepress build docs",
         "docs:preview": "vitepress preview docs"
     },
     "keywords": [
