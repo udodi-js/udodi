@@ -1,5 +1,5 @@
 ---
-title: Sponsors
+title: Become a Sponsor
 description: Support Udodi. Sponsorship tiers, recognition, and the organizations that help keep the project free and open source.
 sidebar: false
 prev: false
@@ -54,6 +54,8 @@ Public recognition applies while your eligible GitHub Sponsors sponsorship remai
 
 We verify the sponsorship and review the submitted information and logo. Once approved, your details can appear in the appropriate Udodi sponsor displays.
 
+Gold and Platinum sponsors will be provided a link to connect their Discord account so they can access Udodi's private Discord support channel.
+
 To update sponsor information later, submit the new details through the same form so public recognition stays current.
 
 ## Sponsorship tiers
@@ -102,7 +104,7 @@ To update sponsor information later, submit the new details through the same for
       <p class="tier-audience">Best for freelancers and small companies</p>
       <ul class="tier-includes">
         <li>Logo on the <a href="https://udodi.dev">udodi.dev</a> landing page</li>
-        <li>Logo on this Sponsors page</li>
+        <li>Logo and link on this Sponsor page</li>
       </ul>
     </div>
     <div class="tier-card">
@@ -117,7 +119,7 @@ To update sponsor information later, submit the new details through the same for
       <p class="tier-audience">Best for teams and growing companies</p>
       <ul class="tier-includes">
         <li>Logo on the <a href="https://udodi.dev">udodi.dev</a> landing page</li>
-        <li>Logo and link on this Sponsors page</li>
+        <li>Logo and link on this Sponsor page</li>
         <li>Direct email access for project-related questions and feedback</li>
       </ul>
     </div>
@@ -133,8 +135,8 @@ To update sponsor information later, submit the new details through the same for
       <p class="tier-audience">Best for companies and production teams</p>
       <ul class="tier-includes">
         <li>Logo on the <a href="https://udodi.dev">udodi.dev</a> landing page</li>
-        <li>Logo and link in the main <a href="https://github.com/udodi-js/udodi/blob/main/README.md">README.md</a></li>
-        <li>Logo and link on this Sponsors page</li>
+        <li>Logo in the main <a href="https://github.com/udodi-js/udodi/blob/main/README.md">README.md</a></li>
+        <li>Logo and link on this Sponsor page</li>
         <li>Private Discord channel for help and support</li>
       </ul>
     </div>
@@ -150,8 +152,8 @@ To update sponsor information later, submit the new details through the same for
       <p class="tier-audience">Best for major organizational support</p>
       <ul class="tier-includes">
         <li>Featured logo on the <a href="https://udodi.dev">udodi.dev</a> landing page</li>
-        <li>Logo and link in the main <a href="https://github.com/udodi-js/udodi/blob/main/README.md">README.md</a></li>
-        <li>Logo and link on this Sponsors page</li>
+        <li>Logo in the main <a href="https://github.com/udodi-js/udodi/blob/main/README.md">README.md</a></li>
+        <li>Logo and link on this Sponsor page</li>
         <li>Private Discord channel for help and support</li>
         <li>Recognition in selected major announcements or releases where appropriate</li>
       </ul>
@@ -473,8 +475,7 @@ onUnmounted(() => {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 6px 2px 8px;
-  margin: -6px -2px 0;
+  padding: 12px 2px 12px;
   box-sizing: content-box;
 }
 
@@ -505,13 +506,13 @@ onUnmounted(() => {
   border-color: color-mix(in srgb, var(--vp-c-brand-1) 35%, var(--vp-c-divider));
   box-shadow:
     0 4px 6px rgba(0, 0, 0, 0.04),
-    0 12px 28px rgba(0, 0, 0, 0.08);
+    0 6px 14px rgba(0, 0, 0, 0.08);
 }
 
 .dark .tier-card:hover {
   box-shadow:
     0 4px 6px rgba(0, 0, 0, 0.2),
-    0 12px 28px rgba(0, 0, 0, 0.35);
+    0 6px 14px rgba(0, 0, 0, 0.35);
 }
 
 .tier-card-featured {
@@ -668,7 +669,7 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .tier-card {
-    flex: 0 0 calc(100% - 16px);
+    flex: 0 0 100%;
     width: calc(100% - 16px);
   }
 
