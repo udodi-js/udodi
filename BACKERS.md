@@ -4,7 +4,7 @@ Udodi is free and open source. The individuals and organizations listed below he
 
 Thank you — every contribution makes a real difference.
 
-**[Become a sponsor →](https://github.com/sponsors/udodi-js)**
+**[Become a sponsor →](https://udodi.dev/sponsor.html)**
 
 ## Sponsors
 
