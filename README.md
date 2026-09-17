@@ -179,7 +179,7 @@ Udodi is independent open-source software made possible by the generous backing 
 
 Whether you are using Udodi for a hobby project, building production apps, or just want to help keep the ecosystem fast and dependency-free, your support makes a huge difference.
 
-**[Become a sponsor on GitHub →](https://github.com/sponsors/udodi-js)**
+**[Become a sponsor →](https://udodi.dev/sponsor.html)**
 
 ## License
 
