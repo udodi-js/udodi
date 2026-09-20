@@ -8,7 +8,7 @@ aside: false
 editLink: false
 lastUpdated: false
 footer: false
-pageClass: sponsor-discord-page
+pageClass: sponsor-discord-error
 ---
 
 <div class="sponsor-discord-wrapper">
@@ -23,10 +23,10 @@ pageClass: sponsor-discord-page
   <div class="sponsor-discord-card">
     <div class="error-icon" aria-hidden="true">
 <svg viewBox="0 0 24 24" width="24" height="24">
-    <path
-      fill="currentColor"
-      d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2zm3.707 14.293a1 1 0 0 1-1.414 0L12 13.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L10.586 12 8.293 9.707a1 1 0 0 1 1.414-1.414L12 10.586l2.293-2.293a1 1 0 0 1 1.414 1.414L13.414 12l2.293 2.293a1 1 0 0 1 0 1.414z"
-    />
+  <path
+    fill="currentColor"
+    d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2zm3.707 14.293a1 1 0 0 1-1.414 0L12 13.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L10.586 12 8.293 9.707a1 1 0 0 1 1.414-1.414L12 10.586l2.293-2.293a1 1 0 0 1 1.414 1.414L13.414 12l2.293 2.293a1 1 0 0 1 0 1.414z"
+  />
 </svg>
     </div>
     <h1 id="error-title">We could not connect your Discord account</h1>
@@ -40,6 +40,7 @@ pageClass: sponsor-discord-page
       </a>
     </div>
   </div>
+
   <p class="copyright">
     © 2026 Udodi. All rights reserved.
   </p>
@@ -58,17 +59,17 @@ onMounted(() => {
 
   const messages = {
     cancelled: {
-      title: "Discord connection cancelled",
-      message: "You chose not to authorize Discord. Your account was not connected. If you change your mind, you can try again."
+      title: 'Discord connection cancelled',
+      message: 'You chose not to authorize Discord. Your account was not connected. If you change your mind, you can try again.',
     },
     expired: {
-      title: "Connection expired",
-      message: "This Discord connection request has expired. Please return to the sponsor setup page and start the connection again."
+      title: 'Connection expired',
+      message: 'This Discord connection request has expired. Please return to the sponsor setup page and start the connection again.',
     },
     failed: {
-      title: "We could not connect your Discord account",
-      message: "We could not complete the Discord connection. Please return to the sponsor setup page and try again."
-    }
+      title: 'We could not connect your Discord account',
+      message: 'We could not complete the Discord connection. Please return to the sponsor setup page and try again.',
+    },
   };
 
   const content = messages[reason] || messages.failed;
@@ -79,27 +80,26 @@ onMounted(() => {
 </script>
 
 <style>
-.sponsor-discord-page {
+.sponsor-discord-error {
   --vp-c-brand-1: #059669;
   --vp-c-brand-2: #047857;
   background: var(--vp-c-bg);
   min-height: 100vh;
 }
 
-.sponsor-discord-wrapper {
+.sponsor-discord-error .sponsor-discord-wrapper {
   max-width: 560px;
   margin: 0 auto;
-  padding: 3rem 1.25rem 4rem;
+  padding: 5rem 1.25rem 4rem;
 }
 
-/* Centered logo header */
-.sponsor-discord-header {
+.sponsor-discord-error .sponsor-discord-header {
   display: flex;
   justify-content: center;
   margin-bottom: 2.5rem;
 }
 
-.logo-link {
+.sponsor-discord-error .logo-link {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
@@ -110,18 +110,17 @@ onMounted(() => {
   letter-spacing: -0.01em;
 }
 
-.logo-link:hover {
+.sponsor-discord-error .logo-link:hover {
   color: var(--vp-c-brand-1);
 }
 
-.logo {
+.sponsor-discord-error .logo {
   width: 36px;
   height: 36px;
   display: block;
 }
 
-/* Elevated card */
-.sponsor-discord-card {
+.sponsor-discord-error .sponsor-discord-card {
   background: var(--vp-c-bg);
   border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
@@ -132,7 +131,7 @@ onMounted(() => {
   text-align: left;
 }
 
-.error-icon {
+.sponsor-discord-error .error-icon {
   width: 48px;
   height: 48px;
   margin: 0 auto 1.25rem;
@@ -144,7 +143,7 @@ onMounted(() => {
   background: rgb(220 38 38 / 0.1);
 }
 
-.sponsor-discord-card h1 {
+.sponsor-discord-error .sponsor-discord-card h1 {
   text-align: center;
   font-size: 1.75rem;
   font-weight: 700;
@@ -154,7 +153,7 @@ onMounted(() => {
   color: var(--vp-c-text-1);
 }
 
-.sponsor-discord-card p {
+.sponsor-discord-error .sponsor-discord-card p {
   font-size: 1rem;
   line-height: 1.7;
   color: var(--vp-c-text-2);
@@ -162,13 +161,12 @@ onMounted(() => {
   text-align: center;
 }
 
-/* Action area */
-.sponsor-discord-action {
+.sponsor-discord-error .sponsor-discord-action {
   margin-top: 2rem;
   text-align: center;
 }
 
-.back-btn {
+.sponsor-discord-error .back-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -185,21 +183,19 @@ onMounted(() => {
   line-height: 1;
 }
 
-.back-btn:hover {
+.sponsor-discord-error .back-btn:hover {
   background-color: var(--vp-c-brand-2);
   color: #fff !important;
 }
 
-/* Copyright */
-.copyright {
+.sponsor-discord-error .copyright {
   margin-top: 1.5rem;
   text-align: center;
   font-size: 0.8rem;
   color: var(--vp-c-text-3, #98989f);
 }
 
-/* Dark mode support */
-.dark .sponsor-discord-card {
+.dark .sponsor-discord-error .sponsor-discord-card {
   background: var(--vp-c-bg-soft);
   border-color: var(--vp-c-divider);
   box-shadow:
