@@ -1,7 +1,7 @@
 ---
 title: Connect to Discord
 description: Connect your Discord account to access Udodi's private sponsor support channel.
-layout: false
+layout: page
 navbar: false
 sidebar: false
 aside: false
@@ -85,6 +85,13 @@ onMounted(() => {
 </script>
 
 <style>
+/* Hide "Return to top" / local nav on mobile */
+.sponsor-discord-connect .VPLocalNav,
+.sponsor-discord-success .VPLocalNav,
+.sponsor-discord-error .VPLocalNav {
+  display: none !important;
+}
+
 .sponsor-discord-connect {
   --vp-c-brand-1: #059669;
   --vp-c-brand-2: #047857;
