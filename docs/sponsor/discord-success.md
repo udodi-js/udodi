@@ -1,7 +1,7 @@
 ---
 title: Discord Connected
 description: Your Discord account has been connected to your Udodi sponsorship.
-layout: false
+layout: page
 navbar: false
 sidebar: false
 aside: false
@@ -54,6 +54,13 @@ pageClass: sponsor-discord-success
 </div>
 
 <style>
+/* Hide "Return to top" / local nav on mobile */
+.sponsor-discord-connect .VPLocalNav,
+.sponsor-discord-success .VPLocalNav,
+.sponsor-discord-error .VPLocalNav {
+  display: none !important;
+}
+
 .sponsor-discord-success {
   --vp-c-brand-1: #059669;
   --vp-c-brand-2: #047857;
