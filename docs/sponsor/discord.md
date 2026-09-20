@@ -158,6 +158,7 @@ onMounted(() => {
 }
 
 .sponsor-discord-card p {
+  text-align: left;
   font-size: 1rem;
   line-height: 1.7;
   color: var(--vp-c-text-2);
@@ -174,6 +175,7 @@ onMounted(() => {
 
 .sponsor-discord-card .custom-block p {
   margin: 0;
+  text-align: left;
   font-size: 0.95rem;
   color: var(--vp-c-text-2);
 }
@@ -222,6 +224,7 @@ onMounted(() => {
 
 .sponsor-discord-action .hint {
   margin-top: 1rem;
+  text-align: center;
   font-size: 0.875rem;
   color: var(--vp-c-text-2);
   line-height: 1.55;
