@@ -158,6 +158,7 @@ pageClass: sponsor-discord-page
 
 .sponsor-discord-card .custom-block p {
   margin: 0;
+  text-align: left;
   font-size: 0.95rem;
   color: var(--vp-c-text-2);
 }
