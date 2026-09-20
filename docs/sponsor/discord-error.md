@@ -1,7 +1,7 @@
 ---
 title: Discord Connection
 description: There was a problem connecting your Discord account to your Udodi sponsorship.
-layout: false
+layout: page
 navbar: false
 sidebar: false
 aside: false
@@ -80,6 +80,13 @@ onMounted(() => {
 </script>
 
 <style>
+/* Hide "Return to top" / local nav on mobile */
+.sponsor-discord-connect .VPLocalNav,
+.sponsor-discord-success .VPLocalNav,
+.sponsor-discord-error .VPLocalNav {
+  display: none !important;
+}
+
 .sponsor-discord-error {
   --vp-c-brand-1: #059669;
   --vp-c-brand-2: #047857;
