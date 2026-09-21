@@ -45,6 +45,7 @@ The confirmation message for **Bronze**, **Silver**, **Gold**, and **Platinum** 
 - **Name or company name**: shown in Udodi sponsor recognition
 - **Website URL**: linked from eligible sponsor displays
 - **Logo**: used where the tier includes logo placement
+- **Email address (optional)**: if provided, this address is authorized to contact the Udodi team at `partners@udodi.dev`
 - **Notes**: optional extra context
 - **Public recognition consent**: confirmation that Udodi may display the submitted name, logo, and website in official project materials
 
@@ -120,7 +121,7 @@ To update sponsor information later, submit the new details through the same for
       <ul class="tier-includes">
         <li>Logo on the <a href="https://udodi.dev">udodi.dev</a> landing page</li>
         <li>Logo and link on this Sponsor page</li>
-        <li>Direct email access for project-related questions and feedback</li>
+        <li>Direct email access for project-related questions and feedback via <code>partners@udodi.dev</code></li>
       </ul>
     </div>
     <div class="tier-card">
