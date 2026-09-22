@@ -35,8 +35,11 @@ export default defineConfig({
 		["meta", { name: "author", content: "Udodi" }],
 		["meta", { name: "robots", content: "index, follow" }],
 
-		// Open Graph
+		// Open Graph (Facebook, LinkedIn, Discord, Slack, etc.)
 		["meta", { property: "og:type", content: "website" }],
+		["meta", { property: "og:site_name", content: "Udodi" }],
+		["meta", { property: "og:locale", content: "en_US" }],
+		["meta", { property: "og:url", content: "https://udodi.dev" }],
 		[
 			"meta",
 			{
@@ -53,16 +56,13 @@ export default defineConfig({
 		],
 		[
 			"meta",
-			{ property: "og:url", content: "https://udodi.dev" },
-		],
-		["meta", { property: "og:site_name", content: "Udodi" }],
-		[
-			"meta",
 			{
 				property: "og:image",
-				content: "https://raw.githubusercontent.com/udodi-js/udodi/main/assets/udodi-github-banner.png",
+				content: "https://udodi.dev/udodi-logo.png",
 			},
 		],
+		["meta", { property: "og:image:width", content: "400" }],
+		["meta", { property: "og:image:height", content: "400" }],
 		[
 			"meta",
 			{
@@ -70,10 +70,10 @@ export default defineConfig({
 				content: "Udodi - Lightweight Reactive JavaScript Framework",
 			},
 		],
-		["meta", { property: "og:locale", content: "en_US" }],
 
 		// Twitter Card
-		["meta", { name: "twitter:card", content: "summary_large_image" }],
+		["meta", { name: "twitter:card", content: "summary" }],
+		["meta", { name: "twitter:site", content: "@udodi_js" }],
 		[
 			"meta",
 			{
@@ -92,7 +92,7 @@ export default defineConfig({
 			"meta",
 			{
 				name: "twitter:image",
-				content: "https://raw.githubusercontent.com/udodi-js/udodi/main/assets/udodi-github-banner.png",
+				content: "https://udodi.dev/udodi-logo.png",
 			},
 		],
 		[
@@ -231,6 +231,7 @@ export default defineConfig({
 		socialLinks: [
 			{ icon: "github", link: "https://github.com/udodi-js/udodi" },
 			{ icon: "x", link: "https://x.com/udodi_js" },
+			{ icon: "linkedin", link: "https://www.linkedin.com/company/udodi" }
 		],
 	},
 });
