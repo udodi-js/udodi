@@ -340,7 +340,7 @@ Markup and styles can stay together in the same component definition.
 
 The optional `css` tagged template is a pass-through helper that provides editor syntax highlighting without changing how the CSS is processed by Udodi.
 
-Learn more in [Component Styles](./fundamentals/styles.md) and [CSS Scoping](./advanced/css-scoping.md).
+Learn more in [Component Styles](./fundamentals/styles.md).
 
 
 ## Define the Template

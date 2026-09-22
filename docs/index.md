@@ -341,7 +341,7 @@ await processed.fetch({
 				</p>
 				<ul>
 					<li>
-						<a href="/advanced/architecture">Architecture</a>
+						<a href="/advanced/architecture.html">Architecture</a>
 						<span>Explore how Udodi is structured internally.</span>
 					</li>
 					<li>
