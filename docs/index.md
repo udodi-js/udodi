@@ -345,10 +345,6 @@ await processed.fetch({
 						<span>Explore how Udodi is structured internally.</span>
 					</li>
 					<li>
-						<a href="/advanced/css-scoping">CSS Scoping</a>
-						<span>Understand automatic component style scoping.</span>
-					</li>
-					<li>
 						<a href="/advanced/dom-rendering">DOM Rendering</a>
 						<span>Learn how Udodi renders and updates interfaces.</span>
 					</li>

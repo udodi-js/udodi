@@ -24,8 +24,6 @@ import { renderStyles } from "./styleScope.js";
  * - Setting `ud-scope-start="<scopeId>"` on the component root.
  * - Setting `ud-scope-end="<parentBoundary>"` on the root when mounted
  *   inside another scoped component.
- * - Appending a trailing boundary element with
- *   `ud-scope-end="<scopeId>"` to terminate the component's scope.
  *
  * The component's scope identifier is then propagated to nested component
  * mounts so that parent styles do not bleed into child component trees.

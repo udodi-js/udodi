@@ -220,8 +220,11 @@ export default defineConfig({
 				],
 			},
 			{
-				text: "Performance",
-				items: [{ text: "Performance", link: "/performance" }],
+				text: "Advanced",
+				items: [
+					{ text: "Architecture", link: "/advanced/architecture" },
+					{ text: "Performance", link: "/performance" },
+				],
 			},
 		],
 		search: { provider: "local" },
