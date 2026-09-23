@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+Disallow: /sponsor/
+
+Sitemap: https://udodi.dev/sitemap.xml
