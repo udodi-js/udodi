@@ -10,6 +10,10 @@ export default defineConfig({
         },
     },
 	base: "/",
+	sitemap: {
+		hostname: "https://udodi.dev",
+		transformItems: (items) => items.filter((item) => !item.url.startsWith("/sponsor/")),
+	},
 	head: [
 		// Favicon
 		[
@@ -33,7 +37,6 @@ export default defineConfig({
 			},
 		],
 		["meta", { name: "author", content: "Udodi" }],
-		["meta", { name: "robots", content: "index, follow" }],
 
 		// Open Graph (Facebook, LinkedIn, Discord, Slack, etc.)
 		["meta", { property: "og:type", content: "website" }],
@@ -101,6 +104,46 @@ export default defineConfig({
 				name: "twitter:image:alt",
 				content: "Udodi - Lightweight Reactive JavaScript Framework",
 			},
+		],
+
+		[
+			"script",
+			{
+				type: "application/ld+json",
+			},
+			JSON.stringify({
+				"@context": "https://schema.org",
+				"@graph": [
+					{
+						"@type": "Organization",
+						"@id": "https://udodi.dev/#organization",
+						name: "Udodi",
+						url: "https://udodi.dev/",
+						logo: "https://udodi.dev/udodi-logo.svg",
+						description: "Udodi is a lightweight, zero-dependency reactive JavaScript UI framework with fine-grained reactivity, a declarative HTML DSL, and a component-first architecture.",
+						sameAs: [
+							"https://github.com/udodi-js/udodi",
+							"https://github.com/sponsors/udodi-js",
+							"https://www.npmjs.com/package/udodi",
+							"https://x.com/udodi_js",
+							"https://www.linkedin.com/company/udodi",
+						],
+					},
+					{
+						"@type": "SoftwareApplication",
+						"@id": "https://udodi.dev/#software",
+						name: "Udodi",
+						url: "https://udodi.dev/",
+						description: "A lightweight, zero-dependency reactive JavaScript UI framework with fine-grained reactivity, a declarative HTML DSL, and a component-first architecture.",
+						applicationCategory: "DeveloperApplication",
+						operatingSystem: "Cross-platform",
+						softwareRequirements: "JavaScript",
+						publisher: {
+							"@id": "https://udodi.dev/#organization",
+						},
+					},
+				],
+			}),
 		],
 
 		// Canonical
