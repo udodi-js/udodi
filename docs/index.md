@@ -2,7 +2,7 @@
 layout: home
 hero:
   text: Build reactive interfaces with less framework overhead.
-  tagline: Udodi is a lightweight JavaScript UI framework engineered for a focused API and a dedicated virtual machine to execute declarative templates at peak performance.
+  tagline: Udodi is a lightweight JavaScript UI framework engineered for a focused API and a dedicated virtual machine to execute declarative templates at high performance.
   image:
     src: /udodi-hero.png
     alt: Udodi reactive interface architecture
@@ -455,7 +455,7 @@ await processed.fetch({
 			<div class="footer-column">
 				<h3>Project</h3>
 				<a href="https://github.com/udodi-js/udodi">GitHub</a>
-				<a href="/advanced/architecture">Architecture</a>
+				<a href="/advanced/architecture.html">Architecture</a>
 				<a href="/performance.html">Performance</a>
 				<a href="/roadmap.html">Roadmap</a>
 			</div>
