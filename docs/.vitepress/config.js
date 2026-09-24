@@ -1,8 +1,144 @@
 import { defineConfig } from "vitepress";
+import fs from 'node:fs';
+import path from 'node:path';
+
+/**
+ * Build a short meta description from a Markdown page body.
+ *
+ * Strategy:
+ * 1. Strip frontmatter and fenced code blocks from the full document.
+ * 2. Walk paragraph blocks until one has enough prose (≥ 40 chars after clean).
+ * 3. If that block ends with ":", append the following list block(s) as a comma-separated list.
+ * 4. Prefer the first real sentence; otherwise truncate with "...".
+ *
+ * Notes:
+ * - Inline code keeps its inner text so directives like @style stay visible.
+ * - Hyphens in words (fine-grained) are preserved; only emphasis markers are stripped.
+ * - Ordered/bullet list markers become commas for a readable one-line summary.
+ */
+function buildAutoDescription(markdown) {
+	if (!markdown) return null
+
+	// Remove YAML frontmatter and fenced code (keep surrounding prose only)
+	let body = markdown
+		.replace(/^---[\s\S]*?---\n?/, '')
+		.replace(/```[\s\S]*?```/g, ' ')
+
+	const blocks = body.split(/\n\s*\n/)
+
+	let text = ''
+	for (let i = 0; i < blocks.length; i++) {
+		const candidate = cleanBlock(blocks[i])
+		if (!candidate || candidate.length < 40) continue
+
+		text = candidate
+
+		// If the paragraph ends with a colon, append the following 
+		// list block(s) as a comma-separated list.
+		if (/:\s*$/.test(candidate)) {
+			const listParts = []
+			for (let j = i + 1; j < blocks.length; j++) {
+				const raw = blocks[j]
+				const isList = /^\s*\d+\.\s+/m.test(raw) || /^\s*[-*+]\s+/m.test(raw)
+
+				if (!isList) break
+
+				const itemText = cleanBlock(raw)
+				if (itemText) listParts.push(itemText)
+			}
+
+			if (listParts.length) {
+				const list = listParts.join(', ').replace(/^,\s*/, '')
+				text = candidate.replace(/:\s*$/, ': ') + list
+
+				if (!/[.!?]$/.test(text)) text += '.'
+			}
+		}
+
+		break
+	}
+
+	if (!text || text.length < 40) return null
+
+	// Prefer a complete sentence; avoid treating "1." as a sentence end
+	const match = text.match(/^(.{40,180}?(?<!\d)[.!?])(?:\s|$)/)
+	let desc = match ? match[1] : text.slice(0, 150).trim() + '...'
+
+	if (desc.length > 155) {
+		desc = desc.slice(0, 152).trim() + '...'
+	}
+
+	return desc
+}
+
+/**
+ * Normalize one Markdown block into plain text for meta use.
+ * Preserves @directive names and hyphenated words.
+ */
+function cleanBlock(block) {
+	return block
+		// Keep inline code content (e.g. `@style` → @style), do not drop it
+		.replace(/`([^`\n]+)`/g, '$1')
+		.replace(/<[^>]+>/g, ' ')
+
+		// Drop heading lines entirely
+		.replace(/^#{1,6}\s+.+$/gm, ' ')
+
+		// Convert structural list markers to commas with spaces
+		.replace(/^\s*\d+\.\s+/gm, ', ')
+		.replace(/^\s*[-*+]\s+/gm, ', ')
+
+		// Links: keep label only
+		.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+
+		// Emphasis / blockquote markers only, do not strip "-" or "@"
+		.replace(/[*_~|>]/g, ' ')
+		.replace(/\s+/g, ' ')
+		.replace(/\s+([.,!?;:])/g, '$1')
+
+		// Collapse commas and whitespace, remove leading/trailing punctuation
+		.replace(/([:./?])\s*,\s*/g, '$1 ')
+		.replace(/,\s*,/g, ',')
+		.replace(/,\s*\./g, '.')
+		.replace(/^,?\s*/, '')
+		.trim()
+}
 
 export default defineConfig({
 	title: "Udodi",
 	description: "Udodi is a lightweight, zero-dependency reactive JavaScript UI framework with fine-grained reactivity, a declarative HTML DSL, and a component-first architecture.",
+	
+	// This function is called for every page and allows us to automatically generate a 
+	// description for pages that don't have one in their frontmatter.
+	transformPageData(pageData, ctx) {
+		if (
+			pageData.relativePath === 'index.md' ||
+			pageData.frontmatter.description
+		) {
+			return
+		}
+
+		const filePath = path.join(ctx.siteConfig.srcDir, pageData.relativePath)
+
+		let markdown = ''
+		try {
+			markdown = fs.readFileSync(filePath, 'utf-8')
+		} catch {
+			return
+		}
+
+		const autoDescription = buildAutoDescription(markdown)
+		if (!autoDescription) return
+
+		return {
+			description: autoDescription,
+			frontmatter: {
+				...pageData.frontmatter,
+				description: autoDescription
+			}
+		}
+	},
+
 	ignoreDeadLinks: true, // Still writing the docs, so some links may be dead for now. This will be removed once the docs are complete.
 	vite: {
         build: {
@@ -21,14 +157,6 @@ export default defineConfig({
 			{ rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
 		],
 
-		// Basic SEO
-		[
-			"meta",
-			{
-				name: "description",
-				content: "Udodi is a lightweight, zero-dependency reactive JavaScript UI framework with fine-grained reactivity, a declarative HTML DSL, and a component-first architecture. No Virtual DOM, no JSX, CSP-friendly.",
-			},
-		],
 		[
 			"meta",
 			{
