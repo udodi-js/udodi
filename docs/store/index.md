@@ -212,9 +212,29 @@ store.set("count", 2); // changed
 
 ### In-place mutation requires touch()
 
-The Store tracks changes at the key/root-value level. If an object or array stored under a key is mutated in place, the Store does not infer that mutation merely because the object itself changed internally.
+The Store tracks changes at the key/root-value level. Arrays, Maps, and Sets stored under a key are wrapped so that **structural mutations** (such as `push`, `splice`, `set`, `add`, `delete`, or `clear`) notify dependents automatically.
 
-Call `touch()` after the mutation:
+Nested object mutations are not tracked. If you change a property on an object that lives inside a reactive collection, call `touch()` after the mutation:
+
+```js
+const items = store.get("items");
+
+items[0].name = "Notebook";
+store.touch("items");
+```
+
+The same applies when the root value itself is a plain object:
+
+```js
+const user = store.get("user");
+
+user.name = "Jane";
+store.touch("user");
+```
+
+This tells the Store to notify dependents of the key without replacing the stored object.
+
+Structural collection changes do not need `touch()`:
 
 ```js
 const items = store.get("items");
@@ -223,11 +243,8 @@ items.push({
   id: 2,
   name: "Book",
 });
-
-store.touch("items");
+// dependents of "items" are notified automatically
 ```
-
-This tells the Store to notify dependents of the key without replacing the stored object.
 
 Use replacement when practical:
 
@@ -241,9 +258,7 @@ store.set("items", [
 ]);
 ```
 
-Use `touch()` when in-place mutation is intentional or more appropriate.
-
-The same rule applies through module APIs and action contexts.
+Use `touch()` when you mutate nested object data in place. The same rule applies through module APIs and action contexts.
 
 ## Batching
 
@@ -513,7 +528,7 @@ source state
     └── quantities
           │
           ▼
-      selector
+       selector
           │
           ▼
         total
@@ -529,9 +544,7 @@ Subscriptions provide an imperative observation mechanism for a specific key:
 const stop = store.subscribe(
   "theme",
   (next, prev) => {
-    console.log(
-      "theme:", prev, "→", next,
-    );
+    console.log("theme:", prev, "→", next);
   },
 );
 ```
@@ -741,7 +754,7 @@ Is it client/application state?
         │
         ├── Simple shared keys  →  global store
         │
-        └── Feature lifecycle  →  module
+        ├── Feature lifecycle  →  module
         no
         │
         ▼

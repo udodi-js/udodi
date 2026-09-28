@@ -282,7 +282,6 @@ export default defineConfig({
 		nav: [
 			{ text: "Guide", link: "/" },
 			{ text: "Performance", link: "/performance" },
-			{ text: "GitHub", link: "https://github.com/udodi-js/udodi" },
 		],
 		sidebar: [
 			{
@@ -402,6 +401,7 @@ export default defineConfig({
 		socialLinks: [
 			{ icon: "github", link: "https://github.com/udodi-js/udodi" },
 			{ icon: "x", link: "https://x.com/udodi_js" },
+			{ icon: "discord", link: "https://discord.gg/YFqSHD75BN" },
 			{ icon: "linkedin", link: "https://www.linkedin.com/company/udodi" }
 		],
 	},
