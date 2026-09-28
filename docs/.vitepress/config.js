@@ -393,6 +393,7 @@ export default defineConfig({
 				text: "Advanced",
 				items: [
 					{ text: "Architecture", link: "/advanced/architecture" },
+					{ text: "DOM Rendering", link: "/advanced/dom-rendering" },
 					{ text: "Performance", link: "/performance" },
 				],
 			},

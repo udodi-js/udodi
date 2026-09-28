@@ -407,7 +407,6 @@ Performance decisions favor direct work over broad abstraction. Udodi caches dir
 ## Related Pages
 
 - [Performance](../performance.md)
-- [Template Overview](../templates/index.md)
 - [Template DSL](../templates/dsl.md)
 - [Reactive State](../reactivity/state.md)
 - [Effects](../reactivity/effects.md)

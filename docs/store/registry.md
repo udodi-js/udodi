@@ -567,11 +567,10 @@ useStore("auth")?.destroy();
 Destroying a module releases the resources associated with it in this order:
 
 1. Call the definition's `cleanup(moduleApi)` hook, if provided.
-2. Call `moduleApi.__cleanup()` if one has been attached.
-3. Dispose module-owned selectors in the default selector scope.
-4. Delete all tracked module state keys. This also stops persistence for those keys.
-5. Remove the module's registered actions.
-6. Unregister the module from the registry.
+2. Dispose module-owned selectors in the default selector scope.
+3. Delete all tracked module state keys. This also stops persistence for those keys.
+4. Remove the module's registered actions.
+5. Unregister the module from the registry.
 
 Cleanup errors are ignored so that one cleanup failure does not prevent the remaining teardown steps.
 

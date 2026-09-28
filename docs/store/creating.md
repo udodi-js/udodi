@@ -88,17 +88,22 @@ Using `update()` is preferable when expressing read-modify-write operations beca
 
 ### touch
 
-Use `touch()` when a stored object or array is intentionally mutated in place:
+Arrays, Maps, and Sets stored under a key are wrapped so that **structural mutations** (such as `push`, `splice`, `set`, `add`, `delete`, or `clear`) notify dependents automatically.
+
+Nested object mutations are not tracked. Use `touch()` when you change a property on an object that lives inside a reactive collection, or when the root value itself is a plain object mutated in place:
 
 ```js
 const items = store.get("items");
 
-items.push({
-  id: 1,
-  name: "Book",
-});
-
+items[0].name = "Notebook";
 store.touch("items");
+```
+
+```js
+const user = store.get("user");
+
+user.name = "Jane";
+store.touch("user");
 ```
 
 `touch(key)`:
@@ -107,6 +112,18 @@ store.touch("items");
 * Notifies subscriptions.
 * Returns `false` when the key does not exist.
 * Returns `true` when the key exists and the notification is triggered.
+
+Structural collection changes do not need `touch()`:
+
+```js
+const items = store.get("items");
+
+items.push({
+  id: 1,
+  name: "Book",
+});
+// dependents of "items" are notified automatically
+```
 
 Prefer replacing the value with `set()` when practical:
 
@@ -117,7 +134,7 @@ store.set(
 );
 ```
 
-Use `touch()` when preserving the existing object or array reference is intentional.
+Use `touch()` when you mutate nested object data in place and need to preserve the existing object or array reference.
 
 ### has, keys, and delete
 
@@ -490,7 +507,7 @@ cb(next, prev);
 
 A subscription can also run when `touch()` forces a notification even though the stored reference remains the same.
 
-For example:
+For example, nested object mutation still needs an explicit `touch()`:
 
 ```js
 const items = store.get("items");
@@ -503,9 +520,15 @@ const stop = store.subscribe(
   },
 );
 
-items.push(newItem);
-
+items[0].name = "Notebook";
 store.touch("items");
+```
+
+Structural collection mutations notify without `touch()`:
+
+```js
+items.push(newItem);
+// subscription for "items" runs automatically
 ```
 
 Use subscriptions primarily for imperative integration:

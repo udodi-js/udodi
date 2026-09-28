@@ -345,7 +345,7 @@ await processed.fetch({
 						<span>Explore how Udodi is structured internally.</span>
 					</li>
 					<li>
-						<a href="/advanced/dom-rendering">DOM Rendering</a>
+						<a href="/advanced/dom-rendering.html">DOM Rendering</a>
 						<span>Learn how Udodi renders and updates interfaces.</span>
 					</li>
 					<li>

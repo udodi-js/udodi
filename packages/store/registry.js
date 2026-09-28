@@ -194,18 +194,6 @@ export function defineStore(name, def) {
 			}
 
 			/**
-			 * Optional module-owned cleanup.
-			 */
-			if (
-				typeof moduleApi.__cleanup ===
-				"function"
-			) {
-				try {
-					moduleApi.__cleanup();
-				} catch {}
-			}
-
-			/**
 			 * Remove module-owned selectors.
 			 */
 			for (const cleanup of selectorScope.effects) {
