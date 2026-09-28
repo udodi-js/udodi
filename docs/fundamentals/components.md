@@ -357,8 +357,11 @@ The result is a single, unambiguous root-level namespace:
 Child component context
 
 state ────────┐
+              |
 computed ─────┤
-methods ──────┼──► unique root-level names
+              ├────► unique root-level names
+methods ──────┤ 
+              │
 props ────────┘
 ```
 
