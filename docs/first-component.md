@@ -1,8 +1,8 @@
 # Your First Component
 
-A Udodi component combines reactive state, derived values, behavior, lifecycle hooks, styling, and declarative markup into a single component definition.
+An Udodi component combines reactive state, derived values, behavior, lifecycle hooks, styling, and declarative markup into a single component definition.
 
-This guide takes a closer look at the structure of a Udodi component and explains how its different options work together.
+This guide takes a closer look at the structure of an Udodi component and explains how its different options work together.
 
 If you are completely new to Udodi, start with the [Quick Start](./quick-start.md) first.
 
