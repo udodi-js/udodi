@@ -38,10 +38,7 @@ import {
 } from "./context.js";
 
 import { ensureOverlayRoot } from "./overlay.js";
-import {
-	collectComponentDefinitions,
-	resolveComponents,
-} from "./resolveComponents.js";
+import { resolveComponents } from "./resolveComponents.js";
 
 // Global instruction cache to ensure we parse and compile each directive exactly once.
 // Uses the raw directive string as the cache key.
@@ -485,7 +482,7 @@ function processIfDirective(nodes, vm, context, scope) {
 			const anchor = document.createComment("@if");
 			parent.insertBefore(anchor, root);
 
-			/** @type {{template: HTMLElement, instructions?: *, isElse: boolean, componentDefinitions: Map<number, Object>}[]} */
+			/** @type {{template: HTMLElement, instructions?: *, isElse: boolean}[]} */
 			const branches = [];
 
 			// Structural Discovery Phase
@@ -517,10 +514,6 @@ function processIfDirective(nodes, vm, context, scope) {
 								"if=" + normalizeDirective(expression),
 							),
 							isElse: false,
-							componentDefinitions: collectComponentDefinitions(
-								node,
-								scope._componentDefinitions,
-							),
 						});
 
 						node = next;
@@ -553,10 +546,6 @@ function processIfDirective(nodes, vm, context, scope) {
 								"elseif=" + normalizeDirective(expression),
 							),
 							isElse: false,
-							componentDefinitions: collectComponentDefinitions(
-								node,
-								scope._componentDefinitions,
-							),
 						});
 
 						node = next;
@@ -577,10 +566,6 @@ function processIfDirective(nodes, vm, context, scope) {
 						branches.push({
 							template: node,
 							isElse: true,
-							componentDefinitions: collectComponentDefinitions(
-								node,
-								scope._componentDefinitions,
-							),
 						});
 
 						node = next;
@@ -652,8 +637,7 @@ function processIfDirective(nodes, vm, context, scope) {
 				const branchScope = {
 					effects: [],
 					cleanups: [],
-					_boundary: scope._boundary,
-					_componentDefinitions: branch.componentDefinitions,
+					boundary: scope.boundary,
 				};
 				const record = {
 					el,
@@ -662,9 +646,7 @@ function processIfDirective(nodes, vm, context, scope) {
 				};
 
 				try {
-					resolveComponents(el, vm, scope._boundary, {
-						skipStructural: true,
-						definitions: branch.componentDefinitions,
+					resolveComponents(el, vm, scope.boundary, {
 						removeFromRegistry: false,
 					});
 
@@ -3405,8 +3387,18 @@ function removeIgnoredDirectives(template, context) {
  *   - `index` is an optional single-segment variable name.
  *   - `items` can be any valid Udodi expression that evaluates to an array.
  *
- * The optional `@key` directive is evaluated against each iteration context
- * to provide stable identity during reconciliation.
+ * The optional `@key` directive provides stable identity during
+ * reconciliation. `@key` expressions are restricted to path expressions
+ * and use ordinary property access.
+ *
+ * Performance characteristics:
+ * - Reuses rendered records through keyed `Map` reconciliation.
+ * - Reuses `nextRendered` and `nextKeySet` between reactive runs.
+ * - Uses indexed loops on hot paths.
+ * - Specializes `@key` paths rooted at the loop item or index, avoiding the
+ *   general expression evaluator during reconciliation.
+ * - Avoids redundant item and index signal writes when values are unchanged.
+ * - Swaps reconciliation maps instead of clearing and copying them.
  *
  * @param {HTMLElement[]} nodes - Elements containing `@for` directives.
  * @param {Object} vm - Virtual machine instance.
@@ -3417,13 +3409,13 @@ function removeIgnoredDirectives(template, context) {
 function processForDirective(nodes, vm, context, scope) {
 	const cleanups = scope.cleanups;
 
-    for (let i = 0, nodesLength = nodes.length; i < nodesLength; i++) {
-        const templateEl = nodes[i];
-        const directive = templateEl.getAttribute("@for");
+	for (let i = 0, nodesLength = nodes.length; i < nodesLength; i++) {
+		const templateEl = nodes[i];
+		const directive = templateEl.getAttribute("@for");
 
-        if (!directive) {
-            continue;
-        }
+		if (!directive) {
+			continue;
+		}
 
 		try {
 			if (isQuotedString(directive)) {
@@ -3432,15 +3424,15 @@ function processForDirective(nodes, vm, context, scope) {
 				);
 			}
 
-			//------------------------------------------------------------------
+			//---------------------------
 			// Normalize and compile
-			//------------------------------------------------------------------
+			//---------------------------
 
 			const tokens = normalizeDirective(directive).split(" ");
 
 			if (tokens.length < 2 || tokens.length > 3) {
 				throw new Error(
-					'Expected "@for=\\"item items\\"" or "@for=\\"item index items\\"".'
+					'Expected "@for=\\"item items\\"" or "@for=\\"item index items\\".'
 				);
 			}
 
@@ -3448,25 +3440,24 @@ function processForDirective(nodes, vm, context, scope) {
 				"for=" + tokens.join(" for=")
 			);
 
-			//------------------------------------------------------------------
+			//----------------------------------
 			// Collect OP_EVAL instructions
-			//------------------------------------------------------------------
+			//----------------------------------
 
 			const ITEM_OP_EVAL = 0;
 			const INDEX_OP_EVAL = 2;
 			const ITERABLE_OP_EVAL = instructions.length - 2;
 
 			const itemExpr = instructions[ITEM_OP_EVAL].expr;
-			const indexExpr = 
-				tokens.length === 3
-					? instructions[INDEX_OP_EVAL].expr
-					: null;
+			const indexExpr = tokens.length === 3 
+				? instructions[INDEX_OP_EVAL].expr 
+				: null;
 
 			const iterableExpr = instructions[ITERABLE_OP_EVAL].expr;
 
-			//------------------------------------------------------------------
+			//----------------------------
 			// Validate item variable
-			//------------------------------------------------------------------
+			//----------------------------
 
 			if (
 				itemExpr.type !== EXPR_PATH ||
@@ -3475,36 +3466,31 @@ function processForDirective(nodes, vm, context, scope) {
 				throw new Error("Item variable must be a single identifier.");
 			}
 
-			//------------------------------------------------------------------
+			//-----------------------------
 			// Validate index variable
-			//------------------------------------------------------------------
+			//-----------------------------
 
 			if (
-				indexExpr &&
-				(
-					indexExpr.type !== EXPR_PATH ||
-					indexExpr.segments.length !== 1
-				)
+				indexExpr && 
+				(indexExpr.type !== EXPR_PATH || indexExpr.segments.length !== 1)
 			) {
 				throw new Error("Index variable must be a single identifier.");
 			}
 
-			//------------------------------------------------------------------
+			//----------------------------------
 			// Validate iterable expression
-			//------------------------------------------------------------------
+			//----------------------------------
 
 			if (iterableExpr.type === EXPR_LITERAL) {
 				throw new Error("Iterable expression cannot be a string literal.");
 			}
 
 			const itemVar = itemExpr.segments[0];
-			const indexVar = indexExpr === null
-				? null
-				: indexExpr.segments[0];
+			const indexVar = indexExpr === null ? null : indexExpr.segments[0];
 
-			//------------------------------------------------------------------
+			//---------------------------
 			// Compile optional @key
-			//------------------------------------------------------------------
+			//---------------------------
 
 			let keyExpression = null;
 			const rawKey = templateEl.getAttribute("@key");
@@ -3529,9 +3515,9 @@ function processForDirective(nodes, vm, context, scope) {
 				keyExpression = instruction.expr;
 			}
 
-			//------------------------------------------------------------------
+			//-----------------------
 			// Prepare template
-			//------------------------------------------------------------------
+			//-----------------------
 
 			const container = templateEl.parentNode;
 
@@ -3546,33 +3532,159 @@ function processForDirective(nodes, vm, context, scope) {
 
 			removeIgnoredDirectives(template, context);
 
-			const componentDefinitions = collectComponentDefinitions(
-				template,
-				scope._componentDefinitions,
-			);
-
 			const anchor = document.createComment("@for");
 
 			container.replaceChild(anchor, templateEl);
 
-			//------------------------------------------------------------------
+			//---------------------------
 			// Reconciliation state
-			//------------------------------------------------------------------
+			//---------------------------
 
-			const rendered = new Map();
+			let rendered = new Map();
+			let nextRendered = new Map();
+
 			const nextKeySet = new Set();
-			const nextRendered = new Map();
 			const warnedObjects = new WeakSet();
 			const fallbackKeyCache = new WeakMap();
-			const keyCtx = Object.create(null);
 
 			/**
-			 * Generates a fallback key when no @key directive is provided.
+			 * Creates a specialized resolver for an `@key` path rooted at
+			 * either the current item or index variable.
+			 *
+			 * `@key` is intentionally ordinary property access. Unlike the
+			 * general expression evaluator, this resolver does not invoke
+			 * functions encountered while traversing the path.
+			 *
+			 * If the key path does not begin with the loop item or index
+			 * variable, the general evaluator is retained so that parent-scope
+			 * lookup continues to behave exactly as before.
+			 *
+			 * @param {Object|null} expression - Compiled @key expression.
+			 * @returns {Function|null} Specialized key resolver.
+			 */
+			const createKeyResolver = (expression) => {
+				if (expression === null) {
+					return null;
+				}
+
+				const segments = expression.segments;
+				const length = segments.length;
+				const root = segments[0];
+
+				//---------------------------------------
+				// @key rooted at the loop item
+				//---------------------------------------
+
+				if (root === itemVar) {
+					if (length === 1) {
+						return (item) => item;
+					}
+
+					if (length === 2) {
+						const property = segments[1];
+
+						return (item) => {
+							if (item == null) {
+								return undefined;
+							}
+
+							return item[property];
+						};
+					}
+
+					return (item) => {
+						let value = item;
+
+						for (let i = 1; i < length; i++) {
+							if (value == null) {
+								return undefined;
+							}
+
+							value = value[segments[i]];
+						}
+
+						return value;
+					};
+				}
+
+				//----------------------------------------
+				// @key rooted at the loop index
+				//----------------------------------------
+
+				if (indexVar !== null && root === indexVar) {
+					if (length === 1) {
+						return (_item, index) => index;
+					}
+
+					if (length === 2) {
+						const property = segments[1];
+
+						return (_item, index) => {
+							if (index == null) {
+								return undefined;
+							}
+
+							return index[property];
+						};
+					}
+
+					return (_item, index) => {
+						let value = index;
+
+						for (let i = 1; i < length; i++) {
+							if (value == null) {
+								return undefined;
+							}
+
+							value = value[segments[i]];
+						}
+
+						return value;
+					};
+				}
+
+				return null;
+			};
+
+			const keyResolver = createKeyResolver(keyExpression);
+
+			/**
+			 * Evaluates the current `@key` expression.
+			 *
+			 * Specialized item/index-rooted paths bypass the general VM
+			 * evaluator. Other valid path expressions retain the original
+			 * evaluator behavior.
+			 *
+			 * @param {*} item - Current loop item.
+			 * @param {number} index - Current loop index.
+			 * @returns {*} Resolved key value.
+			 */
+			const resolveKey = keyExpression === null
+				? null
+				: keyResolver !== null
+					? keyResolver
+					: (item, index) => {
+							const keyContext = Object.create(null);
+
+							keyContext[itemVar] = item;
+
+							if (indexVar !== null) {
+								keyContext[indexVar] = index;
+							}
+
+							return vm.evaluate(
+								keyExpression,
+								keyContext,
+							);
+						};
+
+			/**
+			 * Generates a fallback key when no `@key` directive is provided.
 			 *
 			 * Objects attempt to use one of the common stable identifiers:
-			 *   - id
-			 *   - _id
-			 *   - key
+			 *   - `id`
+			 *   - `_id`
+			 *   - `key`
 			 *
 			 * If none exist, the current index is used as a last resort and a
 			 * warning is emitted only once for that object instance.
@@ -3582,26 +3694,29 @@ function processForDirective(nodes, vm, context, scope) {
 			 *
 			 * @param {*} item - Current item.
 			 * @param {number} index - Current array index.
-			 * @returns {string}
+			 * @returns {string} Stable or fallback key.
 			 */
 			const getFallbackKey = (item, index) => {
-				if (typeof item === "object" && item !== null) {
+				if (item !== null && typeof item === "object") {
 					const cached = fallbackKeyCache.get(item);
+
 					if (cached !== undefined) {
 						return cached;
 					}
 
-					let key = null;
+					let key;
 
 					if (item.id != null) {
 						key = `id:${item.id}`;
+
 					} else if (item._id != null) {
 						key = `_id:${item._id}`;
+						
 					} else if (item.key != null) {
 						key = `key:${item.key}`;
 					}
 
-					if (key !== null) {
+					if (key !== undefined) {
 						fallbackKeyCache.set(item, key);
 						return key;
 					}
@@ -3626,7 +3741,7 @@ function processForDirective(nodes, vm, context, scope) {
 			 * Cleans up a rendered record without necessarily removing its
 			 * element from the DOM.
 			 *
-			 * @param {Object} record
+			 * @param {Object} record - Rendered loop record.
 			 * @returns {void}
 			 */
 			const cleanupRecord = (record) => {
@@ -3635,6 +3750,7 @@ function processForDirective(nodes, vm, context, scope) {
 				}
 
 				record.destroyed = true;
+
 				runScopeCleanup(record.scope, "[@for]");
 				unregisterRoot(record.el);
 			};
@@ -3642,9 +3758,9 @@ function processForDirective(nodes, vm, context, scope) {
 			/**
 			 * Completely unmounts a rendered record.
 			 *
-			 * This performs cleanup and removes the element from the DOM.
+			 * Performs record cleanup and removes its element from the DOM.
 			 *
-			 * @param {Object} record
+			 * @param {Object} record - Rendered loop record.
 			 * @returns {void}
 			 */
 			const unmountRecord = (record) => {
@@ -3659,41 +3775,36 @@ function processForDirective(nodes, vm, context, scope) {
 				}
 			};
 
-			//------------------------------------------------------------------
+			//----------------------------
 			// Reactive reconciliation
-			//------------------------------------------------------------------
+			//----------------------------
 
 			const dispose = effect(() => {
 				nextKeySet.clear();
 				nextRendered.clear();
 
-				// Evaluate iterable using the compiled expression.
 				const array = vm.evaluate(iterableExpr, context);
 
 				if (!Array.isArray(array)) {
-					rendered.forEach(unmountRecord);
+					for (const record of rendered.values()) {
+						unmountRecord(record);
+					}
+
 					rendered.clear();
 					return;
 				}
 
 				let prevNode = anchor;
 
-				for (let index = 0; index < array.length; index++) {
+				for (let index = 0, length = array.length; index < length; index++) {
 					const item = array[index];
 
 					let key;
 
-					if (keyExpression === null) {
+					if (resolveKey === null) {
 						key = getFallbackKey(item, index);
-
 					} else {
-						keyCtx[itemVar] = item;
-
-						if (indexVar !== null) {
-							keyCtx[indexVar] = index;
-						}
-
-						key = vm.evaluate(keyExpression, keyCtx);
+						key = resolveKey(item, index);
 					}
 
 					if (key == null) {
@@ -3722,9 +3833,9 @@ function processForDirective(nodes, vm, context, scope) {
 
 					nextKeySet.add(key);
 
-					//------------------------------------------------------------------
+					//-------------------------------------
 					// Attempt to reuse existing record
-					//------------------------------------------------------------------
+					//-------------------------------------
 
 					let record = rendered.get(key);
 
@@ -3733,25 +3844,24 @@ function processForDirective(nodes, vm, context, scope) {
 						record = undefined;
 					}
 
-					//------------------------------------------------------------------
+					//-----------------------------------
 					// Create new record if necessary
-					//------------------------------------------------------------------
+					//-----------------------------------
 
 					if (record === undefined) {
-
 						const el = template.cloneNode(true);
 
 						const itemScope = {
 							effects: [],
 							cleanups: [],
-							_boundary: scope._boundary,
-							_componentDefinitions: componentDefinitions,
+							boundary: scope.boundary,
 						};
 
 						const bindingContext = createChildContext(context);
 
-						// Create reactive signals for the current item and index.
+						// Create reactive signal for the current item.
 						const [getItem, setItem] = createSignal(item);
+
 						bindingContext[itemVar] = getItem;
 
 						let setIndex = null;
@@ -3768,24 +3878,22 @@ function processForDirective(nodes, vm, context, scope) {
 							scope: itemScope,
 							setItem,
 							setIndex,
+							item,
+							index,
 							destroyed: false,
 						};
 
-						//----------------------------------------------------------
+						//-----------------------
 						// Bind cloned subtree
-						//----------------------------------------------------------
+						//-----------------------
 
 						try {
-							resolveComponents(el, vm, scope._boundary, {
-								skipStructural: true,
-								definitions: componentDefinitions,
+							resolveComponents(el, vm, scope.boundary, {
 								removeFromRegistry: false,
 							});
 
-							// Resolve directives inside the cloned subtree.
 							const directives = extractAllDirectives(el);
 
-							// Bind the subtree using the current iteration context.
 							bindDOM(
 								directives,
 								vm,
@@ -3793,8 +3901,6 @@ function processForDirective(nodes, vm, context, scope) {
 								itemScope,
 							);
 
-							// Register lifecycle handlers so detached items
-							// participate in automatic cleanup.
 							registerRoot(
 								el,
 								() => cleanupRecord(record),
@@ -3807,19 +3913,29 @@ function processForDirective(nodes, vm, context, scope) {
 						}
 
 					} else {
+						//------------------------------------------------------
+						// Update existing signals only when values changed.
+						//------------------------------------------------------
 
-						//------------------------------------------------------------------
-						// Update existing signals
-						//------------------------------------------------------------------
+						if (!Object.is(record.item, item)) {
+							record.item = item;
+							record.setItem(item);
+						}
 
-						record.setItem(item);
-
-						if (record.setIndex !== null) {
+						if (
+							record.setIndex !== null &&
+							!Object.is(record.index, index)
+						) {
+							record.index = index;
 							record.setIndex(index);
 						}
 					}
 
 					nextRendered.set(key, record);
+
+					//-----------------------------------------------
+					// Move reused/new element only when necessary.
+					//-----------------------------------------------
 
 					const nextSibling = prevNode.nextSibling;
 
@@ -3830,28 +3946,23 @@ function processForDirective(nodes, vm, context, scope) {
 					prevNode = record.el;
 				}
 
-				//--------------------------------------------------------------
 				// Remove stale records
-				//--------------------------------------------------------------
-
 				for (const [key, record] of rendered) {
 					if (!nextKeySet.has(key)) {
 						unmountRecord(record);
 					}
 				}
 
-				rendered.clear();
+				// Swap maps
+				const tmp = rendered;
+				rendered = nextRendered;
+				nextRendered = tmp;
 
-				for (const [key, record] of nextRendered) {
-					rendered.set(key, record);
-				}
+				nextRendered.clear();
 
 			}, scope);
 
-			//--------------------------------------------------------------
 			// Parent scope cleanup
-			//--------------------------------------------------------------
-
 			cleanups.push(() => {
 				dispose();
 
@@ -3867,9 +3978,7 @@ function processForDirective(nodes, vm, context, scope) {
 			});
 
 		} catch (err) {
-			throw new Error(
-				directiveMessage(context, "@for", err.message)
-			);
+			throw new Error(directiveMessage(context, "@for", err.message));
 		}
 	}
 }
@@ -3931,10 +4040,9 @@ function processTeleportDirective(nodes, context, scope) {
 		}
 
 		try {
-			const target =
-				selector === "overlay"
-					? ensureOverlayRoot()
-					: document.querySelector(selector);
+			const target = selector === "overlay"
+				? ensureOverlayRoot()
+				: document.querySelector(selector);
 
 			if (!target) {
 				throw new Error(`Target not found: ${selector}`);

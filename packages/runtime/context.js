@@ -4,19 +4,18 @@
  * Searches the current scope and then walks the `__parent`
  * chain until the property is found.
  *
- * @param {Object} context
+ * @param {Object|null} context
  * @param {string} key
  * @returns {*}
  */
 export function resolveContextValue(context, key) {
-	for (
-		let scope = context;
-		scope != null;
-		scope = scope.__parent
-	) {
+	let scope = context;
+
+	while (scope != null) {
 		if (Object.hasOwn(scope, key)) {
 			return scope[key];
 		}
+		scope = scope.__parent;
 	}
 
 	return undefined;
@@ -33,14 +32,13 @@ export function resolveContextValue(context, key) {
  * @returns {Object|null}
  */
 export function resolveContextOwner(context, key) {
-	for (
-		let scope = context;
-		scope != null;
-		scope = scope.__parent
-	) {
+	let scope = context;
+
+	while (scope != null) {
 		if (Object.hasOwn(scope, key)) {
 			return scope;
 		}
+		scope = scope.__parent;
 	}
 
 	return null;
@@ -70,10 +68,10 @@ export function resolveContextOwner(context, key) {
  * child
  *   ├── user
  *   ├── userIndex
- *   └── __parent --> parent
+ *   └── __parent
  * ```
  *
- * @param {Object} parent
+ * @param {Object|null} parent
  *   The parent lexical scope. May be `null` for a root context.
  *
  * @returns {{ __parent: Object | null }}
