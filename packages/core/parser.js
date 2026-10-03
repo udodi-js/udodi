@@ -21,12 +21,24 @@ import {
 	NODE_EVENT_BINDING,
 } from "./expTypes.js";
 
+const EOF_TOKEN = [TOKEN_EOF, 0, 0];
+
 /**
- * Safe string slice helper using token position.
+ * Extracts the source text represented by a token.
  *
- * @param {string} str - Original input string
- * @param {Array<number>} token - Token tuple [type, start, end]
- * @returns {string}
+ * Tokens use the tuple format [type, start, end], where
+ * start is inclusive and end is exclusive.
+ *
+ * @example
+ * // input = "user.name"
+ * // token = [TOKEN_PATH, 0, 9]
+ * slice(input, token)
+ * // "user.name"
+ *
+ * @param {string} str Original input string.
+ * @param {Array<number>} token Token tuple [type, start, end].
+ * @returns {string} Source text represented by the token,
+ *   or an empty string if the token is invalid.
  */
 function slice(str, token) {
 	if (!token || token.length < 3) return "";
@@ -36,10 +48,23 @@ function slice(str, token) {
 /**
  * Parses an event target with optional modifiers.
  *
- * Example: `on[click.prevent.once]`
+ * Event targets use square brackets to enclose the event
+ * name and dot-separated modifiers.
  *
- * @param {string} targetRaw - Raw target like "on[click.prevent.once]"
+ * @example
+ * parseEventTarget("on[click.prevent.once]")
+ * // {
+ * //   event: "click",
+ * //   modifiers: ["prevent", "once"]
+ * // }
+ *
+ * @example
+ * parseEventTarget("on[click]")
+ * // { event: "click", modifiers: [] }
+ *
+ * @param {string} targetRaw Raw event target.
  * @returns {{event: string, modifiers: string[]}}
+ *   Parsed event name and modifiers.
  */
 function parseEventTarget(targetRaw) {
 	const start = targetRaw.indexOf("[");
@@ -50,21 +75,20 @@ function parseEventTarget(targetRaw) {
 	}
 
 	const inside = targetRaw.slice(start + 1, end).trim();
+
 	if (!inside) {
 		return { event: targetRaw, modifiers: [] };
 	}
 
 	const rawParts = inside.split(".");
 	const length = rawParts.length;
-
-	// Note: Compiler can handle undefined modifiers, 
-	// so we don't need to filter them out here.
-	const modifiers = new Array(length - 1);
+	const modifiers = [];
 
 	for (let i = 1; i < length; i++) {
 		const trimmed = rawParts[i].trim();
+
 		if (trimmed) {
-			modifiers[i - 1] = trimmed;
+			modifiers.push(trimmed);
 		}
 	}
 
@@ -75,29 +99,38 @@ function parseEventTarget(targetRaw) {
 }
 
 /**
- * Ensures that event handler expressions are valid.
+ * Ensures that an event handler expression is a valid
+ * function call or pipeline.
  *
- * Allowed:
- *   - Bare path: `handleClick` --> becomes `handleClick()`
- *   - Function call: `save:message`
- *   - Pipeline: `validate | save`
+ * Bare top-level paths are converted into function calls.
+ * Dotted paths, conditionals and literals are rejected.
  *
- * Not allowed:
- *   - Dotted paths (`user.save`)
- *   - Literals (`'foo'`, `42`)
- *   - Conditional: `isValid => save`
+ * @example
+ * // handleClick
+ * ensureEventHandlerCall({
+ *   type: EXPR_PATH,
+ *   key: "handleClick",
+ *   segments: ["handleClick"]
+ * })
+ * // { type: EXPR_CALL, name: "handleClick", args: [] }
+ *
+ * @example
+ * // save:message
+ * // An existing EXPR_CALL is returned unchanged.
+ *
+ * @param {Object} expr Event handler expression.
+ * @returns {Object} Validated event handler expression.
+ * @throws {Error} If the expression is empty or invalid.
  */
 function ensureEventHandlerCall(expr) {
 	if (!expr) {
 		throw new Error("Event handler cannot be empty");
 	}
 
-	// Already a call or pipeline
 	if (expr.type === EXPR_CALL || expr.type === EXPR_PIPELINE) {
 		return expr;
 	}
 
-	// Conditionals not allowed
 	if (expr.type === EXPR_CONDITIONAL) {
 		throw new Error(
 			`Invalid event handler. ` +
@@ -105,7 +138,6 @@ function ensureEventHandlerCall(expr) {
 		);
 	}
 
-	// Only top-level simple paths are allowed (no dots)
 	if (expr.type === EXPR_PATH) {
 		if (expr.segments && expr.segments.length > 1) {
 			throw new Error(
@@ -115,7 +147,6 @@ function ensureEventHandlerCall(expr) {
 			);
 		}
 
-		// Convert bare path to function call
 		return {
 			type: EXPR_CALL,
 			name: expr.key,
@@ -124,57 +155,84 @@ function ensureEventHandlerCall(expr) {
 	}
 
 	// Reject literals and everything else
-	throw new Error('Invalid event handler expression.');
+	throw new Error("Invalid event handler expression.");
 }
 
 /**
- * Udodi Directive Parser - Optimized
+ * Udodi directive parser.
  *
- * Performance optimizations applied:
- * - Cached `currentType` to avoid getter overhead
- * - Reduced method calls in hot paths
- * - Manual loop in `parseEventTarget` (no .map())
- * - Minimal object allocations
+ * Uses recursive descent to parse directive bindings
+ * and their expressions.
  *
- * This is a recursive descent parser with correct precedence:
- * - Conditionals (`=>`) > Pipelines (`|`)
+ * Expression precedence:
+ * - Conditionals are parsed within primary expressions.
+ * - Pipelines are parsed at the expression level.
+ *
+ * The parser consumes lexer tokens and produces a directive
+ * AST suitable for compilation.
  */
 class Parser {
 	/**
-	 * @param {Array} tokens - Array of tokens from lexer
-	 * @param {string} input - Original source string (used for slicing values)
+	 * Creates a directive parser.
+	 *
+	 * @example
+	 * const parser = new Parser(tokens, "text=user.name");
+	 *
+	 * @param {Array} tokens Tokens produced by the lexer.
+	 * @param {string} input Original source string.
 	 */
 	constructor(tokens, input) {
 		this.tokens = tokens || [];
 		this.input = input || "";
 		this.pos = 0;
-		this.current = this.tokens[0] || [TOKEN_EOF, 0, 0];
-		this.currentType = this.current[0]; // Cached for performance
-	}
-
-	/**
-	 * Advance to the next token and update cached type.
-	 */
-	advance() {
-		this.pos++;
-		this.current = this.tokens[this.pos] || [TOKEN_EOF, 0, 0];
+		this.current = this.tokens[0] || EOF_TOKEN;
 		this.currentType = this.current[0];
 	}
 
 	/**
-	 * Peek at the next token without consuming it.
-	 * @returns {Array} Next token
+	 * Advances to the next token.
+	 *
+	 * Updates the current token and its cached type.
+	 * Once the token stream is exhausted, the shared EOF
+	 * token is used.
+	 *
+	 * @example
+	 * // Current token: TOKEN_PATH
+	 * parser.advance();
+	 * // Current token: next token or TOKEN_EOF
 	 */
-	peek() {
-		return this.tokens[this.pos + 1] || [TOKEN_EOF, 0, 0];
+	advance() {
+		this.pos++;
+
+		this.current = this.tokens[this.pos] || EOF_TOKEN;
+		this.currentType = this.current[0];
 	}
 
 	/**
-	 * Consume current token if it matches expected type.
+	 * Returns the next token without consuming it.
 	 *
-	 * @param {string} type - Expected token type
-	 * @returns {Array} Consumed token
-	 * @throws {Error} On mismatch
+	 * @example
+	 * // Current token: TOKEN_PATH
+	 * parser.peek();
+	 * // The token immediately following the current token.
+	 *
+	 * @returns {Array} Next token, or the shared EOF token.
+	 */
+	peek() {
+		return this.tokens[this.pos + 1] || EOF_TOKEN;
+	}
+
+	/**
+	 * Consumes the current token if its type matches.
+	 *
+	 * @example
+	 * // Current token: TOKEN_EQUAL
+	 * parser.eat(TOKEN_EQUAL);
+	 * // Returns the consumed token and advances the parser.
+	 *
+	 * @param {string} type Expected token type.
+	 * @returns {Array} Consumed token.
+	 * @throws {Error} If the current token does not match.
 	 */
 	eat(type) {
 		if (this.currentType !== type) {
@@ -182,15 +240,33 @@ class Parser {
 				`Parse error: Expected ${type}, got ${this.currentType} at position ${this.pos}`,
 			);
 		}
+
 		const token = this.current;
 		this.advance();
 		return token;
 	}
 
 	/**
-	 * Parse literal or path (lowest level).
+	 * Parses a literal or path expression.
 	 *
-	 * @returns {Object} EXPR_LITERAL or EXPR_PATH node
+	 * String, number and boolean tokens become literal nodes.
+	 * Path tokens become path nodes containing the original
+	 * key and its dot-separated segments.
+	 *
+	 * @example
+	 * // user.name
+	 * {
+	 *   type: EXPR_PATH,
+	 *   key: "user.name",
+	 *   segments: ["user", "name"]
+	 * }
+	 *
+	 * @example
+	 * // 42
+	 * { type: EXPR_LITERAL, value: 42 }
+	 *
+	 * @returns {Object} EXPR_LITERAL or EXPR_PATH node.
+	 * @throws {Error} If the current token is not an atom.
 	 */
 	parseAtom() {
 		const token = this.current;
@@ -198,6 +274,7 @@ class Parser {
 
 		if (type === TOKEN_PATH) {
 			const value = slice(this.input, this.eat(TOKEN_PATH));
+
 			return {
 				type: EXPR_PATH,
 				segments: value.split("."),
@@ -205,7 +282,11 @@ class Parser {
 			};
 		}
 
-		if (type === TOKEN_STRING || type === TOKEN_NUMBER || type === TOKEN_BOOLEAN) {
+		if (
+			type === TOKEN_STRING ||
+			type === TOKEN_NUMBER ||
+			type === TOKEN_BOOLEAN
+		) {
 			const raw = slice(this.input, token);
 			this.advance();
 
@@ -226,14 +307,25 @@ class Parser {
 	}
 
 	/**
-	 * Parse function call using colon syntax.
+	 * Parses a function call using colon-separated arguments.
 	 *
-	 * Examples:
-	 * - `increment:count`
-	 * - `formatDate:createdAt:'MMM DD'`
-	 * - `add:a:b`
+	 * The function name is a path token. Each colon introduces
+	 * an atom argument.
 	 *
-	 * @returns {Object} EXPR_CALL node
+	 * @example
+	 * // increment:count
+	 * {
+	 *   type: EXPR_CALL,
+	 *   name: "increment",
+	 *   args: [
+	 *     { type: EXPR_PATH, key: "count", segments: ["count"] }
+	 *   ]
+	 * }
+	 *
+	 * @example
+	 * // formatDate:createdAt:'MMM DD'
+	 *
+	 * @returns {Object} EXPR_CALL node.
 	 */
 	parseCall() {
 		const name = slice(this.input, this.eat(TOKEN_PATH));
@@ -248,9 +340,21 @@ class Parser {
 	}
 
 	/**
-	 * Parse primary expression: atom, call, or conditional.
+	 * Parses a primary expression.
 	 *
-	 * @returns {Object} Expression AST node
+	 * A primary expression can be an atom, a function call
+	 * or a conditional expression. Conditional expressions
+	 * are parsed recursively to preserve their associativity.
+	 *
+	 * @example
+	 * // isValid => submit
+	 * {
+	 *   type: EXPR_CONDITIONAL,
+	 *   condition: { type: EXPR_PATH, ... },
+	 *   value: { type: EXPR_PATH, ... }
+	 * }
+	 *
+	 * @returns {Object} Parsed expression AST node.
 	 */
 	parsePrimary() {
 		let expr;
@@ -265,9 +369,8 @@ class Parser {
 			expr = this.parseAtom();
 		}
 
-		// Conditional has higher precedence than pipeline
 		if (this.currentType === TOKEN_ARROW) {
-			this.advance(); // consume =>
+			this.advance();
 			const value = this.parsePrimary();
 
 			return {
@@ -281,25 +384,70 @@ class Parser {
 	}
 
 	/**
-	 * Parse full expression including pipelines (lowest precedence).
+	 * Parses an expression, optionally containing a pipeline.
 	 *
-	 * @returns {Object} Expression node (may be EXPR_PIPELINE)
+	 * Parses the initial primary expression first. A pipeline
+	 * array is allocated only when a pipe token is encountered,
+	 * avoiding an unnecessary array allocation for ordinary
+	 * expressions.
+	 *
+	 * @example
+	 * // user.name
+	 * // Returns an EXPR_PATH directly, without a steps array.
+	 *
+	 * @example
+	 * // user.id | url | encode
+	 * {
+	 *   type: EXPR_PIPELINE,
+	 *   steps: [/* parsed primary expressions *\/]
+	 * }
+	 *
+	 * @returns {Object} Expression AST node, possibly an EXPR_PIPELINE.
 	 */
 	parseExpression() {
-		const steps = [this.parsePrimary()];
+		let expr = this.parsePrimary();
 
-		while (this.currentType === TOKEN_PIPE) {
-			this.advance();
-			steps.push(this.parsePrimary());
+		if (this.currentType !== TOKEN_PIPE) {
+			return expr;
 		}
 
-		return steps.length === 1 ? steps[0] : { type: EXPR_PIPELINE, steps };
+		const steps = [expr];
+
+		do {
+			this.advance();
+			steps.push(this.parsePrimary());
+		} while (this.currentType === TOKEN_PIPE);
+
+		return { type: EXPR_PIPELINE, steps };
 	}
 
 	/**
-	 * Parse a single binding: `target=expression` or `on[event.modifier]=expression`
+	 * Parses a single directive binding.
 	 *
-	 * @returns {Object} NODE_BINDING or NODE_EVENT_BINDING
+	 * Supports ordinary target bindings and event bindings.
+	 * Event targets are parsed for their event name and
+	 * modifiers, and their expressions are validated.
+	 *
+	 * @example
+	 * // text=user.name
+	 * {
+	 *   type: NODE_BINDING,
+	 *   target: "text",
+	 *   expr: { type: EXPR_PATH, ... }
+	 * }
+	 *
+	 * @example
+	 * // on[click.prevent]=handleClick
+	 * {
+	 *   type: NODE_EVENT_BINDING,
+	 *   target: "on",
+	 *   event: "click",
+	 *   modifiers: ["prevent"],
+	 *   expr: { type: EXPR_CALL, ... }
+	 * }
+	 *
+	 * @returns {Object} NODE_BINDING or NODE_EVENT_BINDING.
+	 * @throws {Error} If the binding cannot be parsed.
 	 */
 	parseBinding() {
 		const targetToken = this.eat(TOKEN_PATH);
@@ -311,6 +459,7 @@ class Parser {
 
 		if (rawTarget.startsWith("on[")) {
 			const { event, modifiers } = parseEventTarget(rawTarget);
+
 			return {
 				type: NODE_EVENT_BINDING,
 				target: "on",
@@ -328,21 +477,29 @@ class Parser {
 	}
 
 	/**
-	 * Main entry point: Parse entire directive with multiple bindings.
+	 * Parses the entire directive into an AST.
 	 *
-	 * @returns {Object} NODE_DIRECTIVE AST
+	 * Repeatedly parses bindings until the end of the token stream.
+	 * Any parsing error is propagated to the caller.
+	 *
+	 * @example
+	 * // text=user.name disabled=isDisabled
+	 * {
+	 *   type: NODE_DIRECTIVE,
+	 *   bindings: [
+	 *     { type: NODE_BINDING, ... },
+	 *     { type: NODE_BINDING, ... }
+	 *   ]
+	 * }
+	 *
+	 * @returns {Object} NODE_DIRECTIVE AST node.
 	 */
 	parseDirective() {
 		const bindings = [];
 
 		while (this.currentType !== TOKEN_EOF) {
 			if (this.currentType === TOKEN_PATH) {
-				try {
-					bindings.push(this.parseBinding());
-				} catch (err) {
-					console.error("[Udodi Parser] Error parsing binding:", err.message);
-					this.advance(); // Recovery
-				}
+				bindings.push(this.parseBinding());
 			} else {
 				this.advance();
 			}
@@ -356,16 +513,24 @@ class Parser {
 }
 
 /**
- * Main parsing function.
+ * Parses a tokenized directive into an AST.
  *
- * @param {Array} tokens - Tokens from lexer
- * @param {string} input - Original source string
- * @returns {Object} Parsed directive AST
+ * Creates a parser and delegates parsing to its main
+ * entry point. An empty or missing token array produces
+ * an empty directive AST.
+ *
+ * @example
+ * const ast = parseDirective(tokens, "text=user.name");
+ *
+ * @param {Array} tokens Tokens produced by the lexer.
+ * @param {string} input Original directive source string.
+ * @returns {Object} NODE_DIRECTIVE AST node.
  */
 export function parseDirective(tokens, input) {
 	if (!tokens || tokens.length === 0) {
 		return { type: NODE_DIRECTIVE, bindings: [] };
 	}
+
 	const parser = new Parser(tokens, input);
 	return parser.parseDirective();
 }

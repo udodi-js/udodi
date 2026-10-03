@@ -1,4 +1,4 @@
-import { getComponent, clear } from "./componentRegistry.js";
+import { getComponent, removeComponent } from "./componentRegistry.js";
 import { mount } from "./mount.js";
 import { unmount } from "./unmount.js";
 import { getVM } from "../core/vmInstance.js";
@@ -81,8 +81,8 @@ export function render(placeholder, target) {
 		vm // Pass down to mount
 	);
 
-	// Clear the registry
-	clear();
+	// We can safely remove the component since is the root component
+	removeComponent(placeholderId);
 
 	// Return the mounted instance (it include unmount method, context, etc.)
 	return instance;

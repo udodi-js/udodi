@@ -493,7 +493,7 @@ const Counter = createComponent({
 
 The optional `css` helper is a pass-through tagged template that can provide editor syntax highlighting.
 
-Learn more in [Component Styles](./fundamentals/styles.md) and [CSS Scoping](./advanced/css-scoping.md).
+Learn more in [Component Styles](./fundamentals/styles.md).
 
 
 ## Templates

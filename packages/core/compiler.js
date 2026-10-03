@@ -1,7 +1,7 @@
 import {
 	OP_EVAL,
 	OP_SET,
-	OP_EVENT_BIND
+	OP_EVENT_BIND,
 } from "./opcodes.js";
 
 import {
@@ -19,19 +19,23 @@ import { compileModifiers } from "./modifiers.js";
 /**
  * Compiles a parsed directive AST into VM instructions.
  *
- * Compilation performs AST → IR lowering.
+ * Compilation performs AST → IR lowering, converting parsed
+ * expressions into the representation consumed by the VM.
  *
- * Pipeline expressions are transformed into nested function calls:
+ * Each binding produces an evaluation instruction followed
+ * by a target assignment instruction. Event bindings produce
+ * a single event instruction.
  *
  * @example
- * user.id | url | encode
- *
+ * user.name
  * becomes:
+ * [
+ *   { op: OP_EVAL, expr: { type: EXPR_PATH, ... } },
+ *   { op: OP_SET, target: ... }
+ * ]
  *
- * encode(url(user.id))
- *
- * @param {Object} ast Root AST node.
- * @returns {Array<Object>} VM instructions.
+ * @param {Object} ast Root AST node containing directive bindings.
+ * @returns {Array<Object>} Compiled VM instructions.
  */
 export function compile(ast) {
 	const instructions = [];
@@ -42,12 +46,23 @@ export function compile(ast) {
 		const node = bindings[i];
 
 		switch (node.type) {
-			case NODE_BINDING:
-				compileBinding(node, instructions);
+			case NODE_BINDING: {
+				instructions.push(
+					{ op: OP_EVAL, expr: lowerExpr(node.expr) },
+					{ op: OP_SET, target: node.target }
+				);
+
 				break;
+			}
 
 			case NODE_EVENT_BINDING:
-				compileEventBinding(node, instructions);
+				instructions.push({
+					op: OP_EVENT_BIND,
+					event: node.event,
+					modifiers: compileModifiers(node.modifiers),
+					expr: lowerExpr(node.expr),
+				});
+
 				break;
 
 			default:
@@ -59,50 +74,15 @@ export function compile(ast) {
 }
 
 /**
- * Compiles a regular binding.
+ * Lowers an expression AST node into its VM representation.
  *
- * Generates:
+ * Literal and path expressions are copied into the VM
+ * representation. Composite expressions recursively lower
+ * their child expressions.
  *
- * OP_EVAL
- * OP_SET
- *
- * @param {Object} node Binding node.
- * @param {Array<Object>} out Output instruction array.
- */
-function compileBinding(node, out) {
-	out.push({
-		op: OP_EVAL,
-		expr: lowerExpr(node.expr),
-	});
-
-	out.push({
-		op: OP_SET,
-		target: node.target,
-	});
-}
-
-/**
- * Compiles an event binding.
- *
- * Generates:
- *
- * OP_EVENT_BIND
- *
- * @param {Object} node Event binding node.
- * @param {Array<Object>} out Output instruction array.
- */
-function compileEventBinding(node, out) {
-	out.push({
-		op: OP_EVENT_BIND,
-		event: node.event,
-		modifiers: compileModifiers(node.modifiers),
-		expr: lowerExpr(node.expr),
-	});
-}
-
-/**
- * Lowers an AST expression into VM IR.
- *
+ * Pipeline expressions are converted into nested function
+ * calls before being returned.
+ * 
  * Supported expression types:
  *
  * - EXPR_LITERAL
@@ -111,8 +91,19 @@ function compileEventBinding(node, out) {
  * - EXPR_CONDITIONAL
  * - EXPR_PIPELINE
  *
- * @param {Object} node AST expression node.
- * @returns {Object} Lowered VM IR node.
+ * @example
+ * user.name
+ * becomes:
+ * { type: EXPR_PATH, key: "user", segments: ["name"] }
+ *
+ * @example
+ * user.id | url | encode
+ * becomes:
+ * encode(url(user.id))
+ *
+ * @param {Object} node Expression AST node.
+ * @returns {Object} Lowered expression.
+ * @throws {Error} If the expression is missing or unsupported.
  */
 function lowerExpr(node) {
 	if (!node) {
@@ -121,10 +112,7 @@ function lowerExpr(node) {
 
 	switch (node.type) {
 		case EXPR_LITERAL:
-			return {
-				type: EXPR_LITERAL,
-				value: node.value,
-			};
+			return { type: EXPR_LITERAL, value: node.value };
 
 		case EXPR_PATH:
 			return {
@@ -136,7 +124,6 @@ function lowerExpr(node) {
 		case EXPR_CALL: {
 			const args = node.args;
 			const length = args.length;
-
 			const loweredArgs = new Array(length);
 
 			for (let i = 0; i < length; i++) {
@@ -161,45 +148,34 @@ function lowerExpr(node) {
 			return lowerPipeline(node.steps);
 
 		default:
-			throw new Error(
-				`Unsupported AST expression type: ${node.type}`,
-			);
+			throw new Error(`Unsupported AST expression type: ${node.type}`);
 	}
 }
 
 /**
  * Lowers a pipeline expression into nested function calls.
  *
- * Pipelines are transformed from left-to-right into right-associated nested calls,
- * with each step's result becoming the first argument of the next function.
+ * The first pipeline step becomes the initial expression.
+ * Each subsequent step wraps the current expression in a
+ * function call, passing the current expression as its
+ * first argument, followed by any explicit arguments.
+ *
+ * Only top-level function paths are allowed as pipeline
+ * steps. Function calls are also supported.
  *
  * @example
- * ```js
  * user.id | url | encode
- * ```
  * becomes:
- * ```js
  * encode(url(user.id))
- * ```
  *
  * @example
- * ```js
  * user.id | formatDate:'MMM DD' | uppercase
- * ```
  * becomes:
- * ```js
  * uppercase(formatDate(user.id, 'MMM DD'))
- * ```
  *
- * **Rules:**
- * - The first step may be any expression.
- * - Every subsequent step must be a function call (or a path that resolves to one).
- *
- * @param {Array<Object>} steps - Pipeline AST steps.
- * @param {Object} steps[0] - The initial expression (can be any valid expression type).
- * @param {Object} steps[i] - Subsequent steps, expected to lower to either `EXPR_CALL` or `EXPR_PATH`.
- * @returns {Object} Lowered VM IR expression (nested `EXPR_CALL` nodes).
- * @throws {Error} If the pipeline is empty or contains invalid steps after the first.
+ * @param {Array<Object>} steps Ordered pipeline expression nodes.
+ * @returns {Object} Nested function-call expression.
+ * @throws {Error} If the pipeline is empty or contains an invalid step.
  */
 function lowerPipeline(steps) {
 	if (!Array.isArray(steps) || steps.length === 0) {
@@ -215,7 +191,6 @@ function lowerPipeline(steps) {
 		let stepName;
 		let stepArgs;
 
-		// Resolve callable step name and arguments
 		if (step.type === EXPR_CALL) {
 			stepName = step.name;
 			stepArgs = step.args || [];

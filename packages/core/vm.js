@@ -112,6 +112,7 @@ export class VM {
 						target,
 						value: lastValue,
 					});
+					
 					break;
 				}
 

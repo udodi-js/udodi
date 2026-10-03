@@ -8,13 +8,13 @@
 <line x1="60" x2="780" y1="290" y2="290" stroke="#94a3b8" stroke-width="1" />
 			<line x1="60" x2="780" y1="290" y2="290" stroke="#64748b" stroke-width="1.5" />
 			
-				<rect x="105" y="163.92251122318106" width="90" height="126.07748877681894" rx="5" fill="#3b82f6" />
-				<text x="150" y="155.92251122318106" font-size="10" text-anchor="middle" fill="#0f172a">0.11 ms</text>
+				<rect x="105" y="166.1550001149019" width="90" height="123.8449998850981" rx="5" fill="#3b82f6" />
+				<text x="150" y="158.1550001149019" font-size="10" text-anchor="middle" fill="#0f172a">0.11 ms</text>
 				<text x="150" y="310" font-size="10" text-anchor="middle" fill="#475569">Mean</text>
 			
 
-				<rect x="285" y="172.50001750886284" width="90" height="117.49998249113716" rx="5" fill="#3b82f6" />
-				<text x="330" y="164.50001750886284" font-size="10" text-anchor="middle" fill="#0f172a">0.10 ms</text>
+				<rect x="285" y="172.500000547152" width="90" height="117.49999945284799" rx="5" fill="#3b82f6" />
+				<text x="330" y="164.500000547152" font-size="10" text-anchor="middle" fill="#0f172a">0.10 ms</text>
 				<text x="330" y="310" font-size="10" text-anchor="middle" fill="#475569">Median</text>
 			
 
