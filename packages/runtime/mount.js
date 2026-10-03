@@ -53,7 +53,7 @@ export function mount(component, container, vm, parentBoundary = null) {
 		);
 	}
 
-	const scope = { effects: [], cleanups: [], _boundary: parentBoundary };
+	const scope = { effects: [], cleanups: [], boundary: parentBoundary };
 	const range = document.createRange();
 
 	// To avoid issues with the range being detached, 
@@ -106,7 +106,7 @@ export function mount(component, container, vm, parentBoundary = null) {
 		ownBoundary = component.scopeId;
 	}
 
-	scope._boundary = ownBoundary;
+	scope.boundary = ownBoundary;
 
 	// Resolve nested components that are not owned by structural directives.
 	resolveComponents(root, vm, ownBoundary, {

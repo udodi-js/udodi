@@ -5,183 +5,101 @@ import {
 	EXPR_CONDITIONAL,
 } from "./expTypes.js";
 
+import { resolveContextValue } from "../runtime/context.js";
+
 /**
  * Creates a pure expression evaluator for Udodi.
  *
- * This evaluator works on the lowered IR produced by compiler.js.
- * All pipelines are already transformed into nested function calls.
+ * Evaluates the lowered IR produced by compiler.js.
+ * Pipelines are already transformed into nested function calls.
  *
- * Supported expression types:
- * - Literals
- * - Paths (e.g. `user.name`)
- * - Function calls (with pipeline support)
- * - Conditionals (`condition => value`)
- *
- * @param {Object} context - Evaluation context containing state and helper functions.
- * @returns {Function} The `evaluate` function.
+ * @param {Object} context - Default evaluation context.
+ * @returns {Function} Expression evaluator.
  */
 export function createEvaluator(context) {
 	/**
-	 * Evaluates any IR expression.
+	 * Evaluates a compiled expression.
 	 *
 	 * @param {Object} expr - Compiled expression IR.
-	 * @param {Object} [runtimeContext] - Optional override context for component isolation.
-	 * @param {Object} [event] - Event object injected into event handlers.
+	 * @param {Object} [runtimeContext] - Optional context override.
+	 * @param {Object} [event] - Event injected into function calls.
 	 * @returns {*} Evaluated value.
 	 */
-	return function evaluate(expr, runtimeContext, event) {
-		if (!expr) return undefined;
+	function evaluate(expr, runtimeContext, event) {
+		if (expr == null) return undefined;
 
-		const ctx = runtimeContext || context;
+		const ctx = runtimeContext ?? context;
 
 		switch (expr.type) {
 			case EXPR_LITERAL:
 				return expr.value;
 
 			case EXPR_PATH:
-				return evaluatePath(expr, ctx);
+				return evaluatePath(expr.segments, ctx);
 
 			case EXPR_CALL:
-				return evaluateCall(expr, ctx, evaluate, runtimeContext, event);
+				return evaluateCall(expr, ctx, evaluate, event);
 
 			case EXPR_CONDITIONAL:
-				return evaluateConditional(expr, evaluate, runtimeContext);
+				return evaluateConditional(expr, ctx, evaluate);
 
 			default:
 				throw new Error(`Unknown expression type: ${expr.type}`);
 		}
-	};
+	}
+
+	return evaluate;
 }
 
 /**
- * Evaluates a compiled path expression against the given lexical scope.
+ * Evaluates a compiled path expression.
  *
- * The first segment is resolved by walking the explicit scope chain
- * via `__parent`, allowing nested scopes (such as `@for`) to shadow
- * parent variables without mutating the parent context.
+ * Automatically invokes functions encountered during traversal,
+ * allowing reactive signal getters to be transparently unwrapped.
  *
- * Once the root value is resolved, the remaining path segments are
- * traversed normally. Any function encountered during traversal is
- * automatically invoked, allowing reactive signal getters to be
- * transparently unwrapped.
- *
- * @example
- * ```js
- * // Parent context
- * { count: getCount }
- *
- * // Nested `@for` scope
- * {
- *   __parent: parentContext,
- *   user: getUser,
- *   userIndex: getIndex
- * }
- * ```
- *
- * Path resolution:
- *
- * @example
- * ```js
- * evaluatePath(scope, { segments: ["user", "name"] });
- * // => getUser().name
- *
- * evaluatePath(scope, { segments: ["count"] });
- * // => getCount()
- * ```
- *
- * Time complexity:
- * - Scope resolution: O(scope depth)
- * - Path traversal: O(segment count)
- *
- * @param {Object} expr
- *   Compiled path expression.
- * 
- * @param {Object} context
- *   The current lexical scope. May contain a `__parent` property
- *   pointing to an outer scope.
- *
- * @param {string[]} expr.segments
- *   Ordered path segments to resolve.
- *
+ * @param {string[]} segments - Ordered path segments.
+ * @param {Object|null} context - Current lexical scope.
  * @returns {*}
- *   The resolved value, or `undefined` if the root identifier cannot
- *   be found. Returns `null` or `undefined` immediately if encountered
- *   during traversal.
  */
-function evaluatePath(expr, context) {
-	const segments = expr.segments;
+function evaluatePath(segments, context) {
 	const length = segments.length;
 
-	let obj;
-	const firstSegment = segments[0];
+	if (length === 0) return undefined;
 
-	for (
-		let scope = context;
-		scope != null;
-		scope = scope.__parent
-	) {
-		if (Object.hasOwn(scope, firstSegment)) {
-			obj = scope[firstSegment];
-			break;
+	let value = resolveContextValue(context, segments[0]);
+
+	if (typeof value === "function") {
+		value = value();
+	}
+
+	for (let i = 1; i < length && value != null; i++) {
+		value = value[segments[i]];
+
+		if (typeof value === "function") {
+			value = value();
 		}
 	}
 
-	if (typeof obj === "function") {
-		obj = obj();
-	}
-
-	if (obj == null || length === 1) {
-		return obj;
-	}
-
-	for (let i = 1; i < length; i++) {
-		obj = obj[segments[i]];
-
-		if (typeof obj === "function") {
-			obj = obj();
-		}
-
-		if (obj == null) {
-			return obj;
-		}
-	}
-
-	return obj;
+	return value;
 }
 
 /**
- * Evaluates a function call.
+ * Evaluates a compiled function call.
  *
- * Pipelines are lowered by the compiler into nested calls:
- * `user.id | formatDate:'MMM DD'` --> `formatDate(user.id, 'MMM DD')`
+ * Pipelines are lowered into nested calls by the compiler.
+ * Calls with up to three arguments avoid array allocation.
  *
- * The `context` already contains bound functions, allowing direct invocation.
- * Calls with 0–3 arguments are optimized to avoid array allocation.
- *
- * @param {Object} expr
- * @param {Object} context
- * @param {Function} evaluate
- * @param {Object} runtimeContext
- * @param {Object} [event]
+ * @param {Object} expr - Compiled call expression.
+ * @param {Object|null} context - Current lexical scope.
+ * @param {Function} evaluate - Recursive expression evaluator.
+ * @param {Object} [event] - Optional event object.
  * @returns {*}
  */
-function evaluateCall(expr, context, evaluate, runtimeContext, event) {
-	let fn;
-	const name = expr.name;
-
-	for (
-		let scope = context;
-		scope != null;
-		scope = scope.__parent
-	) {
-		if (Object.hasOwn(scope, name)) {
-			fn = scope[name];
-			break;
-		}
-	}
+function evaluateCall(expr, context, evaluate, event) {
+	const fn = resolveContextValue(context, expr.name);
 
 	if (typeof fn !== "function") {
-		throw new Error(`Unknown function: ${name}`);
+		throw new Error(`Unknown function: ${expr.name}`);
 	}
 
 	const args = expr.args;
@@ -193,40 +111,35 @@ function evaluateCall(expr, context, evaluate, runtimeContext, event) {
 			return hasEvent ? fn(event) : fn();
 
 		case 1: {
-			const arg0 = evaluate(args[0], runtimeContext);
-			return hasEvent ? fn(event, arg0) : fn(arg0);
+			const a = evaluate(args[0], context);
+			return hasEvent ? fn(event, a) : fn(a);
 		}
 
 		case 2: {
-			const arg0 = evaluate(args[0], runtimeContext);
-			const arg1 = evaluate(args[1], runtimeContext);
+			const a = evaluate(args[0], context);
+			const b = evaluate(args[1], context);
 
-			return hasEvent
-				? fn(event, arg0, arg1)
-				: fn(arg0, arg1);
+			return hasEvent ? fn(event, a, b) : fn(a, b);
 		}
 
 		case 3: {
-			const arg0 = evaluate(args[0], runtimeContext);
-			const arg1 = evaluate(args[1], runtimeContext);
-			const arg2 = evaluate(args[2], runtimeContext);
+			const a = evaluate(args[0], context);
+			const b = evaluate(args[1], context);
+			const c = evaluate(args[2], context);
 
-			return hasEvent
-				? fn(event, arg0, arg1, arg2)
-				: fn(arg0, arg1, arg2);
+			return hasEvent ? fn(event, a, b, c) : fn(a, b, c);
 		}
 
 		default: {
-			const evaluated = new Array(length + hasEvent);
-
-			let i = 0;
+			const offset = hasEvent ? 1 : 0;
+			const evaluated = new Array(length + offset);
 
 			if (hasEvent) {
-				evaluated[i++] = event;
+				evaluated[0] = event;
 			}
 
-			for (; i < evaluated.length; i++) {
-				evaluated[i] = evaluate(args[i - hasEvent], runtimeContext);
+			for (let i = 0; i < length; i++) {
+				evaluated[i + offset] = evaluate(args[i], context);
 			}
 
 			return fn(...evaluated);
@@ -235,31 +148,25 @@ function evaluateCall(expr, context, evaluate, runtimeContext, event) {
 }
 
 /**
- * Evaluates a conditional expression: `condition => value`.
+ * Evaluates a conditional expression: condition => value.
  *
- * - Evaluates the condition first.
- * - The condition must resolve to a boolean.
- * - If false, returns `undefined`.
- * - If true, evaluates and returns the value expression.
+ * The value expression is evaluated only when the condition
+ * resolves to true.
  *
  * @param {Object} expr - Conditional expression.
- * @param {Function} evaluate - Expression evaluator.
- * @param {Object} runtimeContext - Execution context.
- * @returns {*} Result of the value expression or `undefined`.
- * @throws {Error} If the condition does not resolve to a boolean.
+ * @param {Object|null} context - Current lexical scope.
+ * @param {Function} evaluate - Recursive expression evaluator.
+ * @returns {*} Evaluated value or undefined.
+ * @throws {Error} If the condition is not boolean.
  */
-function evaluateConditional(expr, evaluate, runtimeContext) {
-	const conditionValue = evaluate(expr.condition, runtimeContext);
+function evaluateConditional(expr, context, evaluate) {
+	const condition = evaluate(expr.condition, context);
 
-	if (typeof conditionValue !== "boolean") {
+	if (typeof condition !== "boolean") {
 		throw new Error(
-			`Conditional expression must resolve to boolean, got ${typeof conditionValue}`
+			`Conditional expression must resolve to boolean, got ${typeof condition}`
 		);
 	}
 
-	if (!conditionValue) {
-		return undefined;
-	}
-
-	return evaluate(expr.value, runtimeContext);
+	return condition ? evaluate(expr.value, context) : undefined;
 }

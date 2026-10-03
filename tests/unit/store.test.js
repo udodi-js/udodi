@@ -157,6 +157,28 @@ describe("store", () => {
 			restored.stop();
 		});
 
+		it("persists shallow object state without losing nested values", async () => {
+			store.clear();
+			const dbName = `udodi-test-${Date.now()}-${Math.random()}`;
+			const profile = {
+				name: "Ada",
+				tags: ["ui", "data"],
+				meta: { active: true },
+			};
+
+			store.set("profile", profile);
+			const persistence = store.persist("profile", { dbName });
+			expect(await persistence.ready).toBe(true);
+			await persistence.flush();
+			persistence.stop();
+
+			store.delete("profile");
+			const restored = store.persist("profile", { dbName });
+			expect(await restored.ready).toBe(true);
+			expect(store.get("profile")).toEqual(profile);
+			restored.stop();
+		});
+
 		it("persists module-scoped store values", async () => {
 			store.clear();
 			const dbName = `udodi-test-${Date.now()}-${Math.random()}`;
