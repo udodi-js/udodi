@@ -140,6 +140,7 @@ export function scanQuoted(str, onToken, mode, delimiter = null) {
 		if (mode === SCAN_DELIMITER && quote === 0 && c === delimCode) {
 			onToken(start, i);
 			start = i + 1;
+			
 			continue;
 		}
 
@@ -270,9 +271,11 @@ export function normalizeDirective(input) {
 			if (pendingSpace && outLen > 0) {
 				out[outLen++] = " ";
 			}
+
 			pendingSpace = false;
 			quote = c;
 			out[outLen++] = input[i++];
+
 			continue;
 		}
 
@@ -280,6 +283,7 @@ export function normalizeDirective(input) {
 		if (c <= 32) {
 			pendingSpace = outLen > 0;
 			i++;
+
 			continue;
 		}
 

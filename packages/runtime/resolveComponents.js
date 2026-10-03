@@ -4,10 +4,21 @@ import { mount } from "./mount.js";
 const COMPONENT_TAG = "udodi-component";
 
 /**
- * Reads a component placeholder id.
+ * Component IDs known to originate under structural directives.
+ *
+ * IDs are unique to their component placeholders and are reused only
+ * when the corresponding structural template is cloned. Consequently,
+ * structural status can safely be cached globally by ID.
+ *
+ * @type {Set<number>}
+ */
+const structuralIds = new Set();
+
+/**
+ * Reads a component placeholder ID.
  *
  * @param {Element} element - Placeholder element.
- * @returns {number|null}
+ * @returns {number|null} The numeric ID, or null if invalid.
  */
 function getPlaceholderId(element) {
 	const rawId = element.getAttribute("id");
@@ -17,104 +28,120 @@ function getPlaceholderId(element) {
 	}
 
 	const id = Number(rawId);
-
 	return Number.isInteger(id) ? id : null;
+}
+
+/**
+ * Determines whether a placeholder lives under a structural directive
+ * (`@for`, `@if`, `@elseif`, or `@else`).
+ *
+ * The result is cached globally by component ID so subsequent checks
+ * (including those performed on clones that reuse the same ID) are O(1).
+ *
+ * @param {Element} element - Placeholder to inspect.
+ * @param {Element} root - Subtree boundary (walk stops here).
+ * @param {number} id - Numeric component ID used as cache key.
+ * @returns {boolean}
+ */
+function hasStructuralAncestor(element, root, id) {
+	if (structuralIds.has(id)) {
+		return true;
+	}
+
+	let current = element.parentElement;
+	let result = false;
+
+	while (current) {
+		if (
+			current.hasAttribute("@for") ||
+			current.hasAttribute("@if") ||
+			current.hasAttribute("@elseif") ||
+			current.hasAttribute("@else")
+		) {
+			result = true;
+			break;
+		}
+
+		if (current === root) {
+			break;
+		}
+
+		current = current.parentElement;
+	}
+
+	if (result) {
+		structuralIds.add(id);
+	}
+
+	return result;
 }
 
 /**
  * Finds the next component placeholder eligible for resolution.
  *
- * The component collection is live, so the caller must resolve and remove
- * the returned element before requesting the next one.
+ * The collection is live and may change during mounting. Structural
+ * placeholders are remembered by ID in the global `structuralIds` set so
+ * their ancestor checks are never repeated.
+ *
+ * The collection is scanned from the beginning on each call. This
+ * deliberately avoids a persistent index that could become invalid when
+ * mounting inserts or removes elements.
  *
  * @param {HTMLCollectionOf<Element>} customElements
- * @param {Element} root
- * @param {boolean} skipStructural
- * @returns {Element|null}
+ *   Live component placeholder collection.
+ * @param {Element} root - Subtree root used as the walk boundary.
+ * @param {boolean} skipStructural - Whether to skip structural placeholders.
+ * @returns {Element|null} The next eligible placeholder.
  */
 function findNextComponent(customElements, root, skipStructural) {
-	if (!skipStructural) {
-		return customElements[0] ?? null;
-	}
-
-	for (let i = 0, length = customElements.length; i < length; i++) {
+	for (let i = 0; i < customElements.length; i++) {
 		const element = customElements[i];
-		let current = element.parentElement;
-		let hasStructural = false;
 
-		// Walk up the DOM tree to see if this placeholder is inside a structural template.
-		while (current) {
-			if (
-				current.hasAttribute("@for") ||
-				current.hasAttribute("@if") ||
-				current.hasAttribute("@elseif") ||
-				current.hasAttribute("@else")
-			) {
-				hasStructural = true;
-				break;
-			}
-
-			if (current === root) {
-				break;
-			}
-
-			current = current.parentElement;
-		}
-
-		if (!hasStructural) {
+		if (!skipStructural) {
 			return element;
 		}
+
+		const id = getPlaceholderId(element);
+
+		// Fast path: already known to be structural
+		if (id !== null && structuralIds.has(id)) {
+			continue;
+		}
+
+		// First encounter: perform the walk and cache the result by ID
+		if (id !== null && hasStructuralAncestor(element, root, id)) {
+			continue;
+		}
+
+		return element;
 	}
 
 	return null;
 }
 
 /**
- * Captures component registry entries referenced by a structural template.
- *
- * Structural directives clone their branch templates later, after the public
- * render registry may have been cleared. Capturing the entries lets each clone
- * create fresh component instances from the original placeholder ids.
- *
- * @param {Element} root - Structural template root.
- * @param {Map<number, Object>} [inheritedDefinitions] - Parent template entries.
- * @returns {Map<number, Object>}
- */
-export function collectComponentDefinitions(root, inheritedDefinitions) {
-	const definitions = new Map();
-	const placeholders = root.getElementsByTagName(COMPONENT_TAG);
-
-	for (let i = 0, length = placeholders.length; i < length; i++) {
-		const placeholder = placeholders[i];
-		const id = getPlaceholderId(placeholder);
-
-		if (id === null || definitions.has(id)) {
-			continue;
-		}
-
-		const entry = inheritedDefinitions?.get(id) ?? getComponent(id);
-
-		if (entry) {
-			definitions.set(id, entry);
-		}
-	}
-
-	return definitions;
-}
-
-/**
  * Resolves component placeholders in a live DOM subtree.
  *
- * @param {Element} root - Subtree root.
+ * Non-structural placeholders are resolved and their registry entries
+ * removed by default. Placeholders inside structural directives retain
+ * their registry entries for reuse by cloned templates.
+ *
+ * Structural placeholders are skipped when `skipStructural` is true.
+ * The resolver accounts for DOM changes caused by mounting by scanning
+ * the live collection afresh after each resolution.
+ *
+ * Structural status is cached globally by component ID, making repeated
+ * ancestor walks unnecessary even across different resolve passes and
+ * across clones that reuse the same ID.
+ *
+ * @param {Element} root - Subtree containing component placeholders.
  * @param {Object} vm - Virtual machine instance.
- * @param {?number} [parentBoundary] - Parent CSS scope boundary.
- * @param {Object} [options] - Resolution options.
+ * @param {?number} [parentBoundary=null] - Parent CSS scope boundary.
+ * @param {Object} [options={}] - Resolution options.
  * @param {boolean} [options.skipStructural=false]
- *   Skip placeholders inside structural templates.
- * @param {Map<number, Object>} [options.definitions]
- *   Captured structural component definitions.
+ *   Skip placeholders inside structural directives.
  * @param {boolean} [options.removeFromRegistry=true]
- *   Remove resolved global registry entries.
+ *   Remove eligible entries from the component registry after mounting.
  * @returns {void}
  */
 export function resolveComponents(
@@ -125,28 +152,17 @@ export function resolveComponents(
 ) {
 	const {
 		skipStructural = false,
-		definitions = null,
 		removeFromRegistry = true,
 	} = options;
 
-	// Deliberately use a live HTMLCollection. Components are removed from
-	// the DOM during resolution, so the collection must reflect those
-	// mutations immediately.
+	// Live collection reflects DOM changes during mounting
 	const customElements = root.getElementsByTagName(COMPONENT_TAG);
 
 	while (customElements.length > 0) {
-		const elem = findNextComponent(
-			customElements,
-			root,
-			skipStructural,
-		);
+		const elem = findNextComponent(customElements, root, skipStructural);
 
 		if (elem === null) {
 			break;
-		}
-
-		if (!elem.parentNode) {
-			continue;
 		}
 
 		const id = getPlaceholderId(elem);
@@ -156,13 +172,16 @@ export function resolveComponents(
 			continue;
 		}
 
-		const fromDefinitions = definitions?.get(id);
-		const entry = fromDefinitions ?? getComponent(id);
+		const entry = getComponent(id);
 
 		if (!entry) {
 			elem.remove();
 			continue;
 		}
+
+		// Capture ancestry (or retrieve from global ID cache) before any
+		// DOM mutation occurs.
+		const isStructural = hasStructuralAncestor(elem, root, id);
 
 		mount(
 			entry.Component(entry.props),
@@ -177,10 +196,11 @@ export function resolveComponents(
 			elem.before(realRoot);
 		}
 
-		// This absolutely guarantees customElements.length shrinks by 1
+		// Remove the placeholder from the live collection
 		elem.remove();
 
-		if (removeFromRegistry && fromDefinitions === undefined) {
+		// Remove the registry entry only if it's not under the structural directive
+		if (removeFromRegistry && !isStructural) {
 			removeComponent(id);
 		}
 	}

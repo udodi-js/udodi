@@ -159,76 +159,113 @@ function hydrateState(db, storeName, keys, prefix, api) {
 }
 
 /**
- * Convert reactive/proxied values into structured-clone-friendly values.
+ * Deep-clones persistable data.
  *
- * @param {any} value
- * @param {WeakMap<object, any>} [seen]
- * @returns {any}
+ * Supports primitives, arrays, plain objects, Date, Map and Set.
+ * Preserves circular references, shared references, sparse arrays
+ * and null-prototype objects.
+ *
+ * Unsupported object types throw a TypeError rather than silently
+ * producing an incomplete clone.
+ *
+ * @param {any} value - Value to clone.
+ * @param {WeakMap<object, any>} [seen] - Reference cache.
+ * @returns {any} Deep clone of the supplied value.
  */
-function toPersistable(value, seen = new WeakMap()) {
+function toPersistable(value, seen) {
+	// Primitives, functions, null and undefined
 	if (value === null || typeof value !== "object") {
 		return value;
 	}
 
-	if (value instanceof Date) {
-		return new Date(value.getTime());
+	// Initialize the reference cache only when necessary
+	if (seen === undefined) {
+		seen = new WeakMap();
 	}
 
+	// Preserve circular and shared references
 	const cached = seen.get(value);
-
 	if (cached !== undefined) {
 		return cached;
 	}
 
+	// Arrays (including sparse)
 	if (Array.isArray(value)) {
 		const length = value.length;
 		const clone = new Array(length);
-
 		seen.set(value, clone);
 
 		for (let i = 0; i < length; i++) {
-			clone[i] = toPersistable(value[i], seen);
+			if (i in value) {
+				clone[i] = toPersistable(value[i], seen);
+			}
 		}
-
 		return clone;
 	}
 
+	// Date
+	if (value instanceof Date) {
+		const clone = new Date(value.getTime());
+		seen.set(value, clone);
+		return clone;
+	}
+
+	// Map
 	if (value instanceof Map) {
 		const clone = new Map();
-
 		seen.set(value, clone);
 
-		for (const [key, entryValue] of value) {
+		for (const [key, item] of value) {
 			clone.set(
 				toPersistable(key, seen),
-				toPersistable(entryValue, seen),
+				toPersistable(item, seen),
 			);
 		}
 
 		return clone;
 	}
 
+	// Set
 	if (value instanceof Set) {
 		const clone = new Set();
-
 		seen.set(value, clone);
 
-		for (const entryValue of value) {
-			clone.add(toPersistable(entryValue, seen));
+		for (const item of value) {
+			clone.add(toPersistable(item, seen));
 		}
 
 		return clone;
 	}
 
-	const clone = {};
+	// Plain objects (including null-prototype)
+	const prototype = Object.getPrototypeOf(value);
 
+	if (prototype !== Object.prototype && prototype !== null) {
+		throw new TypeError("Cannot persist unsupported object type");
+	}
+
+	const clone = Object.create(prototype);
 	seen.set(value, clone);
 
 	const keys = Object.keys(value);
+	const len = keys.length;
 
-	for (let i = 0, length = keys.length; i < length; i++) {
+	for (let i = 0; i < len; i++) {
 		const key = keys[i];
-		clone[key] = toPersistable(value[key], seen);
+		const clonedValue = toPersistable(value[key], seen);
+
+		// Avoid the special __proto__ setter
+		if (key === "__proto__") {
+			Object.defineProperty(clone, key, {
+				value: clonedValue,
+				writable: true,
+				enumerable: true,
+				configurable: true,
+			});
+			
+		} else {
+			clone[key] = clonedValue;
+		}
 	}
 
 	return clone;
