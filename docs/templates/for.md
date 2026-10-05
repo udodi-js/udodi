@@ -140,23 +140,62 @@ Parent state, methods, computed values, and props remain available through the i
 
 ## Template Root
 
-The element declaring `@for` is a template definition, not a normal bound element.
+The element declaring `@for` is used as the template root. Udodi clones it for each iteration, creates the per-item scope, and then processes the cloned root as a normal bound element.
 
-`@for` and `@key` are removed from each clone. Any other directive placed directly on the template root is **ignored and removed with a warning**.
+`@for` is removed from each clone. `@key` is consumed by list reconciliation and is also removed before the clone is bound. Other non-conflicting directives on the root remain active and are evaluated in the iteration context.
 
-Put bindings on descendants instead:
+For example, a directive can be placed directly on the repeating root:
 
 ```html
-<!-- Correct -->
-<li @for="item items">
-  <span @text="item"></span>
-</li>
-
-<!-- Incorrect: @text on the @for root is ignored -->
-<li @for="item items" @text="item"></li>
+<tr
+  @for="row index data"
+  @key="row.id"
+  @class="isSelected:row.id=>'selected'"
+  @on="click=select:row.id"
+>
+  <td @text="row.name"></td>
+</tr>
 ```
 
-This restriction applies to all directives on the repeating root, not only `@text`.
+The conditional expression above uses a method as its condition. The condition must resolve to a boolean value, while the right-hand expression is evaluated when the condition is true. For example, `isSelected:row.id` can return whether the current row is selected. This follows the normal Udodi template DSL and does not use JavaScript operators or ternary syntax.
+
+Native HTML attributes on the template root are also preserved normally:
+
+```html
+<li
+  @for="item items"
+  class="list-item"
+  data-type="item"
+  aria-label="List item"
+>
+  <span @text="item"></span>
+</li>
+```
+
+The following structural directives cannot coexist with `@for` on the same root:
+
+- `@if`
+- `@elseif`
+- `@else`
+- `@teleport`
+
+If any of these directives is placed on the `@for` root, Udodi removes it and emits a warning. Move the directive into the repeated content when conditional or teleported content is required.
+
+For example:
+
+```html
+<!-- Valid: @if is inside the repeated content -->
+<li @for="item items">
+  <span @if="item.visible" @text="item.name"></span>
+</li>
+
+<!-- Invalid: @if competes with @for on the same root -->
+<li @for="item items" @if="item.visible">
+  <span @text="item.name"></span>
+</li>
+```
+
+This restriction applies only to structural directives that conflict with the `@for` template root. Ordinary directives such as `@class`, `@on`, `@bind`, `@ref`, and other supported DOM bindings can be used directly on the repeating root.
 
 ## Reconciliation
 
