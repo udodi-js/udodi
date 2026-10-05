@@ -3552,8 +3552,7 @@ function processForDirective(nodes, vm, context, scope) {
 			}
 
 			const itemVar = itemExpr.segments[0];
-			const indexVar =
-				indexExpr === null ? null : indexExpr.segments[0];
+			const indexVar = indexExpr === null ? null : indexExpr.segments[0];
 
 			//---------------------------
 			// Compile optional @key
