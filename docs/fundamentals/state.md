@@ -4,7 +4,7 @@ Component state is the reactive data owned by a single component instance.
 
 Udodi's state reactivity is **shallow at the root-property level**. Each top-level state key participates in the reactive system. Ordinary nested objects are not automatically made deeply reactive.
 
-Supported collections such as **arrays, `Map`, and `Set`** receive reactive wrappers when stored as state. Their structural mutation methods automatically notify the owning root state key, while objects contained inside those collections remain non-reactive unless they are replaced or the root key is explicitly notified with `touch()`.
+Supported collections such as **arrays, `Map`, and `Set`** receive reactive wrappers when stored as state. Their supported structural mutations automatically notify the owning root state key. Arrays also react to direct index and `length` assignments. Objects contained inside those collections remain non-reactive unless they are replaced or the root key is explicitly notified with `touch()`.
 
 State is defined with the `state` option of `createComponent()`, exposed on the public component context, and updated from methods, interceptors, lifecycle hooks, and two-way bindings such as `@bind`.
 
@@ -160,7 +160,7 @@ Assigning a new value to a top-level key notifies computed values, watchers, and
 
 Mutating a nested field in an ordinary object in place does **not** notify by itself.
 
-Collections are the important exception: arrays, `Map`, and `Set` have reactive structural mutation methods described below.
+Collections are the important exception: arrays, `Map`, and `Set` have reactive structural mutations described below. Arrays additionally track direct index and `length` assignments.
 
 ## Nested Updates and `touch()`
 
@@ -267,6 +267,33 @@ The following array mutation methods are reactive:
 - `fill()`
 - `copyWithin()`
 
+Direct writes to an array index and to `length` are also reactive:
+
+```js
+this.items[0] = "Apple";
+this.items.length = 0;
+```
+
+Both assignments automatically notify dependents of `items`.
+
+This is useful when you want to replace an item without invoking an array mutation method, or clear/truncate the array directly.
+
+For example:
+
+```js
+methods: {
+  replaceFirst(item) {
+    this.items[0] = item;
+  },
+
+  clearItems() {
+    this.items.length = 0;
+  },
+},
+```
+
+These writes do not require an additional `touch()` call.
+
 For example:
 
 ```js
@@ -311,7 +338,7 @@ this.users[0].name = "Grace";
 touch(this, "users");
 ```
 
-Or replace the item through a reactive array mutation:
+Or replace the item through a reactive array mutation or direct index assignment:
 
 ```js
 this.users.splice(0, 1, {
@@ -320,7 +347,16 @@ this.users.splice(0, 1, {
 });
 ```
 
-The second approach automatically notifies because `splice()` is a reactive array mutation.
+or:
+
+```js
+this.users[0] = {
+  ...this.users[0],
+  name: "Grace",
+};
+```
+
+Both approaches automatically notify. `splice()` is a reactive array mutation, while the direct index assignment is tracked by the array wrapper.
 
 ### Reactive `Map`
 
@@ -492,7 +528,7 @@ touch(this, "users");
 
 | Collection | Reactive structural mutations | Nested object mutations |
 | ---------- | ----------------------------- | ------------------------ |
-| Array | `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, `reverse`, `fill`, `copyWithin` | Require `touch()` |
+| Array | `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, `reverse`, `fill`, `copyWithin`, direct index assignment, `length` assignment | Require `touch()` |
 | `Map` | `set`, `delete`, `clear` | Require `touch()` |
 | `Set` | `add`, `delete`, `clear` | Require `touch()` |
 
@@ -513,7 +549,7 @@ Root assignment
                     └── touch(this, "user")
 ```
 
-Collection mutation is therefore different from ordinary nested object mutation: the collection wrapper performs the root-level notification for supported structural operations.
+Collection mutation is therefore different from ordinary nested object mutation: the collection wrapper performs the root-level notification for supported structural operations. For arrays, direct index and `length` assignments are also intercepted and notify the owning root key.
 
 ## Collections and Root Replacement
 
@@ -711,7 +747,14 @@ Calling:
 this.items.push("Apple");
 ```
 
-automatically notifies the `items` root key, allowing `itemCount` and its DOM binding to update.
+Direct array writes behave the same way:
+
+```js
+this.items[0] = "Orange";
+this.items.length = 0;
+```
+
+Each operation automatically notifies the `items` root key, allowing `itemCount` and its DOM binding to update.
 
 See [Templates](../templates/index.md).
 
@@ -746,7 +789,7 @@ Shared application state belongs in [Udodi Store](../store/index.md), not in a r
 | No reserved keywords | Reserved names cannot be state keys |
 | Shallow object reactivity | Ordinary nested objects are not deeply proxied |
 | Nested in-place object mutation | Call `touch(ctx, key)` or replace the root value to notify |
-| Reactive arrays | Supported structural mutations notify automatically |
+| Reactive arrays | Supported structural mutations, direct index writes, and `length` assignments notify automatically |
 | Reactive `Map` | `set`, `delete`, and `clear` notify automatically |
 | Reactive `Set` | `add`, `delete`, and `clear` notify automatically |
 | Collection contents | Objects contained in arrays, `Map`, or `Set` are not deeply reactive |
