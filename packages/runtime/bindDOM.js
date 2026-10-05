@@ -54,7 +54,8 @@ const instructionCache = new Map();
  * @returns {string} Formatted message string.
  */
 function directiveMessage(context, directive, message) {
-	return `[${directive}] in Component "${context.name}": ${message}`;
+	const name = resolveContextValue(context, "name");
+	return `[${directive}] in Component "${name}": ${message}`;
 }
 
 /**
@@ -3336,16 +3337,35 @@ function processSubmitDirective(nodes, vm, context, scope) {
     }
 }
 
+const FOR_IGNORED_DIRECTIVES = new Set([
+	"@if",
+	"@elseif",
+	"@else",
+	"@teleport",
+]);
+
 /**
- * Removes ignored directives from the root element of an `@for` template.
+ * Removes directives that cannot coexist with an `@for` template root.
  *
- * The element that declares `@for` acts as a template definition rather than a
- * bound element. Any remaining directive on the template element is ignored,
- * removed, and a warning is emitted.
+ * The element declaring `@for` becomes a real rendered element for each
+ * iteration. Ordinary DOM directives are therefore allowed to remain on the
+ * cloned root and are processed normally by `bindDOM()`.
  *
- * This function only inspects the template element itself. Descendant
- * directives are intentionally preserved and will be processed after the
- * template is cloned.
+ * Structural directives that would compete with `@for` are not allowed:
+ *
+ *   - `@if`
+ *   - `@elseif`
+ *   - `@else`
+ *   - `@teleport`
+ *
+ * `@key` is handled separately by `processForDirective()` and is removed
+ * before the cloned subtree is bound.
+ *
+ * Native HTML attributes such as `class`, `id`, `style`, `aria-*`, and
+ * `data-*` are not affected because they do not begin with `@`.
+ *
+ * Descendant directives are intentionally preserved and are processed after
+ * the template is cloned.
  *
  * @param {HTMLElement} template - The cloned `@for` template element.
  * @param {Object} [context] - Component context for error reporting.
@@ -3357,7 +3377,7 @@ function removeIgnoredDirectives(template, context) {
 	for (let i = attributes.length - 1; i >= 0; i--) {
 		const { name } = attributes[i];
 
-		if (!name.startsWith("@")) {
+		if (!FOR_IGNORED_DIRECTIVES.has(name)) {
 			continue;
 		}
 
@@ -3391,14 +3411,60 @@ function removeIgnoredDirectives(template, context) {
  * reconciliation. `@key` expressions are restricted to path expressions
  * and use ordinary property access.
  *
+ * Keyed reconciliation maintains three views of the same rendered
+ * collection:
+ *
+ * **rendered - Map<key, record>**
+ * - Resolves a stable key directly to its persistent rendered record.
+ *
+ * **ordered - Array<record>**
+ * - Resolves a logical position directly to its rendered record from the
+ *   previous completed reconciliation.
+ *
+ * **record.position - number**
+ * - Stores the previous logical position of the record.
+ *
+ * Together these provide bidirectional access without walking the DOM:
+ *
+ *                    key
+ *                     │
+ *                     ▼
+ *              ┌─────────────┐
+ *              │   record    │
+ *              └─────────────┘
+ *                ▲         │
+ *                │         │
+ *            position   position
+ *                │         │
+ *                ▼         ▼
+ *             ordered   record.position
+ *
+ * `record.position` is intentionally not updated while the next order is
+ * being constructed. It continues to describe the previous committed order
+ * until DOM reconciliation completes.
+ *
+ * Reconciliation proceeds from right to left. The record at the next desired
+ * position is already the correct insertion reference, so the current record
+ * can be inserted immediately before it. The final record uses a permanent
+ * `@for:end` marker as the boundary of the repeated block.
+ *
+ * This avoids discovering positional information by walking DOM siblings.
+ * It also keeps all movement strictly inside the `@for` block.
+ *
+ * The algorithm does not calculate an LIS. Instead, it uses stable keyed
+ * records, their previously committed positions, and direct DOM insertion
+ * to reconcile the desired order.
+ *
  * Performance characteristics:
- * - Reuses rendered records through keyed `Map` reconciliation.
- * - Reuses `nextRendered` and `nextKeySet` between reactive runs.
- * - Uses indexed loops on hot paths.
- * - Specializes `@key` paths rooted at the loop item or index, avoiding the
- *   general expression evaluator during reconciliation.
- * - Avoids redundant item and index signal writes when values are unchanged.
- * - Swaps reconciliation maps instead of clearing and copying them.
+ * - Key lookup is O(1) through `rendered`.
+ * - Positional lookup is O(1) through `ordered`.
+ * - Reverse positional lookup is O(1) through `record.position`.
+ * - Reconciliation does not inspect DOM siblings to discover positions.
+ * - Reconciliation does not use a virtual DOM.
+ * - Reconciliation does not calculate an LIS.
+ * - Reused records retain their DOM nodes and reactive scopes.
+ * - New and removed records are handled during the same reconciliation.
+ * - A permanent end marker provides an O(1) boundary for the loop block.
  *
  * @param {HTMLElement[]} nodes - Elements containing `@for` directives.
  * @param {Object} vm - Virtual machine instance.
@@ -3486,7 +3552,8 @@ function processForDirective(nodes, vm, context, scope) {
 			}
 
 			const itemVar = itemExpr.segments[0];
-			const indexVar = indexExpr === null ? null : indexExpr.segments[0];
+			const indexVar =
+				indexExpr === null ? null : indexExpr.segments[0];
 
 			//---------------------------
 			// Compile optional @key
@@ -3503,7 +3570,7 @@ function processForDirective(nodes, vm, context, scope) {
 				}
 
 				const keyInstructions = getOrCompileInstructions(
-					"key=" + normalizeDirective(keyExpr)
+					"key=" + normalizeDirective(keyExpr),
 				);
 
 				const instruction = keyInstructions[0];
@@ -3532,19 +3599,89 @@ function processForDirective(nodes, vm, context, scope) {
 
 			removeIgnoredDirectives(template, context);
 
-			const anchor = document.createComment("@for");
+			/**
+			 * Permanent marker at the beginning of the repeated block.
+			 *
+			 * Rendered records are always inserted after this marker and before
+			 * the corresponding `endAnchor`.
+			 *
+			 * @type {Comment}
+			 */
+			const anchor = document.createComment("@for:start");
+
+			/**
+			 * Permanent marker at the end of the repeated block.
+			 *
+			 * This provides a stable O(1) DOM boundary for reconciliation and
+			 * prevents repeated records from being moved past DOM siblings
+			 * belonging to the parent content.
+			 *
+			 * @type {Comment}
+			 */
+			const endAnchor = document.createComment("@for:end");
 
 			container.replaceChild(anchor, templateEl);
+			container.insertBefore(endAnchor, anchor.nextSibling);
 
 			//---------------------------
 			// Reconciliation state
 			//---------------------------
 
+			/**
+			 * Maps a stable key to its persistent rendered record.
+			 *
+			 * This is the identity index for keyed reconciliation.
+			 *
+			 * @type {Map<*, Object>}
+			 */
 			let rendered = new Map();
+
+			/**
+			 * Maps a logical position to the rendered record occupying that
+			 * position during the previous completed reconciliation.
+			 *
+			 * This array is intentionally separate from `rendered` because
+			 * keyed identity and positional order are different concerns.
+			 *
+			 * @type {Object[]}
+			 */
+			let ordered = [];
+
+			/**
+			 * Reusable map used to construct the next keyed state without
+			 * allocating a new map for every reactive execution.
+			 *
+			 * @type {Map<*, Object>}
+			 */
 			let nextRendered = new Map();
 
+			/**
+			 * Reusable array used to construct the next positional state.
+			 *
+			 * @type {Object[]}
+			 */
+			let nextOrdered = [];
+
+			/**
+			 * Tracks keys encountered during the current reconciliation.
+			 *
+			 * @type {Set<*>}
+			 */
 			const nextKeySet = new Set();
+
+			/**
+			 * Tracks objects for which a missing stable-key warning has
+			 * already been emitted.
+			 *
+			 * @type {WeakSet<Object>}
+			 */
 			const warnedObjects = new WeakSet();
+
+			/**
+			 * Caches fallback keys for object instances.
+			 *
+			 * @type {WeakMap<Object, string>}
+			 */
 			const fallbackKeyCache = new WeakMap();
 
 			/**
@@ -3659,10 +3796,10 @@ function processForDirective(nodes, vm, context, scope) {
 			 * @param {number} index - Current loop index.
 			 * @returns {*} Resolved key value.
 			 */
-			const resolveKey = keyExpression === null
-				? null
-				: keyResolver !== null
-					? keyResolver
+			const resolveKey = keyExpression === null 
+				? null 
+				: keyResolver !== null 
+					? keyResolver 
 					: (item, index) => {
 							const keyContext = Object.create(null);
 
@@ -3682,6 +3819,7 @@ function processForDirective(nodes, vm, context, scope) {
 			 * Generates a fallback key when no `@key` directive is provided.
 			 *
 			 * Objects attempt to use one of the common stable identifiers:
+			 *
 			 *   - `id`
 			 *   - `_id`
 			 *   - `key`
@@ -3775,6 +3913,76 @@ function processForDirective(nodes, vm, context, scope) {
 				}
 			};
 
+			/**
+			 * Reconciles the DOM using the already-known positional state.
+			 *
+			 * The pass proceeds from right to left because the record at
+			 * `position + 1` is the insertion reference for the current
+			 * position. By the time a position is processed, everything to
+			 * its right has already been placed in its desired order.
+			 *
+			 * `record.position` contains the record's position from the
+			 * previous completed reconciliation. It is deliberately not
+			 * changed while constructing `nextOrdered`.
+			 *
+			 * A record with: `record.position === position` does not require 
+			 * a DOM movement for this reconciliation.
+			 *
+			 * A record with: `record.position !== position` is inserted 
+			 * immediately before the already-positioned next record. 
+			 * 
+			 * New records use `position === -1`, so they naturally enter the 
+			 * movement path.
+			 *
+			 * The final record is inserted before the permanent `endAnchor`.
+			 * This marker is part of the `@for` block boundary and remains in
+			 * the DOM for the lifetime of the directive.
+			 *
+			 * The algorithm does not inspect DOM siblings to determine
+			 * previous positions. Positional state is maintained explicitly
+			 * by `ordered` and `record.position`.
+			 *
+			 * @param {Object[]} records - Desired record order.
+			 * @returns {void}
+			 */
+			const reconcileDOMOrder = (records) => {
+				for (
+					let position = records.length - 1;
+					position >= 0;
+					position--
+				) {
+					const record = records[position];
+
+					/*
+					 * The following record is already in its final location
+					 * because reconciliation proceeds right-to-left.
+					 *
+					 * The final record uses the permanent end marker so the
+					 * repeated block always remains before following content.
+					 */
+					const reference = position + 1 < records.length 
+						? records[position + 1].el
+						: endAnchor;
+
+					/*
+					 * A record whose previous logical position is already the
+					 * desired position does not need a DOM operation.
+					 *
+					 * This avoids inspecting `nextSibling` or walking the DOM
+					 * to discover its current position.
+					 */
+					if (record.position !== position) {
+						container.insertBefore(record.el, reference);
+					}
+
+					/*
+					 * Commit the new position only after the movement decision
+					 * has been made.
+					 */
+					record.position = position;
+				}
+			};
+
 			//----------------------------
 			// Reactive reconciliation
 			//----------------------------
@@ -3782,8 +3990,14 @@ function processForDirective(nodes, vm, context, scope) {
 			const dispose = effect(() => {
 				nextKeySet.clear();
 				nextRendered.clear();
+				nextOrdered.length = 0;
 
 				const array = vm.evaluate(iterableExpr, context);
+
+				//-----------------------------------
+				// Iterable no longer resolves to an
+				// array. Remove every rendered row.
+				//-----------------------------------
 
 				if (!Array.isArray(array)) {
 					for (const record of rendered.values()) {
@@ -3791,12 +4005,21 @@ function processForDirective(nodes, vm, context, scope) {
 					}
 
 					rendered.clear();
+					ordered.length = 0;
+
 					return;
 				}
 
-				let prevNode = anchor;
+				//-----------------------------------
+				// Build the next keyed and ordered
+				// representations.
+				//-----------------------------------
 
-				for (let index = 0, length = array.length; index < length; index++) {
+				for (
+					let index = 0, length = array.length;
+					index < length;
+					index++
+				) {
 					const item = array[index];
 
 					let key;
@@ -3880,6 +4103,16 @@ function processForDirective(nodes, vm, context, scope) {
 							setIndex,
 							item,
 							index,
+
+							/**
+							 * Position occupied by this record in the
+							 * previous completed reconciliation.
+							 *
+							 * `-1` identifies a newly-created record that
+							 * has never occupied a DOM position.
+							 */
+							position: -1,
+
 							destroyed: false,
 						};
 
@@ -3888,9 +4121,14 @@ function processForDirective(nodes, vm, context, scope) {
 						//-----------------------
 
 						try {
-							resolveComponents(el, vm, scope.boundary, {
-								removeFromRegistry: false,
-							});
+							resolveComponents(
+								el,
+								vm,
+								scope.boundary,
+								{
+									removeFromRegistry: false,
+								},
+							);
 
 							const directives = extractAllDirectives(el);
 
@@ -3931,38 +4169,66 @@ function processForDirective(nodes, vm, context, scope) {
 						}
 					}
 
+					/*
+					 * The record is now part of the next keyed state.
+					 */
 					nextRendered.set(key, record);
 
-					//-----------------------------------------------
-					// Move reused/new element only when necessary.
-					//-----------------------------------------------
-
-					const nextSibling = prevNode.nextSibling;
-
-					if (record.el !== nextSibling) {
-						container.insertBefore(record.el, nextSibling);
-					}
-
-					prevNode = record.el;
+					/*
+					 * It also occupies the next dense logical position.
+					 *
+					 * `record.position` is intentionally left unchanged until
+					 * DOM reconciliation has completed. It must continue to
+					 * describe the previous committed order while the next
+					 * state is being constructed.
+					 *
+					 * We push rather than assign by source index so that
+					 * skipped keys never create a sparse positional array.
+					 */
+					nextOrdered.push(record);
 				}
 
-				// Remove stale records
+				//-----------------------------------
+				// Remove records that disappeared.
+				//-----------------------------------
+
 				for (const [key, record] of rendered) {
 					if (!nextKeySet.has(key)) {
 						unmountRecord(record);
 					}
 				}
 
-				// Swap maps
-				const tmp = rendered;
-				rendered = nextRendered;
-				nextRendered = tmp;
+				//-----------------------------------
+				// Reconcile physical DOM order.
+				//-----------------------------------
 
+				reconcileDOMOrder(nextOrdered);
+
+				//-----------------------------------
+				// Commit the new reconciliation state.
+				//-----------------------------------
+
+				const previousRendered = rendered;
+				rendered = nextRendered;
+				nextRendered = previousRendered;
 				nextRendered.clear();
+
+				/*
+				 * Swap the positional arrays. `nextOrdered` becomes the
+				 * committed order; the previous `ordered` array is reused
+				 * as the build buffer for the next run.
+				 */
+				const previousOrdered = ordered;
+				ordered = nextOrdered;
+				nextOrdered = previousOrdered;
+				nextOrdered.length = 0;
 
 			}, scope);
 
+			//-------------------------
 			// Parent scope cleanup
+			//-------------------------
+
 			cleanups.push(() => {
 				dispose();
 
@@ -3971,9 +4237,16 @@ function processForDirective(nodes, vm, context, scope) {
 				}
 
 				rendered.clear();
+				ordered.length = 0;
+				nextRendered.clear();
+				nextOrdered.length = 0;
 
 				if (anchor.isConnected) {
 					anchor.remove();
+				}
+
+				if (endAnchor.isConnected) {
+					endAnchor.remove();
 				}
 			});
 
