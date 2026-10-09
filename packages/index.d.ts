@@ -281,13 +281,19 @@ export function render(
 ): MountedInstance;
 
 /**
- * Unmount any Udodi instance rooted at `target`.
- * Clears the container’s contents and runs registered cleanups.
+ * Unmount every Udodi instance rooted under `target`.
  *
- * @param target - Element or CSS selector
+ * Runs the registered `unmount` handler for each element child that was
+ * mounted by Udodi, then clears the container's contents.
+ *
+ * @param target - Element or CSS selector of the container
  *
  * @example
  * unmount("#app");
+ *
+ * @example
+ * // Shared overlay root with several stacked hosts
+ * unmount(document.getElementById("udodi-overlay-root"));
  */
 export function unmount(target: HTMLElement | string): void;
 

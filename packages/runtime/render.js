@@ -1,6 +1,5 @@
 import { getComponent, removeComponent } from "./componentRegistry.js";
 import { mount } from "./mount.js";
-import { unmount } from "./unmount.js";
 import { getVM } from "../core/vmInstance.js";
 
 /**
@@ -46,7 +45,7 @@ function getPlaceholderId(placeholder) {
  *
  * @example
  * // Basic usage
- * render(MyComponent({ name: "Alice" }), "#app");
+ * render(MyComponent({ name: "Attamah" }), "#app");
  *
  * // Using CSS selector
  * render(Dashboard(), document.getElementById("root"));
@@ -67,9 +66,6 @@ export function render(placeholder, target) {
 	if (!entry) {
 		throw new Error(`[render] Component "${placeholderId}" not found`);
 	}
-
-	// Clean up any existing component in the container
-	unmount(container);
 
 	// Get internal VM (library-managed)
 	const vm = getVM();
