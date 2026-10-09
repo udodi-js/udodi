@@ -15,47 +15,81 @@ import { runScopeCleanup } from "../runtime/lifecycle.js";
 
 import { stdlib } from "../stdlib/index.js";
 
-// Immutable blacklist of framework keywords that users can NEVER overwrite.
-const RESERVED_KEYWORDS = new Set([
-	"name",
-	"state",
-	"computed",
-	"interceptors",
-	"methods",
-	"watch",
-	"template",
-	"onMount",
-	"onUnmount",
-	"refs",
-	"style",
-	"ud",
-]);
+/**
+ * Returns true when `key` is a framework-reserved keyword
+ * that users must never overwrite.
+ *
+ * Implemented as a switch over string literals so there is
+ * no Set allocation and the check stays branch-predictable.
+ *
+ * @param {string} key
+ * @returns {boolean}
+ */
+function isReservedKeyword(key) {
+	switch (key) {
+		case "name":
+		case "state":
+		case "computed":
+		case "interceptors":
+		case "methods":
+		case "watch":
+		case "template":
+		case "onMount":
+		case "onUnmount":
+		case "refs":
+		case "style":
+		case "ud":
+			return true;
+		default:
+			return false;
+	}
+}
 
 /**
- * Registers a context key and validates that it does not collide
- * with framework-reserved keywords or previously registered keys.
+ * Ensures `state()` returned a plain object suitable for shallow reactivity.
  *
- * @param {Map<string, string>} registry - Key registry.
+ * @param {*} value - Value returned by the state factory.
+ * @param {string} componentName - Component name for error reporting.
+ * @returns {Object} The validated state object.
+ * @throws {TypeError} If the value is not a non-null, non-array object.
+ */
+function assertStateObject(value, componentName) {
+	if (
+		value === null ||
+		typeof value !== "object" ||
+		Array.isArray(value)
+	) {
+		throw new TypeError(
+			`[createComponent] Invalid state in Component "${componentName}". ` +
+			'The "state()" must return an object.',
+		);
+	}
+
+	return value;
+}
+
+/**
+ * Validates that a context key does not collide with framework-reserved
+ * keywords or keys already present in the given registry.
+ *
+ * Does not write to the registry.
+ *
+ * @param {Object<string, string>} registry - Null-prototype string dictionary.
  * @param {string} key - Context property name.
  * @param {string} namespaceName - Source namespace
  *   (e.g. "state", "computed", "methods", "props").
  * @param {string} componentName - Component name for error reporting.
  * @throws {Error} If the key is reserved or already registered.
  */
-function registerAndVerifyKey(
-	registry,
-	key,
-	namespaceName,
-	componentName,
-) {
-	if (RESERVED_KEYWORDS.has(key)) {
+function verifyKey(registry, key, namespaceName, componentName) {
+	if (isReservedKeyword(key)) {
 		throw new Error(
 			`[createComponent] Collision Error in Component "${componentName}": ` +
 			`The key "${key}" inside "${namespaceName}" is a reserved framework keyword and cannot be overridden.`,
 		);
 	}
 
-	const existingNamespace = registry.get(key);
+	const existingNamespace = registry[key];
 
 	if (existingNamespace !== undefined) {
 		throw new Error(
@@ -64,8 +98,21 @@ function registerAndVerifyKey(
 			`All root-level state, computed properties, methods, and props must have unique names.`,
 		);
 	}
+}
 
-	registry.set(key, namespaceName);
+/**
+ * Validates a context key, then records it in the registry.
+ *
+ * @param {Object<string, string>} registry - Null-prototype string dictionary.
+ * @param {string} key - Context property name.
+ * @param {string} namespaceName - Source namespace
+ *   (e.g. "state", "computed", "methods").
+ * @param {string} componentName - Component name for error reporting.
+ * @throws {Error} If the key is reserved or already registered.
+ */
+function registerAndVerifyKey(registry, key, namespaceName, componentName) {
+	verifyKey(registry, key, namespaceName, componentName);
+	registry[key] = namespaceName;
 }
 
 /**
@@ -94,6 +141,18 @@ function registerAndVerifyKey(
  *   `touch(stateStore, key)` without exposing an internal `_state` property.
  * - The public context membrane remains a Proxy because it is responsible
  *   for enforcing root-context write barriers and reserved-key protection.
+ *
+ * **Key registry:**
+ * - `definedKeys` is a null-prototype string dictionary mapping each
+ *   component-level key to its namespace ("state" | "computed" | "methods").
+ * - Per-instance props are validated with `verifyKey(definedKeys, …)`
+ *   and tracked via a null-prototype membership table (`propKeySet`).
+ *
+ * **Allocation notes:**
+ * - `computedScope` / `watcherScope` are allocated only when needed.
+ * - Watcher config is parsed once at definition time.
+ * - State-reuse diagnostics use a WeakSet so the component factory does
+ *   not strongly retain previous state instances.
  */
 export function createComponent({
 	name = "",
@@ -116,64 +175,67 @@ export function createComponent({
 		);
 	}
 
-	let lastStateInstance = state();
-
-	if (
-		lastStateInstance === null ||
-		typeof lastStateInstance !== "object" ||
-		Array.isArray(lastStateInstance)
-	) {
-		throw new TypeError(
-			`[createComponent] Invalid state in Component "${compName}". ` +
-			'The "state()" must return an object.',
-		);
-	}
+	// Definition-time call: validate shape and discover fixed state keys.
+	const initialState = assertStateObject(state(), compName);
 
 	/**
 	 * Registry of all root-level names exposed on the component context.
 	 *
-	 * Used to prevent collisions between:
-	 * - state
-	 * - computed
-	 * - methods
-	 * - props
+	 * Null-prototype string dictionary:
+	 *   `key → "state" | "computed" | "methods"`
+	 *
+	 * Used for collision detection and for routing inside the public membrane.
+	 *
+	 * @type {Object<string, string>}
 	 */
-	const definedKeys = new Map();
+	const definedKeys = Object.create(null);
 
 	/**
-	 * Precomputed key collections reused by every component instance.
-	 *
-	 * This avoids repeatedly allocating arrays and performing prototype
-	 * chain lookups inside hot paths such as the context membrane.
+	 * Precomputed key collections and watcher descriptors reused by
+	 * every component instance.
 	 */
-	const stateKeys = Object.keys(lastStateInstance);
+	const stateKeys = Object.keys(initialState);
 	const computedKeys = Object.keys(computedProps);
 	const methodKeys = Object.keys(methods);
+	const watchKeys = Object.keys(watch);
 
-	const stateKeySet = new Set(stateKeys);
-	const computedKeySet = new Set(computedKeys);
-	const methodKeySet = new Set(methodKeys);
+	/**
+	 * Watcher definitions normalized once at component-definition time.
+     * Each entry is `{ deps, handler }`.
+	 *
+	 * @type {Array<{ deps: string[], handler: Function }>}
+	 */
+	const watchEntries = [];
 
-	const configurationGroups = [
-		[lastStateInstance, "state"],
-		[computedProps, "computed"],
-		[methods, "methods"],
-	];
-
-	// Single iteration pass over the component-level namespaces.
-	for (let i = 0; i < configurationGroups.length; i++) {
-		const [groupObject, groupName] = configurationGroups[i];
-		const keys = Object.keys(groupObject);
-
-		for (let j = 0; j < keys.length; j++) {
-			registerAndVerifyKey(
-				definedKeys,
-				keys[j],
-				groupName,
-				compName,
-			);
-		}
+	for (let i = 0, len = watchKeys.length; i < len; i++) {
+		const definition = watch[watchKeys[i]];
+		watchEntries.push({
+			deps: definition.deps || [],
+			handler: definition.handler,
+		});
 	}
+
+	// Single pass over the component-level namespaces using the
+	// already-computed key arrays (no second Object.keys()).
+	for (let i = 0, len = stateKeys.length; i < len; i++) {
+		registerAndVerifyKey(definedKeys, stateKeys[i], "state", compName);
+	}
+	for (let i = 0, len = computedKeys.length; i < len; i++) {
+		registerAndVerifyKey(definedKeys, computedKeys[i], "computed", compName);
+	}
+	for (let i = 0, len = methodKeys.length; i < len; i++) {
+		registerAndVerifyKey(definedKeys, methodKeys[i], "methods", compName);
+	}
+
+	/**
+	 * Tracks state objects returned by `state()` so reused references
+	 * can be detected. Entries are held weakly, so the component factory
+	 * does not strongly retain previous state instances.
+	 *
+	 * @type {WeakSet<object>}
+	 */
+	const seenStateInstances = new WeakSet();
+	seenStateInstances.add(initialState);
 
 	// Generate one unique scope identifier for this component definition.
 	// All instances reuse the same scope identifier.
@@ -187,18 +249,24 @@ export function createComponent({
 	 * @returns {import("../types/context.d.js").ComponentInstance}
 	 */
 	function Component(props = {}) {
-		const propKeySet = new Set();
-		const internalState = state();
+		/**
+		 * Per-instance prop membership table (null-prototype).
+		 * Props are not part of the shared `definedKeys` dictionary.
+		 *
+		 * @type {Object<string, true>}
+		 */
+		const propKeySet = Object.create(null);
+		const internalState = assertStateObject(state(), compName);
 
-		// Check if a reference to the state object is being reused.
-		if (internalState === lastStateInstance) {
+		// Detect a state factory that reuses the same object reference.
+		if (seenStateInstances.has(internalState)) {
 			console.warn(
 				`[createComponent] state() in Component "${compName}" returned the ` +
 				`same object for multiple instances. The "state()" should return a fresh object.`,
 			);
 		}
 
-		lastStateInstance = internalState;
+		seenStateInstances.add(internalState);
 
 		// Initialize the framework namespace (ud).
 		internalState.ud = {
@@ -250,41 +318,22 @@ export function createComponent({
 		 * arbitrary root-level context properties.
 		 *
 		 * Reactive state reads and writes are routed directly to stateStore.
+		 * Component-level key kinds are resolved via `definedKeys`.
+		 * Per-instance props are resolved via `propKeySet`.
 		 */
 		const publicContextMembrane = new Proxy(internalContext, {
 			get(target, prop) {
-				if (prop === "refs") {
-					return target.refs;
-				}
+				if (prop === "refs") return target.refs;
+				if (prop === "ud") return readonly(target.ud);
+				if (prop === "name") return compName;
+				if (prop === "cleanup") return injectedCleanupFn;
 
-				// Readonly membrane for the user-defined namespace (ud).
-				if (prop === "ud") {
-					return readonly(target.ud);
-				}
+				const kind = definedKeys[prop];
 
-				if (prop === "name") {
-					return compName;
-				}
-
-				if (prop === "cleanup") {
-					return injectedCleanupFn;
-				}
-
-				if (stateKeySet.has(prop)) {
-					return stateStore[prop];
-				}
-
-				if (computedKeySet.has(prop)) {
-					return internalContext[prop]();
-				}
-
-				if (methodKeySet.has(prop)) {
-					return internalContext[prop];
-				}
-
-				if (propKeySet.has(prop)) {
-					return internalContext[prop];
-				}
+				if (kind === "state") return stateStore[prop];
+				if (kind === "computed") return internalContext[prop]();
+				if (kind === "methods") return internalContext[prop];
+				if (propKeySet[prop] !== undefined) return internalContext[prop];
 
 				return undefined;
 			},
@@ -295,12 +344,12 @@ export function createComponent({
 					return true;
 				}
 
-				if (stateKeySet.has(prop)) {
+				if (definedKeys[prop] === "state") {
 					stateStore[prop] = value;
 					return true;
 				}
 
-				const errorMessage = RESERVED_KEYWORDS.has(prop)
+				const errorMessage = isReservedKeyword(prop)
 					? `You can not update or override the "${prop}" reserved keyword.`
 					: `You cannot append "${prop}" to the root context.`;
 
@@ -320,43 +369,32 @@ export function createComponent({
 		registerTouchTarget(internalContext, stateStore);
 		registerTouchTarget(publicContextMembrane, stateStore);
 
-		const computedScope = {
-			effects: [],
-			cleanups: [],
-		};
+		// Allocate computed scope only when the component defines computeds.
+		const computedScope = computedKeys.length 
+			? { effects: [], cleanups: [] } 
+			: null;
 
-		// Computed bindings.
-		for (let i = 0; i < computedKeys.length; i++) {
-			const computedName = computedKeys[i];
-			const computeFn = computedProps[computedName];
+		if (computedScope) {
+			for (let i = 0, len = computedKeys.length; i < len; i++) {
+				const computedName = computedKeys[i];
+				const computeFn = computedProps[computedName];
 
-			internalContext[computedName] = computed(
-				() => computeFn(publicContextMembrane),
-				computedScope,
-			);
+				internalContext[computedName] = computed(
+					() => computeFn(publicContextMembrane),
+					computedScope,
+				);
+			}
 		}
 
-		/**
-		 * Instance-specific registry.
-		 *
-		 * Component-level definitions are already registered in
-		 * `definedKeys`. Props are validated against a cloned registry
-		 * so every component instance can safely receive different props.
-		 */
-		const instanceKeys = new Map(definedKeys);
 		const propKeys = Object.keys(props);
 
 		// Dynamic live prop binding gateway.
-		for (let i = 0; i < propKeys.length; i++) {
+		// Validated with verifyKey (no write to definedKeys).
+		for (let i = 0, len = propKeys.length; i < len; i++) {
 			const key = propKeys[i];
 			const prop = props[key];
 
-			registerAndVerifyKey(
-				instanceKeys,
-				key,
-				"props",
-				compName,
-			);
+			verifyKey(definedKeys, key, "props", compName);
 
 			if (isReactiveProp(prop)) {
 				Object.defineProperty(internalContext, key, {
@@ -364,30 +402,23 @@ export function createComponent({
 					enumerable: true,
 					configurable: true,
 				});
-				
 			} else {
 				// Static prop snapshot used by bindDOM / VM access.
 				internalContext[key] = prop;
 			}
 
-			propKeySet.add(key);
+			propKeySet[key] = true;
 		}
 
 		// Methods (utility / handler / helper functions).
-		// Bound once so invocation does not allocate a rest array.
-		for (let i = 0; i < methodKeys.length; i++) {
+		// Bind methods once so each instance reuses the bound function.
+		for (let i = 0, len = methodKeys.length; i < len; i++) {
 			const methodName = methodKeys[i];
-			const methodFn = methods[methodName];
-
-			if (typeof methodFn !== "function") {
-				continue;
-			}
-
-			internalContext[methodName] = methodFn.bind(publicContextMembrane);
+			internalContext[methodName] = methods[methodName].bind(publicContextMembrane);
 		}
 
 		// Map state keys directly onto the base context for VM interpreter access.
-		for (let i = 0; i < stateKeys.length; i++) {
+		for (let i = 0, len = stateKeys.length; i < len; i++) {
 			const key = stateKeys[i];
 
 			Object.defineProperty(internalContext, key, {
@@ -400,55 +431,47 @@ export function createComponent({
 			});
 		}
 
-		const watcherScope = {
-			effects: [],
-			cleanups: [],
-		};
+		// Allocate watcher scope only when the component defines watchers.
+		const watcherScope = watchEntries.length 
+			? { effects: [], cleanups: [] } 
+			: null;
 
-		const watchKeys = Object.keys(watch);
+		if (watcherScope) {
+			// Watchers only track top-level reactive state changes.
+			// Value bags are reused across runs to reduce GC pressure.
+			for (let i = 0, len = watchEntries.length; i < len; i++) {
+				const { deps, handler } = watchEntries[i];
 
-		// Setup watchers.
-		//
-		// Watchers only track top-level reactive state changes.
-		// Value bags are reused across runs to reduce GC pressure.
-		for (let i = 0; i < watchKeys.length; i++) {
-			const watchConfig = watch[watchKeys[i]];
-			const { deps = [], handler } = watchConfig;
+				const prevValues = Object.create(null);
+				const newValues = Object.create(null);
+				const oldValues = Object.create(null);
+				let initialized = false;
 
-			const prevValues = Object.create(null);
-			const newValues = Object.create(null);
-			const oldValues = Object.create(null);
-			let initialized = false;
+				effect(() => {
+					let hasChanged = false;
 
-			effect(() => {
-				let hasChanged = false;
+					for (let j = 0, depLen = deps.length; j < depLen; j++) {
+						const dep = deps[j];
+						const previous = prevValues[dep];
+						const current = stateStore[dep];
 
-				for (let j = 0; j < deps.length; j++) {
-					const dep = deps[j];
+						oldValues[dep] = previous;
+						newValues[dep] = current;
 
-					const previous = prevValues[dep];
-					const current = stateStore[dep];
+						if (!Object.is(previous, current)) {
+							hasChanged = true;
+						}
 
-					oldValues[dep] = previous;
-					newValues[dep] = current;
-
-					if (!Object.is(previous, current)) {
-						hasChanged = true;
+						prevValues[dep] = current;
 					}
 
-					prevValues[dep] = current;
-				}
+					if (initialized && hasChanged) {
+						handler.call(publicContextMembrane, newValues, oldValues);
+					}
 
-				if (initialized && hasChanged) {
-					handler.call(
-						publicContextMembrane,
-						newValues,
-						oldValues,
-					);
-				}
-
-				initialized = true;
-			}, watcherScope);
+					initialized = true;
+				}, watcherScope);
+			}
 		}
 
 		// Register new style for CSS scoping.
@@ -457,10 +480,9 @@ export function createComponent({
 			styleMounted = true;
 		}
 
-		const html =
-			typeof template === "function"
-				? template(publicContextMembrane)
-				: template;
+		const html = typeof template === "function" 
+			? template(publicContextMembrane) 
+			: template;
 
 		return {
 			name: compName,
@@ -479,15 +501,13 @@ export function createComponent({
 
 			onUnmount(root) {
 				try {
-					runScopeCleanup(
-						watcherScope,
-						"[component watcher]",
-					);
+					if (watcherScope) {
+						runScopeCleanup(watcherScope, "[component watcher]");
+					}
 
-					runScopeCleanup(
-						computedScope,
-						"[component computed]",
-					);
+					if (computedScope) {
+						runScopeCleanup(computedScope, "[component computed]");
+					}
 
 					// Remove both aliases so no stale context references
 					// remain in the touch registry after component teardown.

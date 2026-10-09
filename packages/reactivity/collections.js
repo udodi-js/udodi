@@ -1,43 +1,47 @@
 import { touch } from "./index.js";
 
 /**
- * Array methods that structurally mutate the wrapped array.
+ * Returns true when `prop` is an Array method that structurally mutates.
  *
- * @type {Set<string>}
+ * @param {PropertyKey} prop
+ * @returns {boolean}
  */
-const ARRAY_MUTATION_METHODS = new Set([
-	"push",
-	"pop",
-	"shift",
-	"unshift",
-	"splice",
-	"sort",
-	"reverse",
-	"fill",
-	"copyWithin",
-]);
+function isArrayMutationMethod(prop) {
+	switch (prop) {
+		case "push":
+		case "pop":
+		case "shift":
+		case "unshift":
+		case "splice":
+		case "sort":
+		case "reverse":
+		case "fill":
+		case "copyWithin":
+			return true;
+		default:
+			return false;
+	}
+}
 
 /**
- * Map methods that structurally mutate the wrapped Map.
+ * Returns true when `prop` is a Map method that structurally mutates.
  *
- * @type {Set<string>}
+ * @param {PropertyKey} prop
+ * @returns {boolean}
  */
-const MAP_MUTATION_METHODS = new Set([
-	"set",
-	"delete",
-	"clear",
-]);
+function isMapMutationMethod(prop) {
+	return prop === "set" || prop === "delete" || prop === "clear";
+}
 
 /**
- * Set methods that structurally mutate the wrapped Set.
+ * Returns true when `prop` is a Set method that structurally mutates.
  *
- * @type {Set<string>}
+ * @param {PropertyKey} prop
+ * @returns {boolean}
  */
-const SET_MUTATION_METHODS = new Set([
-	"add",
-	"delete",
-	"clear",
-]);
+function isSetMutationMethod(prop) {
+	return prop === "add" || prop === "delete" || prop === "clear";
+}
 
 /**
  * Determines whether a property name is a valid array index.
@@ -53,12 +57,11 @@ function isArrayIndex(prop) {
 		return false;
 	}
 
-	const index = Number(prop);
+	const index = +prop;
 
 	return (
-		Number.isInteger(index) &&
-		index >= 0 &&
-		index < 0xffffffff &&
+		index === (index >>> 0) && 
+		index !== 0xffffffff && 
 		String(index) === prop
 	);
 }
@@ -86,21 +89,12 @@ function markReactive(proxy) {
  * when the array is structurally mutated.
  *
  * Supported mutation methods:
- * - push
- * - pop
- * - shift
- * - unshift
- * - splice
- * - sort
- * - reverse
- * - fill
- * - copyWithin
+ * - push, pop, shift, unshift, splice, sort, reverse, fill, copyWithin
  *
  * Direct array index and `length` assignments are also tracked.
  *
  * Mutation methods are invoked against the underlying array rather than the
- * proxy. This prevents the native method's internal index/length writes from
- * passing through the proxy `set` trap and causing duplicate notifications.
+ * proxy so internal index/length writes do not double-notify via the `set` trap.
  *
  * Deep mutations are not tracked:
  *
@@ -115,31 +109,27 @@ function markReactive(proxy) {
  * @returns {Array} A reactive proxy around the array.
  */
 export function reactiveArray(array, owner, key) {
-	const methodCache = new Map();
+	/** @type {Object<string, Function>} */
+	const methodCache = Object.create(null);
 
 	const proxy = new Proxy(array, {
 		get(target, prop, receiver) {
 			const value = Reflect.get(target, prop, receiver);
 
-			if (
-				typeof value === "function" &&
-				ARRAY_MUTATION_METHODS.has(prop)
-			) {
-				let wrapped = methodCache.get(prop);
+			if (typeof value === "function" && isArrayMutationMethod(prop)) {
+				const cached = methodCache[prop];
 
-				if (wrapped) {
-					return wrapped;
+				if (cached !== undefined) {
+					return cached;
 				}
 
-				wrapped = (...args) => {
+				const wrapped = (...args) => {
 					const result = value.apply(target, args);
 					touch(owner, key);
-
 					return result;
 				};
 
-				methodCache.set(prop, wrapped);
-
+				methodCache[prop] = wrapped;
 				return wrapped;
 			}
 
@@ -149,8 +139,8 @@ export function reactiveArray(array, owner, key) {
 		/**
 		 * Tracks direct structural writes to array indexes and `length`.
 		 *
-		 * Mutation methods are executed against the underlying array by their
-		 * wrappers above, so their internal writes do not reach this trap.
+		 * Mutation methods run against the underlying array via their wrappers,
+		 * so their internal writes do not reach this trap.
 		 *
 		 * @param {Array} target - Underlying array.
 		 * @param {string|symbol} prop - Property being written.
@@ -174,7 +164,53 @@ export function reactiveArray(array, owner, key) {
 	});
 
 	markReactive(proxy);
+	return proxy;
+}
 
+/**
+ * Shared reactive wrapper for Map and Set.
+ *
+ * Native methods are always bound to the underlying collection because Map/Set
+ * operations depend on internal slots that a Proxy does not possess.
+ *
+ * @param {Map|Set} collection - Underlying Map or Set.
+ * @param {Object} owner - Reactive owner object.
+ * @param {PropertyKey} key - Reactive property name.
+ * @param {(prop: PropertyKey) => boolean} isMutationMethod - Mutation predicate.
+ * @returns {Map|Set} Reactive proxy around the collection.
+ */
+function reactiveCollection(collection, owner, key, isMutationMethod) {
+	/** @type {Object<string, Function>} */
+	const methodCache = Object.create(null);
+
+	const proxy = new Proxy(collection, {
+		get(target, prop) {
+			const value = Reflect.get(target, prop, target);
+
+			if (typeof value !== "function") {
+				return value;
+			}
+
+			const cached = methodCache[prop];
+
+			if (cached !== undefined) {
+				return cached;
+			}
+
+			const wrapped = isMutationMethod(prop) 
+				? (...args) => {
+						const result = value.apply(target, args);
+						touch(owner, key);
+						return result;
+					}
+				: value.bind(target);
+
+			methodCache[prop] = wrapped;
+			return wrapped;
+		},
+	});
+
+	markReactive(proxy);
 	return proxy;
 }
 
@@ -182,14 +218,7 @@ export function reactiveArray(array, owner, key) {
  * Creates a reactive Map wrapper that automatically notifies dependents
  * when the Map is structurally mutated.
  *
- * Supported mutation methods:
- * - set
- * - delete
- * - clear
- *
- * Native Map methods and accessors are always evaluated against the underlying
- * Map. This is required because Map operations depend on the Map's internal
- * `[[MapData]]` slot, which a Proxy does not possess.
+ * Supported mutation methods: set, delete, clear.
  *
  * Deep mutations are not tracked:
  *
@@ -204,56 +233,14 @@ export function reactiveArray(array, owner, key) {
  * @returns {Map} A reactive proxy around the Map.
  */
 export function reactiveMap(map, owner, key) {
-	const methodCache = new Map();
-
-	const proxy = new Proxy(map, {
-		get(target, prop) {
-			const value = Reflect.get(target, prop, target);
-
-			if (typeof value !== "function") {
-				return value;
-			}
-
-			let wrapped = methodCache.get(prop);
-
-			if (wrapped) {
-				return wrapped;
-			}
-
-			if (MAP_MUTATION_METHODS.has(prop)) {
-				wrapped = (...args) => {
-					const result = value.apply(target, args);
-					touch(owner, key);
-
-					return result;
-				};
-			} else {
-				wrapped = value.bind(target);
-			}
-
-			methodCache.set(prop, wrapped);
-
-			return wrapped;
-		},
-	});
-
-	markReactive(proxy);
-
-	return proxy;
+	return reactiveCollection(map, owner, key, isMapMutationMethod);
 }
 
 /**
  * Creates a reactive Set wrapper that automatically notifies dependents
  * when the Set is structurally mutated.
  *
- * Supported mutation methods:
- * - add
- * - delete
- * - clear
- *
- * Native Set methods and accessors are always evaluated against the underlying
- * Set. This is required because Set operations depend on the Set's internal
- * `[[SetData]]` slot, which a Proxy does not possess.
+ * Supported mutation methods: add, delete, clear.
  *
  * Deep mutations are not tracked:
  *
@@ -270,40 +257,5 @@ export function reactiveMap(map, owner, key) {
  * @returns {Set} A reactive proxy around the Set.
  */
 export function reactiveSet(set, owner, key) {
-	const methodCache = new Map();
-
-	const proxy = new Proxy(set, {
-		get(target, prop) {
-			const value = Reflect.get(target, prop, target);
-
-			if (typeof value !== "function") {
-				return value;
-			}
-
-			let wrapped = methodCache.get(prop);
-
-			if (wrapped) {
-				return wrapped;
-			}
-
-			if (SET_MUTATION_METHODS.has(prop)) {
-				wrapped = (...args) => {
-					const result = value.apply(target, args);
-					touch(owner, key);
-
-					return result;
-				};
-			} else {
-				wrapped = value.bind(target);
-			}
-
-			methodCache.set(prop, wrapped);
-
-			return wrapped;
-		},
-	});
-
-	markReactive(proxy);
-
-	return proxy;
+	return reactiveCollection(set, owner, key, isSetMutationMethod);
 }
