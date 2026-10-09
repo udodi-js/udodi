@@ -1,10 +1,10 @@
 import {
-	OP_EVAL, 
-	OP_SET, 
+	OP_EVAL,
+	OP_SET,
 	OP_EVENT_BIND
 } from "./opcodes.js";
 
-import { createEvaluator } from "./evaluator.js";
+import { evaluate } from "./evaluator.js";
 
 import {
 	MOD_PREVENT,
@@ -29,49 +29,25 @@ import {
  *
  * This VM is deliberately DOM-agnostic except for event listener management.
  *
- * @class VM
+ * Context is always supplied at call sites (execute / bindEvent / evaluate).
+ * No constructor context is stored.
+ *
+ * @returns {{
+ *   evaluate: Function,
+ *   execute: Function,
+ *   bindEvent: Function,
+ *   unbindEvent: Function
+ * }}
  */
-export class VM {
+export function createVM() {
 	/**
-	 * Creates a new Udodi Virtual Machine instance.
+	 * Registry of event listeners to prevent duplicates and enable cleanup.
+	 * Uses WeakMap for automatic garbage collection when elements are removed.
 	 *
-	 * @param {Object|null} [context=null] - The data context (can be reactive or plain object).
-	 *                                       All path expressions and assignments are resolved against this.
+	 * @type {WeakMap<Element, Map<string, Function>>}
+	 * @private
 	 */
-	constructor(context = null) {
-		/**
-		 * The current data context.
-		 * @type {Object}
-		 */
-		this.context = context;
-
-		/**
-		 * Pure expression evaluator created from the evaluator module.
-		 * @type {Function}
-		 * @private
-		 */
-		this._evaluate = createEvaluator(context);
-
-		/**
-		 * Registry of event listeners to prevent duplicates and enable cleanup.
-		 * Uses WeakMap for automatic garbage collection when elements are removed.
-		 *
-		 * @type {WeakMap<Element, Map<string, Function>>}
-		 * @private
-		 */
-		this._listeners = new WeakMap();
-	}
-
-	/**
-	 * Evaluates a single compiled expression IR node.
-	 *
-	 * @param {Object} expr - Lowered expression (literal, path, call, conditional, etc.)
-	 * @param {Object|null} [context=null] - Optional override context for evaluation
-	 * @returns {*} The evaluated value
-	 */
-	evaluate(expr, context = null) {
-		return this._evaluate(expr, context);
-	}
+	const listeners = new WeakMap();
 
 	/**
 	 * Executes an array of compiled instructions from the compiler.
@@ -80,19 +56,16 @@ export class VM {
 	 * Returns structured results for easy mapping to DOM properties/attributes.
 	 *
 	 * Runtime context (if provided) is used for BOTH evaluation and assignment.
-	 * It does NOT replace or mutate the VM constructor context.
 	 *
 	 * @param {Array<Object>} instructions - Instructions produced by `compile()`
-	 * @param {Object|null} [context=null] - Optional runtime execution context
+	 * @param {Object|null} [ctx=null] - Optional runtime execution context
 	 * @returns {Array<{target: string, value: *}>} Array of binding results
 	 */
-	execute(instructions, context = null) {
+	function execute(instructions, ctx = null) {
 		const len = instructions.length;
 		if (len === 0) return [];
 
 		const results = [];
-		const evaluate = this._evaluate;
-
 		let lastValue;
 
 		for (let i = 0; i < len; i++) {
@@ -100,7 +73,7 @@ export class VM {
 
 			switch (inst.op) {
 				case OP_EVAL:
-					lastValue = evaluate(inst.expr, context);
+					lastValue = evaluate(inst.expr, ctx);
 					break;
 
 				case OP_SET: {
@@ -131,16 +104,17 @@ export class VM {
 	/**
 	 * Binds an event listener from a compiled OP_EVENT_BIND instruction.
 	 *
-	 * Supports all modifiers including `.prevent`, `.stop`, `.self`, `.once`, `.passive`, key filters, etc.
+	 * Supports all modifiers including `.prevent`, `.stop`, `.self`, `.once`,
+	 * `.passive`, key filters, etc.
 	 *
 	 * @param {Element} element - The DOM element to attach the listener to
 	 * @param {Object} instruction - Compiled event binding instruction
 	 * @param {string} instruction.event - Event name (e.g. "click")
 	 * @param {number} instruction.modifiers - Bitmask of modifiers
 	 * @param {Object} instruction.expr - Compiled expression to evaluate on trigger
-	 * @param {Object|null} [context=null] - Optional runtime execution context
+	 * @param {Object|null} [ctx=null] - Optional runtime execution context
 	 */
-	bindEvent(element, instruction, context = null) {
+	function bindEvent(element, instruction, ctx = null) {
 		if (!element || instruction.op !== OP_EVENT_BIND) {
 			return;
 		}
@@ -154,26 +128,20 @@ export class VM {
 
 		const key = `${event}:${modifiers}`;
 
-		let listeners = this._listeners.get(element);
-		if (!listeners) {
-			listeners = new Map();
-			this._listeners.set(element, listeners);
+		let map = listeners.get(element);
+		if (map === undefined) {
+			map = new Map();
+			listeners.set(element, map);
 		}
 
 		// Prevent duplicate listeners
-		if (listeners.has(key)) return;
+		if (map.has(key)) return;
 
-		const handler = this._createEventHandler(
-			element, 
-			context, 
-			modifiers, 
-			expr, 
-			key
-		);
-		const options = this._getEventOptions(modifiers);
+		const handler = createEventHandler(element, ctx, modifiers, expr);
+		const options = getEventOptions(modifiers);
 
 		element.addEventListener(event, handler, options);
-		listeners.set(key, handler);
+		map.set(key, handler);
 	}
 
 	/**
@@ -183,18 +151,18 @@ export class VM {
 	 * @param {string} event - Event name
 	 * @param {number} [modifiers=0] - Modifier bitmask
 	 */
-	unbindEvent(element, event, modifiers = 0) {
+	function unbindEvent(element, event, modifiers = 0) {
 		if (!element) return;
 
-		const listeners = this._listeners.get(element);
-		if (!listeners) return;
+		const map = listeners.get(element);
+		if (map === undefined) return;
 
 		const key = `${event}:${modifiers}`;
-		const handler = listeners.get(key);
-		if (!handler) return;
+		const handler = map.get(key);
+		if (handler === undefined) return;
 
 		element.removeEventListener(event, handler);
-		listeners.delete(key);
+		map.delete(key);
 	}
 
 	/**
@@ -202,13 +170,12 @@ export class VM {
 	 *
 	 * @private
 	 * @param {Element} element - Target element
-	 * @param {Object|null} [context] - Execution context
+	 * @param {Object|null} [ctx] - Execution context
 	 * @param {number} flags - Modifier bitmask
 	 * @param {Object} expr - Expression to evaluate when triggered
-	 * @param {string} key - Unique listener key
 	 * @returns {Function} Event handler
 	 */
-	_createEventHandler(element, context, flags, expr, key) {
+	function createEventHandler(element, ctx, flags, expr) {
 		const isOnce = !!(flags & MOD_ONCE);
 
 		return (event) => {
@@ -226,11 +193,11 @@ export class VM {
 			if (flags & MOD_STOP) event.stopPropagation();
 
 			// Execute the bound expression
-			this._evaluate(expr, context, event);
+			evaluate(expr, ctx, event);
 
 			// .once support - automatically clean up after first run
 			if (isOnce) {
-				this.unbindEvent(element, event.type, flags);
+				unbindEvent(element, event.type, flags);
 			}
 		};
 	}
@@ -242,9 +209,16 @@ export class VM {
 	 * @param {number} flags - Modifier bitmask
 	 * @returns {Object|boolean} Options for addEventListener
 	 */
-	_getEventOptions(flags) {
+	function getEventOptions(flags) {
 		if (flags & MOD_PASSIVE) return { passive: true };
 		if (flags & MOD_NONPASSIVE) return { passive: false };
 		return false; // useCapture = false
 	}
+
+	return {
+		evaluate,
+		execute,
+		bindEvent,
+		unbindEvent,
+	};
 }

@@ -1,18 +1,4 @@
 /**
- * Scanner mode: split on delimiter.
- *
- * @type {number}
- */
-export const SCAN_DELIMITER = 1;
-
-/**
- * Scanner mode: split on whitespace.
- *
- * @type {number}
- */
-export const SCAN_WHITESPACE = 2;
-
-/**
  * Returns true if character is a quote.
  *
  * @param {string} ch - Character.
@@ -77,138 +63,6 @@ export function unquoteString(str) {
 }
 
 /**
- * Scans a string while respecting
- * quoted regions.
- *
- * Emits token ranges.
- *
- * Callback receives:
- *
- * (start, end)
- *
- * where:
- *
- * str.slice(start, end)
- *
- * is the token.
- *
- * @param {string} str
- * @param {(start:number,end:number)=>void} onToken
- * @param {number} mode
- * @param {string|null} [delimiter=null]
- */
-export function scanQuoted(str, onToken, mode, delimiter = null) {
-	const len = str.length;
-
-	if (len === 0) {
-		return;
-	}
-
-	let quote = 0;
-	let escaped = false;
-	let start = 0;
-
-	const delimCode =
-		mode === SCAN_DELIMITER && delimiter ? delimiter.charCodeAt(0) : 0;
-
-	for (let i = 0; i < len; i++) {
-		const c = str.charCodeAt(i);
-
-		// Escape
-		if (c === 92 && !escaped) {
-			escaped = true;
-			continue;
-		}
-
-		// Quote handling
-		if ((c === 34 || c === 39) && !escaped) {
-			if (quote === 0) {
-				quote = c;
-			} else if (quote === c) {
-				quote = 0;
-			}
-
-			continue;
-		}
-
-		escaped = false;
-
-		// ----------------------------------
-		// Delimiter mode
-		// ----------------------------------
-
-		if (mode === SCAN_DELIMITER && quote === 0 && c === delimCode) {
-			onToken(start, i);
-			start = i + 1;
-			
-			continue;
-		}
-
-		// ----------------------------------
-		// Whitespace mode
-		// ----------------------------------
-
-		if (mode === SCAN_WHITESPACE && quote === 0 && c <= 32) {
-			if (start < i) {
-				onToken(start, i);
-			}
-
-			i++;
-
-			while (i < len && str.charCodeAt(i) <= 32) {
-				i++;
-			}
-
-			start = i;
-			i--;
-		}
-	}
-
-	if (quote !== 0) {
-		throw new Error(`Unclosed quoted string: ${str}`);
-	}
-
-	onToken(start, len);
-}
-
-/**
- * Splits a string by delimiter
- * outside quoted regions.
- *
- * Empty tokens are preserved.
- *
- * @examples
- *
- * a:b:c
- * -> ["a","b","c"]
- *
- * a::c
- * -> ["a","","c"]
- *
- * @param {string} str
- * @param {string} delimiter
- * @returns {string[]}
- */
-export function splitUnquoted(str, delimiter) {
-	if (!str) {
-		return [];
-	}
-
-	const tokens = [];
-
-	scanQuoted(
-		str,
-		(start, end) => {
-			tokens.push(str.slice(start, end));
-		},
-		SCAN_DELIMITER,
-		delimiter,
-	);
-
-	return tokens;
-}
-
-/**
  * Normalizes a directive expression.
  *
  * Rules:
@@ -224,13 +78,13 @@ export function splitUnquoted(str, delimiter) {
  *
  * @examples
  * 
- * - name : arg        -> name:arg
- * - user . profile    -> user.profile
- * - a  b   c          -> a b c
- * - a | upper         -> a|upper
- * - click = save      -> click=save
- * - a =>  b           -> a=>b
- * - "a : b"           -> "a : b"
+ * - name : arg       ->  name:arg
+ * - user . profile   ->  user.profile
+ * - a  b   c         ->  a b c
+ * - a | upper        ->  a|upper
+ * - click = save     ->  click=save
+ * - a =>  b          ->  a=>b
+ * - "a : b"          ->  "a : b"
  *
  * @param {string} input Directive expression.
  * @returns {string} Normalized directive expression.

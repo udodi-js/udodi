@@ -2,7 +2,7 @@ import { createComponent, html } from "../../dist/index.js";
 import { compile } from "../../packages/core/compiler.js";
 import { lexDirective } from "../../packages/core/lexer.js";
 import { parseDirective } from "../../packages/core/parser.js";
-import { VM } from "../../packages/core/vm.js";
+import { createVM } from "../../packages/core/vm.js";
 import { stdlib } from "../../packages/stdlib/index.js";
 
 export const EXPRESSIONS = [
@@ -58,7 +58,7 @@ export function createDSLState() {
 
 export function evaluateExpression(expression, context = createDSLContext()) {
     const instructions = compileExpression(expression);
-    return new VM(context).evaluate(instructions[0].expr, context);
+    return createVM().evaluate(instructions[0].expr, context);
 }
 
 const directiveRows = Array.from({ length: 1000 }, (_, index) => `
