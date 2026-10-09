@@ -8,47 +8,37 @@ import {
 import { resolveContextValue } from "../runtime/context.js";
 
 /**
- * Creates a pure expression evaluator for Udodi.
+ * Pure expression evaluator for Udodi.
  *
  * Evaluates the lowered IR produced by compiler.js.
  * Pipelines are already transformed into nested function calls.
  *
- * @param {Object} context - Default evaluation context.
- * @returns {Function} Expression evaluator.
+ * Context must always be supplied by the caller.
+ *
+ * @param {Object} expr - Compiled expression IR.
+ * @param {Object|null} [context=null] - Evaluation context.
+ * @param {Object} [event] - Event injected into function calls.
+ * @returns {*} Evaluated value.
  */
-export function createEvaluator(context) {
-	/**
-	 * Evaluates a compiled expression.
-	 *
-	 * @param {Object} expr - Compiled expression IR.
-	 * @param {Object} [runtimeContext] - Optional context override.
-	 * @param {Object} [event] - Event injected into function calls.
-	 * @returns {*} Evaluated value.
-	 */
-	function evaluate(expr, runtimeContext, event) {
-		if (expr == null) return undefined;
+export function evaluate(expr, context = null, event) {
+	if (expr == null) return undefined;
 
-		const ctx = runtimeContext ?? context;
+	switch (expr.type) {
+		case EXPR_LITERAL:
+			return expr.value;
 
-		switch (expr.type) {
-			case EXPR_LITERAL:
-				return expr.value;
+		case EXPR_PATH:
+			return evaluatePath(expr.segments, context);
 
-			case EXPR_PATH:
-				return evaluatePath(expr.segments, ctx);
+		case EXPR_CALL:
+			return evaluateCall(expr, context, evaluate, event);
 
-			case EXPR_CALL:
-				return evaluateCall(expr, ctx, evaluate, event);
+		case EXPR_CONDITIONAL:
+			return evaluateConditional(expr, context, evaluate);
 
-			case EXPR_CONDITIONAL:
-				return evaluateConditional(expr, ctx, evaluate);
-
-			default:
-				throw new Error(`Unknown expression type: ${expr.type}`);
-		}
+		default:
+			throw new Error(`Unknown expression type: ${expr.type}`);
 	}
-
-	return evaluate;
 }
 
 /**

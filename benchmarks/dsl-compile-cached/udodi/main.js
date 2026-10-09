@@ -1,12 +1,12 @@
 import { EXPRESSIONS, compileExpression } from "../../fixtures/dsl.js";
 
-const cache = new Map();
+const cache = Object.create(null);
 
 const getOrCompile = (expression) => {
-	let instructions = cache.get(expression);
-	if (!instructions) {
+	let instructions = cache[expression];
+	if (instructions === undefined) {
 		instructions = compileExpression(expression);
-		cache.set(expression, instructions);
+		cache[expression] = instructions;
 	}
 	return instructions;
 };

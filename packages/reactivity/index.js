@@ -29,13 +29,11 @@ const jobBuffer = [];
  * Schedules a reactive job for execution.
  *
  * Jobs are batched and executed in a microtask.
- * Duplicate jobs are ignored automatically.
+ * Duplicate jobs are ignored automatically by the Set.
  *
  * @param {Function} job
  */
 function schedule(job) {
-	if (jobQueue.has(job)) return;
-
 	jobQueue.add(job);
 
 	// Lock it immediately so no other microtasks can be scheduled
@@ -207,7 +205,9 @@ export function effect(fn, scope) {
 			fn();
 		} finally {
 			effectStack.pop();
-			currentEffect = effectStack[effectStack.length - 1] || null;
+			currentEffect = effectStack.length > 0 
+				? effectStack[effectStack.length - 1] 
+				: null;
 		}
 	};
 
@@ -310,7 +310,7 @@ export function computed(fn, scope) {
 	};
 
 	const cleanupComputed = () => {
-		if (!dispose) {
+		if (dispose === null) {
 			return;
 		}
 
@@ -325,7 +325,7 @@ export function computed(fn, scope) {
 	}
 
 	return function computedGetter() {
-		if (!dispose) {
+		if (dispose === null) {
 			// Lazily create the internal effect.
 			dispose = effect(recompute);
 		}
@@ -490,9 +490,10 @@ export function reactive(initialState = {}, options = {}) {
 	};
 
 	const keys = Object.keys(initialState);
+	const noInterceptors = interceptors === null;
 	const descriptors = {};
 
-	for (let i = 0, length = keys.length; i < length; i++) {
+	for (let i = 0, len = keys.length; i < len; i++) {
 		const key = keys[i];
 		const signal = createSignal(
 			wrapCollection(initialState[key], obj, key)
@@ -500,8 +501,7 @@ export function reactive(initialState = {}, options = {}) {
 
 		signals[key] = signal;
 
-		if (interceptors === null) {
-			// Hot path: no interceptor overhead on every write.
+		if (noInterceptors) {
 			descriptors[key] = {
 				enumerable: true,
 				configurable: true,
@@ -624,7 +624,7 @@ export function touch(proxy, key) {
 
 	const trigger = reactiveTriggers.get(proxy);
 
-	if (!trigger) {
+	if (trigger === undefined) {
 		return false;
 	}
 
@@ -674,8 +674,8 @@ export function bindProp(getterFn) {
  */
 export function isReactiveProp(prop) {
 	return (
-		prop !== null &&
-		typeof prop === "object" &&
+		prop !== null && 
+		typeof prop === "object" && 
 		prop[REACTIVE_BINDING] === true
 	);
 }

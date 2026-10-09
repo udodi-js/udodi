@@ -40,10 +40,6 @@ import {
 import { ensureOverlayRoot } from "./overlay.js";
 import { resolveComponents } from "./resolveComponents.js";
 
-// Global instruction cache to ensure we parse and compile each directive exactly once.
-// Uses the raw directive string as the cache key.
-const instructionCache = new Map();
-
 /**
  * Format a directive warning/error prefix that always includes
  * the component name when available.
@@ -58,6 +54,10 @@ function directiveMessage(context, directive, message) {
 	return `[${directive}] in Component "${name}": ${message}`;
 }
 
+// Global instruction cache to ensure we parse and compile each directive exactly once.
+// Uses the raw directive string as the cache key.
+const instructionCache = Object.create(null);
+
 /**
  * Retrieves VM instructions for a directive, returning cached instructions if available.
  * If not cached, it lexes, parses, and compiles the directive, then stores the result.
@@ -70,14 +70,16 @@ function directiveMessage(context, directive, message) {
  * @throws {Error} May throw errors from `lexDirective`, `parseDirective`, or `compile` if the directive is malformed.
  */
 function getOrCompileInstructions(directive) {
-	let instructions = instructionCache.get(directive);
+	let instructions = instructionCache[directive];
 
-	if (!instructions) {
-		const tokens = lexDirective(directive);
-		const ast = parseDirective(tokens, directive);
+	if (instructions === undefined) {
+		const ast = parseDirective(
+			lexDirective(directive), // tokens array from lexer
+			directive
+		);
 
 		instructions = compile(ast);
-		instructionCache.set(directive, instructions);
+		instructionCache[directive] = instructions;
 	}
 
 	return instructions;
@@ -164,10 +166,11 @@ function processTextDirective(nodes, vm, context, scope) {
 			// Canonicalization of directive.
 			const directive = "text=" + normalizeDirective(expr);
 			const instructions = getOrCompileInstructions(directive);
+			const expression = instructions[0].expr;
 
 			const dispose = effect(() => {
 				try {
-					const value = vm.evaluate(instructions[0].expr, context);
+					const value = vm.evaluate(expression, context);
 
 					if (value === null || value === undefined) {
 						elem.textContent = "";
@@ -284,11 +287,11 @@ function processBindDirective(nodes, vm, context, scope) {
             // Canonicalization of directive.
 			const directive = "bind=" + normalizeDirective(expr);
 			const instructions = getOrCompileInstructions(directive);
-			const instruction = instructions[0];
+			const expression = instructions[0].expr;
             
             // Extract the pre-compiled segments array from the instruction's EXPR_PATH definition
-            const pathSegments = instruction.expr.type === EXPR_PATH 
-                ? instruction.expr.segments 
+            const pathSegments = expression.type === EXPR_PATH 
+                ? expression.segments 
                 : undefined;
 
             const isCheckbox = elem.type === "checkbox";
@@ -296,7 +299,7 @@ function processBindDirective(nodes, vm, context, scope) {
             let hasTriggeredReadOnlyWarning = false;
 
             const dispose = effect(() => {
-                const value = vm.evaluate(instruction.expr, context);
+                const value = vm.evaluate(expression, context);
                 
                 if (isCheckbox) {
                     elem.checked = Boolean(value);
@@ -396,10 +399,11 @@ function processShowDirective(nodes, vm, context, scope) {
 			// Canonicalization of directive.
 			const directive = "show=" + normalizeDirective(expr);
 			const instructions = getOrCompileInstructions(directive);
+			const expression = instructions[0].expr;
 
 			const dispose = effect(() => {
 				try {
-					const visible = vm.evaluate(instructions[0].expr, context);
+					const visible = vm.evaluate(expression, context);
 					elem.hidden = !visible;
 
 				} catch (err) {
@@ -483,7 +487,7 @@ function processIfDirective(nodes, vm, context, scope) {
 			const anchor = document.createComment("@if");
 			parent.insertBefore(anchor, root);
 
-			/** @type {{template: HTMLElement, instructions?: *, isElse: boolean}[]} */
+			/** @type {{template: HTMLElement, expression?: *, isElse: boolean}[]} */
 			const branches = [];
 
 			// Structural Discovery Phase
@@ -509,11 +513,13 @@ function processIfDirective(nodes, vm, context, scope) {
 							node.parentNode.removeChild(node);
 						}
 
+						const instructions = getOrCompileInstructions(
+							"if=" + normalizeDirective(expression)
+						);
+
 						branches.push({
 							template: node,
-							instructions: getOrCompileInstructions(
-								"if=" + normalizeDirective(expression),
-							),
+							expression: instructions[0].expr,
 							isElse: false,
 						});
 
@@ -541,11 +547,13 @@ function processIfDirective(nodes, vm, context, scope) {
 							node.parentNode.removeChild(node);
 						}
 
+						const instructions = getOrCompileInstructions(
+							"elseif=" + normalizeDirective(expression)
+						);
+
 						branches.push({
 							template: node,
-							instructions: getOrCompileInstructions(
-								"elseif=" + normalizeDirective(expression),
-							),
+							expression: instructions[0].expr,
 							isElse: false,
 						});
 
@@ -687,7 +695,7 @@ function processIfDirective(nodes, vm, context, scope) {
 							break;
 						}
 
-						const visible = vm.evaluate(branch.instructions[0].expr, context);
+						const visible = vm.evaluate(branch.expression, context);
 
 						if (visible) {
 							matchedIndex = j;
@@ -1290,9 +1298,10 @@ function processStyleDirective(nodes, vm, context, scope) {
 
 			// Canonicalization of style directive
 			const bindings = normalizeDirective(expr).split(" ");
-			const directive = "style=" + bindings.join(" style=");
 
-			const instructions = getOrCompileInstructions(directive);
+			const instructions = getOrCompileInstructions(
+				"style=" + bindings.join(" style=")
+			);
 
 			/**
 			 * Styles produced by each binding.
@@ -3377,19 +3386,22 @@ function removeIgnoredDirectives(template, context) {
 	for (let i = attributes.length - 1; i >= 0; i--) {
 		const { name } = attributes[i];
 
-		if (!FOR_IGNORED_DIRECTIVES.has(name)) {
-			continue;
+		if (
+			name === "@if" ||
+			name === "@elseif" ||
+			name === "@else" ||
+			name === "@teleport"
+		) {
+			console.warn(
+				directiveMessage(
+					context,
+					"@for",
+					`Ignoring "${name}" on the template element. Move this directive inside the repeated content.`,
+				),
+			);
+			
+			template.removeAttribute(name);
 		}
-
-		console.warn(
-			directiveMessage(
-				context,
-				"@for",
-				`Ignoring "${name}" on the template element. Move this directive inside the repeated content.`,
-			),
-		);
-
-		template.removeAttribute(name);
 	}
 }
 

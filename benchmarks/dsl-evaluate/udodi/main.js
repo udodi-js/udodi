@@ -4,10 +4,10 @@ import {
 	createDSLContext,
 } from "../../fixtures/dsl.js";
 
-import { VM } from "../../../packages/core/vm.js";
+import { createVM } from "../../../packages/core/vm.js";
 
 const context = createDSLContext();
-const vm = new VM(context);
+const vm = createVM();
 
 const expressions = EXPRESSIONS.map(
 	(expression) => compileExpression(expression)[0].expr,

@@ -1,4 +1,4 @@
-import { VM } from "./vm.js";
+import { createVM } from "./vm.js";
 
 // Internal singleton VM instance
 let vmInstance = null;
@@ -6,14 +6,19 @@ let vmInstance = null;
 /**
  * Get the shared VM instance (lazy initialization).
  * This is internal to the library — users should never call this.
+ *
+ * @returns {{
+ *   evaluate: Function,
+ *   execute: Function,
+ *   bindEvent: Function,
+ *   unbindEvent: Function
+ * }}
  */
 export function getVM() {
-	if (!vmInstance) {
-        // Create a new VM instance with an empty context by default.
-        // We can later extend this to accept a global context or default helpers if needed.
-		vmInstance = new VM();
+	if (vmInstance === null) {
+		vmInstance = createVM();
 	}
-    
+
 	return vmInstance;
 }
 
