@@ -242,6 +242,10 @@ export function reactiveMap(map, owner, key) {
  *
  * Supported mutation methods: add, delete, clear.
  *
+ * Native Set methods and accessors are always evaluated against the underlying
+ * Set. This is required because Set operations depend on the Set's internal
+ * `[[SetData]]` slot, which a Proxy does not possess.
+ *
  * Deep mutations are not tracked:
  *
  * ```js

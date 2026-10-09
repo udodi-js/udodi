@@ -3346,6 +3346,13 @@ function processSubmitDirective(nodes, vm, context, scope) {
     }
 }
 
+const FOR_IGNORED_DIRECTIVES = new Set([
+	"@if",
+	"@elseif",
+	"@else",
+	"@teleport",
+]);
+
 /**
  * Removes directives that cannot coexist with an `@for` template root.
  *
