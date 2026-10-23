@@ -159,35 +159,20 @@ function ensureEventHandlerCall(expr) {
 }
 
 /**
- * Udodi directive parser.
+ * Creates a directive parser function with isolated parsing state.
  *
- * Uses recursive descent to parse directive bindings
- * and their expressions.
+ * @example
+ * const parse = createParser(tokens, "text=user.name");
+ * const ast = parse();
  *
- * Expression precedence:
- * - Conditionals are parsed within primary expressions.
- * - Pipelines are parsed at the expression level.
- *
- * The parser consumes lexer tokens and produces a directive
- * AST suitable for compilation.
+ * @param {Array} tokens Tokens produced by the lexer.
+ * @param {string} input Original source string.
+ * @returns {Function} Function that parses the complete directive.
  */
-class Parser {
-	/**
-	 * Creates a directive parser.
-	 *
-	 * @example
-	 * const parser = new Parser(tokens, "text=user.name");
-	 *
-	 * @param {Array} tokens Tokens produced by the lexer.
-	 * @param {string} input Original source string.
-	 */
-	constructor(tokens, input) {
-		this.tokens = tokens || [];
-		this.input = input || "";
-		this.pos = 0;
-		this.current = this.tokens[0] || EOF_TOKEN;
-		this.currentType = this.current[0];
-	}
+function createParser(tokens, input = "") {
+	let pos = 0;
+	let current = tokens[0] || EOF_TOKEN;
+	let currentType = current[0];
 
 	/**
 	 * Advances to the next token.
@@ -201,11 +186,11 @@ class Parser {
 	 * parser.advance();
 	 * // Current token: next token or TOKEN_EOF
 	 */
-	advance() {
-		this.pos++;
+	function advance() {
+		pos++;
 
-		this.current = this.tokens[this.pos] || EOF_TOKEN;
-		this.currentType = this.current[0];
+		current = tokens[pos] || EOF_TOKEN;
+		currentType = current[0];
 	}
 
 	/**
@@ -218,8 +203,8 @@ class Parser {
 	 *
 	 * @returns {Array} Next token, or the shared EOF token.
 	 */
-	peek() {
-		return this.tokens[this.pos + 1] || EOF_TOKEN;
+	function peek() {
+		return tokens[pos + 1] || EOF_TOKEN;
 	}
 
 	/**
@@ -234,15 +219,15 @@ class Parser {
 	 * @returns {Array} Consumed token.
 	 * @throws {Error} If the current token does not match.
 	 */
-	eat(type) {
-		if (this.currentType !== type) {
+	function eat(type) {
+		if (currentType !== type) {
 			throw new Error(
-				`Parse error: Expected ${type}, got ${this.currentType} at position ${this.pos}`,
+				`Parse error: Expected ${type}, got ${currentType} at position ${pos}`,
 			);
 		}
 
-		const token = this.current;
-		this.advance();
+		const token = current;
+		advance();
 		return token;
 	}
 
@@ -268,12 +253,12 @@ class Parser {
 	 * @returns {Object} EXPR_LITERAL or EXPR_PATH node.
 	 * @throws {Error} If the current token is not an atom.
 	 */
-	parseAtom() {
-		const token = this.current;
-		const type = this.currentType;
+	function parseAtom() {
+		const token = current;
+		const type = currentType;
 
 		if (type === TOKEN_PATH) {
-			const value = slice(this.input, this.eat(TOKEN_PATH));
+			const value = slice(input, eat(TOKEN_PATH));
 
 			return {
 				type: EXPR_PATH,
@@ -287,8 +272,8 @@ class Parser {
 			type === TOKEN_NUMBER ||
 			type === TOKEN_BOOLEAN
 		) {
-			const raw = slice(this.input, token);
-			this.advance();
+			const raw = slice(input, token);
+			advance();
 
 			let value;
 
@@ -324,16 +309,24 @@ class Parser {
 	 *
 	 * @example
 	 * // formatDate:createdAt:'MMM DD'
+	 * {
+	 *   type: EXPR_CALL,
+	 *   name: "formatDate",
+	 *   args: [
+	 *     { type: EXPR_PATH, key: "createdAt", segments: ["createdAt"] },
+	 *     { type: EXPR_LITERAL, value: "MMM DD" }
+	 *   ]
+	 * }
 	 *
 	 * @returns {Object} EXPR_CALL node.
 	 */
-	parseCall() {
-		const name = slice(this.input, this.eat(TOKEN_PATH));
+	function parseCall() {
+		const name = slice(input, eat(TOKEN_PATH));
 		const args = [];
 
-		while (this.currentType === TOKEN_COLON) {
-			this.advance();
-			args.push(this.parseAtom());
+		while (currentType === TOKEN_COLON) {
+			advance();
+			args.push(parseAtom());
 		}
 
 		return { type: EXPR_CALL, name, args };
@@ -356,22 +349,23 @@ class Parser {
 	 *
 	 * @returns {Object} Parsed expression AST node.
 	 */
-	parsePrimary() {
+	function parsePrimary() {
 		let expr;
 
-		if (this.currentType === TOKEN_PATH) {
-			if (this.peek()[0] === TOKEN_COLON) {
-				expr = this.parseCall();
+		if (currentType === TOKEN_PATH) {
+			if (peek()[0] === TOKEN_COLON) {
+				expr = parseCall();
 			} else {
-				expr = this.parseAtom();
+				expr = parseAtom();
 			}
+
 		} else {
-			expr = this.parseAtom();
+			expr = parseAtom();
 		}
 
-		if (this.currentType === TOKEN_ARROW) {
-			this.advance();
-			const value = this.parsePrimary();
+		if (currentType === TOKEN_ARROW) {
+			advance();
+			const value = parsePrimary();
 
 			return {
 				type: EXPR_CONDITIONAL,
@@ -404,19 +398,19 @@ class Parser {
 	 *
 	 * @returns {Object} Expression AST node, possibly an EXPR_PIPELINE.
 	 */
-	parseExpression() {
-		let expr = this.parsePrimary();
+	function parseExpression() {
+		let expr = parsePrimary();
 
-		if (this.currentType !== TOKEN_PIPE) {
+		if (currentType !== TOKEN_PIPE) {
 			return expr;
 		}
 
 		const steps = [expr];
 
 		do {
-			this.advance();
-			steps.push(this.parsePrimary());
-		} while (this.currentType === TOKEN_PIPE);
+			advance();
+			steps.push(parsePrimary());
+		} while (currentType === TOKEN_PIPE);
 
 		return { type: EXPR_PIPELINE, steps };
 	}
@@ -449,13 +443,13 @@ class Parser {
 	 * @returns {Object} NODE_BINDING or NODE_EVENT_BINDING.
 	 * @throws {Error} If the binding cannot be parsed.
 	 */
-	parseBinding() {
-		const targetToken = this.eat(TOKEN_PATH);
-		const rawTarget = slice(this.input, targetToken);
+	function parseBinding() {
+		const targetToken = eat(TOKEN_PATH);
+		const rawTarget = slice(input, targetToken);
 
-		this.eat(TOKEN_EQUAL);
+		eat(TOKEN_EQUAL);
 
-		const expr = this.parseExpression();
+		const expr = parseExpression();
 
 		if (rawTarget.startsWith("on[")) {
 			const { event, modifiers } = parseEventTarget(rawTarget);
@@ -494,14 +488,14 @@ class Parser {
 	 *
 	 * @returns {Object} NODE_DIRECTIVE AST node.
 	 */
-	parseDirective() {
+	function parseDirective() {
 		const bindings = [];
 
-		while (this.currentType !== TOKEN_EOF) {
-			if (this.currentType === TOKEN_PATH) {
-				bindings.push(this.parseBinding());
+		while (currentType !== TOKEN_EOF) {
+			if (currentType === TOKEN_PATH) {
+				bindings.push(parseBinding());
 			} else {
-				this.advance();
+				advance();
 			}
 		}
 
@@ -510,6 +504,8 @@ class Parser {
 			bindings,
 		};
 	}
+
+	return parseDirective;
 }
 
 /**
@@ -531,6 +527,5 @@ export function parseDirective(tokens, input) {
 		return { type: NODE_DIRECTIVE, bindings: [] };
 	}
 
-	const parser = new Parser(tokens, input);
-	return parser.parseDirective();
+	return createParser(tokens, input)();
 }

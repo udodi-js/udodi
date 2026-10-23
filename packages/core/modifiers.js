@@ -50,7 +50,7 @@ export const MOD_MAP = {
 export function compileModifiers(modifiers = []) {
 	let flags = 0;
 
-	for (let i = 0; i < modifiers.length; i++) {
+	for (let i = 0, len = modifiers.length; i < len; i++) {
 		const flag = MOD_MAP[modifiers[i]];
 		if (flag !== undefined) {
 			flags |= flag;

@@ -4,7 +4,6 @@ import { compile } from "../../packages/core/compiler.js";
 
 import {
 	OP_EVAL,
-	OP_SET,
 	OP_EVENT_BIND,
 } from "../../packages/core/opcodes.js";
 
@@ -45,9 +44,6 @@ describe("compiler", () => {
 						type: EXPR_LITERAL,
 						value: "hello",
 					},
-				},
-				{
-					op: OP_SET,
 					target: "text",
 				},
 			]);
@@ -77,9 +73,6 @@ describe("compiler", () => {
 						key: "user.name",
 						segments: ["user", "name"],
 					},
-				},
-				{
-					op: OP_SET,
 					target: "text",
 				},
 			]);
@@ -121,9 +114,6 @@ describe("compiler", () => {
 							},
 						],
 					},
-				},
-				{
-					op: OP_SET,
 					target: "attr[href]",
 				},
 			]);
@@ -167,9 +157,6 @@ describe("compiler", () => {
 							value: "active",
 						},
 					},
-				},
-				{
-					op: OP_SET,
 					target: "class",
 				},
 			]);
@@ -270,9 +257,6 @@ describe("compiler", () => {
 						key: "user.id",
 						segments: ["user", "id"],
 					},
-				},
-				{
-					op: OP_SET,
 					target: "text",
 				},
 			]);
