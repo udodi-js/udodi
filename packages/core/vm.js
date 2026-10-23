@@ -1,6 +1,5 @@
 import {
 	OP_EVAL,
-	OP_SET,
 	OP_EVENT_BIND
 } from "./opcodes.js";
 
@@ -66,28 +65,23 @@ export function createVM() {
 		if (len === 0) return [];
 
 		const results = [];
-		let lastValue;
 
 		for (let i = 0; i < len; i++) {
 			const inst = instructions[i];
 
 			switch (inst.op) {
 				case OP_EVAL:
-					lastValue = evaluate(inst.expr, ctx);
-					break;
-
-				case OP_SET: {
 					const target = inst.target;
+
 					if (target === undefined) break;
 
 					// return structured result for caller to handle actual DOM updates
 					results.push({
 						target,
-						value: lastValue,
+						value: evaluate(inst.expr, ctx),
 					});
-					
+
 					break;
-				}
 
 				case OP_EVENT_BIND:
 					// handled elsewhere
