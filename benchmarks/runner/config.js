@@ -3,7 +3,7 @@ export const benchmarkConfig = {
     frameworks: {
         udodi: {
             displayName: "Udodi",
-            version: "1.1.4",
+            version: "1.1.5",
             benchmarks: [
                 { name: "mount", path: "mount", runs: 1 },
                 { name: "update-single", path: "update-single", runs: 1 },

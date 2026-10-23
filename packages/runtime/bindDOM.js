@@ -3346,13 +3346,6 @@ function processSubmitDirective(nodes, vm, context, scope) {
     }
 }
 
-const FOR_IGNORED_DIRECTIVES = new Set([
-	"@if",
-	"@elseif",
-	"@else",
-	"@teleport",
-]);
-
 /**
  * Removes directives that cannot coexist with an `@for` template root.
  *
@@ -3523,8 +3516,8 @@ function processForDirective(nodes, vm, context, scope) {
 			//----------------------------------
 
 			const ITEM_OP_EVAL = 0;
-			const INDEX_OP_EVAL = 2;
-			const ITERABLE_OP_EVAL = instructions.length - 2;
+			const INDEX_OP_EVAL = 1;
+			const ITERABLE_OP_EVAL = instructions.length - 1;
 
 			const itemExpr = instructions[ITEM_OP_EVAL].expr;
 			const indexExpr = tokens.length === 3 

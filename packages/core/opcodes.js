@@ -15,12 +15,6 @@
 export const OP_EVAL = 1;
 
 /**
- * Set the result of the last OP_EVAL to a target (context property).
- * Used for two-way bindings and updating local state.
- */
-export const OP_SET = 2;
-
-/**
  * Bind an event listener with optional modifiers (e.g. .prevent, .stop, .once).
  */
 export const OP_EVENT_BIND = 3;
@@ -33,6 +27,5 @@ export const OP_EVENT_BIND = 3;
  */
 export const OPCODE_NAMES = {
     [OP_EVAL]: 'OP_EVAL',
-    [OP_SET]: 'OP_SET',
     [OP_EVENT_BIND]: 'OP_EVENT_BIND',
 };
