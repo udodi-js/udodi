@@ -1,6 +1,5 @@
 import {
 	OP_EVAL,
-	OP_SET,
 	OP_EVENT_BIND,
 } from "./opcodes.js";
 
@@ -30,38 +29,37 @@ import { compileModifiers } from "./modifiers.js";
  * user.name
  * becomes:
  * [
- *   { op: OP_EVAL, expr: { type: EXPR_PATH, ... } },
- *   { op: OP_SET, target: ... }
+ *   { op: OP_EVAL, expr: { type: EXPR_PATH, ... }, target: ... }
  * ]
  *
  * @param {Object} ast Root AST node containing directive bindings.
  * @returns {Array<Object>} Compiled VM instructions.
  */
 export function compile(ast) {
-	const instructions = [];
 	const bindings = ast.bindings;
 	const length = bindings.length;
+	const instructions = new Array(length);
 
 	for (let i = 0; i < length; i++) {
 		const node = bindings[i];
 
 		switch (node.type) {
-			case NODE_BINDING: {
-				instructions.push(
-					{ op: OP_EVAL, expr: lowerExpr(node.expr) },
-					{ op: OP_SET, target: node.target }
-				);
+			case NODE_BINDING:
+				instructions[i] = {
+					op: OP_EVAL, 
+					expr: lowerExpr(node.expr),
+					target: node.target,
+				};
 
 				break;
-			}
 
 			case NODE_EVENT_BINDING:
-				instructions.push({
+				instructions[i] = {
 					op: OP_EVENT_BIND,
 					event: node.event,
 					modifiers: compileModifiers(node.modifiers),
 					expr: lowerExpr(node.expr),
-				});
+				};
 
 				break;
 
