@@ -299,6 +299,7 @@ export default defineConfig({
 		logo: "/favicon.svg",
 		nav: [
 			{ text: "Guide", link: "/" },
+			{ text: "Udodi Router", link: "/udodi-router/" },
 			{ text: "Performance", link: "/performance" },
 		],
 		sidebar: [
@@ -413,6 +414,25 @@ export default defineConfig({
 					{ text: "Architecture", link: "/advanced/architecture" },
 					{ text: "DOM Rendering", link: "/advanced/dom-rendering" },
 					{ text: "Performance", link: "/performance" },
+				],
+			},
+			{
+				text: "Udodi Router",
+				items: [
+					{ text: "Overview", link: "/udodi-router/" },
+					{ text: "Getting Started", link: "/udodi-router/getting-started" },
+					{ text: "Routes", link: "/udodi-router/routes" },
+					{ text: "Nested Routes", link: "/udodi-router/nested-routes" },
+					{ text: "Route State", link: "/udodi-router/route-state" },
+					{ text: "Navigation", link: "/udodi-router/navigation" },
+					{ text: "Links and Outlets", link: "/udodi-router/links-and-outlets" },
+					{ text: "Guards and Loaders", link: "/udodi-router/guards-and-loaders" },
+					{ text: "Lazy Loading", link: "/udodi-router/lazy-loading" },
+					{ text: "History and Scroll", link: "/udodi-router/history-and-scroll" },
+					{ text: "Metadata", link: "/udodi-router/metadata" },
+					{ text: "Analytics and Scripts", link: "/udodi-router/analytics-and-scripts" },
+					{ text: "Server-Side SEO", link: "/udodi-router/server-side-seo" },
+					{ text: "Troubleshooting", link: "/udodi-router/troubleshooting" },
 				],
 			},
 		],

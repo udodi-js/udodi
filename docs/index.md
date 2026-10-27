@@ -235,6 +235,115 @@ await processed.fetch({
 			</div>
 		</div>
 	</section>
+	<section class="router-section">
+		<div class="section-heading">
+			<h2>Routing that feels like ordinary Udodi code.</h2>
+			<p>
+				Add nested layouts, guarded navigation, lazy route loading, and page metadata
+				with an optional router built around Udodi's component model.
+			</p>
+		</div>
+		<div class="router-showcase">
+			<div class="tab-visual router-code" role="region" aria-label="Udodi Router nested route example">
+
+```js
+import { createRouter } from "udodi-router";
+
+const router = createRouter({
+  meta: {
+    title: "Project Hub",
+    openGraph: { siteName: "Project Hub", type: "website" },
+  },
+  routes: [
+    {
+      path: "/projects",
+      component: ProjectLayout,
+      children: [
+        { path: "", component: ProjectList },
+        {
+          path: ":id",
+          loadComponent: () => import("./pages/Project.js"),
+          loader: async ({ params, signal }) => {
+            const res = await fetch(
+              `/api/projects/${encodeURIComponent(params.id)}`,
+              { signal },
+            );
+            if (!res.ok) throw new Error("Unable to load project.");
+            return res.json();
+          },
+          meta: ({ params, data }) => ({
+            title: data?.name ?? `Project ${params.id}`,
+            description: data?.summary ?? "Project details.",
+          }),
+        },
+      ],
+    },
+  ],
+});
+```
+
+</div>
+			<div class="router-details">
+				<div class="router-highlight-list">
+					<div class="router-highlight">
+						<span class="router-highlight-icon" aria-hidden="true">
+<svg viewBox="0 0 24 24">
+	<circle cx="6" cy="5" r="2" />
+	<circle cx="18" cy="19" r="2" />
+	<path d="M6 7v4a4 4 0 0 0 4 4h4a4 4 0 0 1 4 4" />
+</svg>
+						</span>
+						<div>
+							<h3>Nested routes</h3>
+							<!--<p>Compose layouts and route views naturally.</p>-->
+							<p>Compose layouts and route views naturally. Parent routes own shared UI while child routes render into nested outlets, keeping layout state across sibling navigations.</p>
+						</div>
+					</div>
+					<div class="router-highlight">
+						<span class="router-highlight-icon" aria-hidden="true">
+<svg viewBox="0 0 24 24">
+	<path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" />
+	<path d="m9 12 2 2 4-4" />
+</svg>
+						</span>
+						<div>
+							<h3>Guards and loaders</h3>
+							<!--<p>Prepare navigation before committing route changes.</p>-->
+							<p>Prepare navigation before committing route changes. Run checks, redirects, and data loading parent-to-child so the previous route stays active until preparation succeeds.</p>
+						</div>
+					</div>
+					<div class="router-highlight">
+						<span class="router-highlight-icon" aria-hidden="true">
+<svg viewBox="0 0 24 24">
+	<path d="m13 2-3 8h7l-6 12 2-9H6l7-11Z" />
+</svg>
+						</span>
+						<div>
+							<h3>Lazy loading</h3>
+							<!--<p>Load route components only when needed.</p>-->
+							<p>Load route components only when needed. Use native dynamic imports; cancelled navigations skip the download, and resolved components are cached for reuse.</p>
+						</div>
+					</div>
+					<div class="router-highlight">
+						<span class="router-highlight-icon" aria-hidden="true">
+<svg viewBox="0 0 24 24">
+	<path d="M6 3h9l4 4v14H6z" />
+	<path d="M14 3v5h5M9 13h7M9 17h7" />
+</svg>
+						</span>
+						<div>
+							<h3>SEO-ready metadata</h3>
+							<!--<p>Resolve titles, social metadata, and structured data.</p>-->
+							<p>Resolve titles, social tags, and structured data from your routes. The same model works in the browser and on the server without a full SSR framework.</p>
+						</div>
+					</div>
+				</div>
+				<div class="router-showcase-footer">
+					<a class="router-explore-button" href="/udodi-router/">Explore the router →</a>
+				</div>
+			</div>
+		</div>
+	</section>
 	<section class="journey">
 		<div class="section-heading">
 			<h2>Start with the essentials.</h2>
@@ -518,6 +627,12 @@ await processed.fetch({
 				<a href="/performance.html">Performance</a>
 				<a href="/roadmap.html">Roadmap</a>
 			</div>
+			<div class="footer-column">
+				<h3>Official Libraries</h3>
+				<a href="/udodi-router/">
+					Udodi Router <span class="new-indicator">New</span>
+				</a>
+			</div>
 		</div>
 		<!-- Bottom -->
 		<div class="footer-bottom">
@@ -562,85 +677,78 @@ await processed.fetch({
 import { onMounted, onUnmounted, nextTick } from 'vue';
 
 let resizeHandler = null;
-let scrollHandler = null;
+let carouselInstances = [];
 let sponsorResizeHandler = null;
 
 onMounted(async () => {
 	await nextTick();
 
-	// *********************** Capability carousel ***********************
-	const grid = document.querySelector('.capability-grid');
-	const allDots = document.querySelectorAll('.carousel-dots .dot');
+	// *********************** Responsive card carousels ***********************
+	const carousels = document.querySelectorAll('.capability-carousel');
+	carouselInstances = Array.from(carousels).map((carousel) => {
+		const grid = carousel.querySelector('.capability-grid');
+		const allDots = Array.from(carousel.querySelectorAll('.carousel-dots .dot'));
+		return { grid, allDots, clickHandlers: [], scrollHandler: null };
+	}).filter(({ grid, allDots }) => grid && allDots.length > 0);
 
-	if (grid && allDots.length > 0) {
+	if (carouselInstances.length > 0) {
 		const isTablet = () => window.innerWidth > 640 && window.innerWidth <= 960;
-		const isMobile = () => window.innerWidth <= 640;
 
-		const setActiveDot = (index) => {
-			allDots.forEach((d) => d.classList.remove('active'));
-
-			if (isTablet()) {
-				const visibleDots = Array.from(allDots).filter(
-					(dot) => window.getComputedStyle(dot).display !== 'none'
-				);
-
-				visibleDots[index]?.classList.add('active');
-				
-			} else if (isMobile()) {
-				allDots[index]?.classList.add('active');
-			}
-		};
-
-		const updateActiveFromScroll = () => {
+		const updateCarousel = ({ grid, allDots }) => {
 			if (window.innerWidth > 960) return;
 
 			const scrollLeft = grid.scrollLeft;
 			const cardWidth = grid.children[0]?.offsetWidth || 1;
 			const gap = 16;
+			let index = 0;
 
-			if (isMobile()) {
-				const index = Math.round(scrollLeft / (cardWidth + gap));
-				setActiveDot(Math.min(index, 2));
-
-			} else if (isTablet()) {
-				const page = scrollLeft > cardWidth * 0.6 ? 1 : 0;
-				setActiveDot(page);
+			if (isTablet()) {
+				const visibleDots = allDots.filter(
+					(dot) => window.getComputedStyle(dot).display !== 'none'
+				);
+				index = scrollLeft > cardWidth * 0.6 ? 1 : 0;
+				allDots.forEach((dot) => dot.classList.remove('active'));
+				visibleDots[index]?.classList.add('active');
+				return;
 			}
+
+			index = Math.round(scrollLeft / (cardWidth + gap));
+			allDots.forEach((dot) => dot.classList.remove('active'));
+			allDots[Math.min(index, allDots.length - 1)]?.classList.add('active');
 		};
 
-		allDots.forEach((dot) => {
-			dot.addEventListener('click', () => {
-				const index = Number(dot.dataset.index);
-				let targetIndex = index;
+		carouselInstances.forEach((instance) => {
+			instance.allDots.forEach((dot) => {
+				const clickHandler = () => {
+					const index = Number(dot.dataset.index);
+					let targetIndex = index;
 
-				if (isTablet()) {
-					targetIndex = index === 0 ? 0 : 1;
-				}
+					if (isTablet()) {
+						targetIndex = index === 0 ? 0 : 1;
+					}
 
-				const card = grid.children[targetIndex];
-				if (!card) return;
+					const card = instance.grid.children[targetIndex];
+					if (!card) return;
 
-				const scrollLeft = card.offsetLeft - grid.offsetLeft;
-				grid.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+					const scrollLeft = card.offsetLeft - instance.grid.offsetLeft;
+					instance.grid.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+				};
+				dot.addEventListener('click', clickHandler);
+				instance.clickHandlers.push({ dot, clickHandler });
 			});
+
+			instance.scrollHandler = () => {
+				requestAnimationFrame(() => updateCarousel(instance));
+			};
+			instance.grid.addEventListener('scroll', instance.scrollHandler, { passive: true });
 		});
 
-		scrollHandler = () => {
-			requestAnimationFrame(updateActiveFromScroll);
-		};
-
-		grid.addEventListener('scroll', scrollHandler, { passive: true });
-
-		let resizeTimeout;
-
 		resizeHandler = () => {
-			clearTimeout(resizeTimeout);
-			resizeTimeout = setTimeout(updateActiveFromScroll, 80);
+			carouselInstances.forEach((instance) => updateCarousel(instance));
 		};
 
 		window.addEventListener('resize', resizeHandler);
-
-		updateActiveFromScroll();
+		carouselInstances.forEach((instance) => updateCarousel(instance));
 	}
 
 	// *************************** Sponsors (from R2 / CDN) ***************************
@@ -882,10 +990,12 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-	if (scrollHandler) {
-		const grid = document.querySelector('.capability-grid');
+	carouselInstances.forEach(({ grid, clickHandlers, scrollHandler }) => {
 		grid?.removeEventListener('scroll', scrollHandler);
-	}
+		clickHandlers.forEach(({ dot, clickHandler }) => {
+			dot.removeEventListener('click', clickHandler);
+		});
+	});
 
 	if (resizeHandler) {
 		window.removeEventListener('resize', resizeHandler);
