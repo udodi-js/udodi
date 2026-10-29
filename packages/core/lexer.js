@@ -141,7 +141,7 @@ function isNumberLiteral(str, start, end) {
  * // "123" produces [TOKEN_NUMBER, 0, 3]
  * emitToken(tokens, "123", 0, 3);
  *
- * @param {Array<[number, number, number]>} tokens Token array.
+ * @param {number[]} tokens Flat token array.
  * @param {string} str Original input string.
  * @param {number} start Start index (inclusive).
  * @param {number} end End index (exclusive).
@@ -158,20 +158,20 @@ function emitToken(tokens, str, start, end) {
 		type = TOKEN_NUMBER;
 	}
 
-	tokens.push([type, start, end]);
+	tokens.push(type, start, end);
 }
 
 /**
  * Udodi directive lexer (tokenizer).
  *
- * Converts a directive source string into a flat list of
- * tokens for the parser.
+ * Converts a directive source string into a flat token array
+ * for the parser.
  *
  * Uses a single-pass character scanner to recognize paths,
  * literals, operators and quoted strings.
  *
  * Token format:
- * [TOKEN_TYPE, startIndex, endIndex]
+ * [TOKEN_TYPE, startIndex, endIndex, ...]
  *
  * Supported tokens include:
  * - Paths
@@ -196,13 +196,12 @@ function emitToken(tokens, str, start, end) {
  * // number and EOF.
  *
  * @param {string} str Directive source to tokenize.
- * @returns {Array<[number, number, number]>}
- *   Token array ending with EOF.
+ * @returns {number[]} Flat token array ending with EOF.
  * @throws {Error} If a quoted string is not closed.
  */
 export function lexDirective(str) {
 	if (typeof str !== "string" || str.length === 0) {
-		return [[TOKEN_EOF, 0, 0]];
+		return [TOKEN_EOF, 0, 0];
 	}
 
 	const tokens = [];
@@ -232,7 +231,7 @@ export function lexDirective(str) {
 				start = i;
 				
 			} else if (quote === c) {
-				tokens.push([TOKEN_STRING, start, i + 1]);
+				tokens.push(TOKEN_STRING, start, i + 1);
 				quote = 0;
 				start = -1;
 			}
@@ -259,7 +258,7 @@ export function lexDirective(str) {
 				emitToken(tokens, str, start, i);
 			}
 
-			tokens.push([TOKEN_PIPE, i, i + 1]);
+			tokens.push(TOKEN_PIPE, i, i + 1);
 			start = -1;
 
 			continue;
@@ -271,7 +270,7 @@ export function lexDirective(str) {
 				emitToken(tokens, str, start, i);
 			}
 
-			tokens.push([TOKEN_COLON, i, i + 1]);
+			tokens.push(TOKEN_COLON, i, i + 1);
 			start = -1;
 
 			continue;
@@ -288,7 +287,7 @@ export function lexDirective(str) {
 				emitToken(tokens, str, start, i);
 			}
 
-			tokens.push([TOKEN_ARROW, i, i + 2]);
+			tokens.push(TOKEN_ARROW, i, i + 2);
 			start = -1;
 			i++;
 
@@ -301,7 +300,7 @@ export function lexDirective(str) {
 				emitToken(tokens, str, start, i);
 			}
 
-			tokens.push([TOKEN_EQUAL, i, i + 1]);
+			tokens.push(TOKEN_EQUAL, i, i + 1);
 			start = -1;
 
 			continue;
@@ -325,7 +324,7 @@ export function lexDirective(str) {
 		emitToken(tokens, str, start, len);
 	}
 
-	tokens.push([TOKEN_EOF, len, len]);
+	tokens.push(TOKEN_EOF, len, len);
 
 	return tokens;
 }
