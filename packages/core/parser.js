@@ -21,30 +21,6 @@ import {
 	NODE_EVENT_BINDING,
 } from "./expTypes.js";
 
-const EOF_TOKEN = [TOKEN_EOF, 0, 0];
-
-/**
- * Extracts the source text represented by a token.
- *
- * Tokens use the tuple format [type, start, end], where
- * start is inclusive and end is exclusive.
- *
- * @example
- * // input = "user.name"
- * // token = [TOKEN_PATH, 0, 9]
- * slice(input, token)
- * // "user.name"
- *
- * @param {string} str Original input string.
- * @param {Array<number>} token Token tuple [type, start, end].
- * @returns {string} Source text represented by the token,
- *   or an empty string if the token is invalid.
- */
-function slice(str, token) {
-	if (!token || token.length < 3) return "";
-	return str.slice(token[1], token[2]);
-}
-
 /**
  * Parses an event target with optional modifiers.
  *
@@ -165,32 +141,32 @@ function ensureEventHandlerCall(expr) {
  * const parse = createParser(tokens, "text=user.name");
  * const ast = parse();
  *
- * @param {Array} tokens Tokens produced by the lexer.
+ * @param {number[]} tokens Flat tokens produced by the lexer.
  * @param {string} input Original source string.
  * @returns {Function} Function that parses the complete directive.
  */
 function createParser(tokens, input = "") {
 	let pos = 0;
-	let current = tokens[0] || EOF_TOKEN;
-	let currentType = current[0];
+	let currentType = tokens[0];
+	let currentStart = tokens[1];
+	let currentEnd = tokens[2];
 
 	/**
 	 * Advances to the next token.
 	 *
-	 * Updates the current token and its cached type.
-	 * Once the token stream is exhausted, the shared EOF
-	 * token is used.
+	 * Updates the cached token type and source bounds.
+	 * Lexer output always ends with a complete EOF token triple.
 	 *
 	 * @example
 	 * // Current token: TOKEN_PATH
 	 * parser.advance();
-	 * // Current token: next token or TOKEN_EOF
+	 * // Current token: next token, including the trailing TOKEN_EOF
 	 */
 	function advance() {
-		pos++;
-
-		current = tokens[pos] || EOF_TOKEN;
-		currentType = current[0];
+		pos += 3;
+		currentType = tokens[pos];
+		currentStart = tokens[pos + 1];
+		currentEnd = tokens[pos + 2];
 	}
 
 	/**
@@ -201,10 +177,10 @@ function createParser(tokens, input = "") {
 	 * parser.peek();
 	 * // The token immediately following the current token.
 	 *
-	 * @returns {Array} Next token, or the shared EOF token.
+	 * @returns {number} Type of the next token.
 	 */
 	function peek() {
-		return tokens[pos + 1] || EOF_TOKEN;
+		return tokens[pos + 3];
 	}
 
 	/**
@@ -213,10 +189,10 @@ function createParser(tokens, input = "") {
 	 * @example
 	 * // Current token: TOKEN_EQUAL
 	 * parser.eat(TOKEN_EQUAL);
-	 * // Returns the consumed token and advances the parser.
+	 * // Advances to the next token.
 	 *
-	 * @param {string} type Expected token type.
-	 * @returns {Array} Consumed token.
+	 * @param {number} type Expected token type.
+	 * @returns {void}
 	 * @throws {Error} If the current token does not match.
 	 */
 	function eat(type) {
@@ -226,9 +202,7 @@ function createParser(tokens, input = "") {
 			);
 		}
 
-		const token = current;
 		advance();
-		return token;
 	}
 
 	/**
@@ -254,11 +228,11 @@ function createParser(tokens, input = "") {
 	 * @throws {Error} If the current token is not an atom.
 	 */
 	function parseAtom() {
-		const token = current;
 		const type = currentType;
 
 		if (type === TOKEN_PATH) {
-			const value = slice(input, eat(TOKEN_PATH));
+			const value = input.slice(currentStart, currentEnd);
+			advance();
 
 			return {
 				type: EXPR_PATH,
@@ -272,7 +246,7 @@ function createParser(tokens, input = "") {
 			type === TOKEN_NUMBER ||
 			type === TOKEN_BOOLEAN
 		) {
-			const raw = slice(input, token);
+			const raw = input.slice(currentStart, currentEnd);
 			advance();
 
 			let value;
@@ -321,7 +295,8 @@ function createParser(tokens, input = "") {
 	 * @returns {Object} EXPR_CALL node.
 	 */
 	function parseCall() {
-		const name = slice(input, eat(TOKEN_PATH));
+		const name = input.slice(currentStart, currentEnd);
+		eat(TOKEN_PATH);
 		const args = [];
 
 		while (currentType === TOKEN_COLON) {
@@ -353,7 +328,7 @@ function createParser(tokens, input = "") {
 		let expr;
 
 		if (currentType === TOKEN_PATH) {
-			if (peek()[0] === TOKEN_COLON) {
+			if (peek() === TOKEN_COLON) {
 				expr = parseCall();
 			} else {
 				expr = parseAtom();
@@ -444,11 +419,9 @@ function createParser(tokens, input = "") {
 	 * @throws {Error} If the binding cannot be parsed.
 	 */
 	function parseBinding() {
-		const targetToken = eat(TOKEN_PATH);
-		const rawTarget = slice(input, targetToken);
-
+		const rawTarget = input.slice(currentStart, currentEnd);
+		eat(TOKEN_PATH);
 		eat(TOKEN_EQUAL);
-
 		const expr = parseExpression();
 
 		if (rawTarget.startsWith("on[")) {
@@ -518,7 +491,7 @@ function createParser(tokens, input = "") {
  * @example
  * const ast = parseDirective(tokens, "text=user.name");
  *
- * @param {Array} tokens Tokens produced by the lexer.
+ * @param {number[]} tokens Flat tokens produced by the lexer.
  * @param {string} input Original directive source string.
  * @returns {Object} NODE_DIRECTIVE AST node.
  */
