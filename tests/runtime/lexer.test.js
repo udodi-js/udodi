@@ -17,15 +17,35 @@ import {
  * Helper to make tests more readable
  */
 function tokenize(str) {
-	return lexDirective(str).map(([type, start, end]) => ({
-		type: TOKEN_NAMES[type] || type,
-		value: str.slice(start, end),
-		start,
-		end,
-	}));
+	const tokens = lexDirective(str);
+	const result = [];
+
+	for (let i = 0; i < tokens.length; i += 3) {
+		const type = tokens[i];
+		const start = tokens[i + 1];
+		const end = tokens[i + 2];
+
+		result.push({
+			type: TOKEN_NAMES[type] || type,
+			value: str.slice(start, end),
+			start,
+			end,
+		});
+	}
+
+	return result;
 }
 
 describe("Udodi Lexer", () => {
+	it("stores token data in a flat sequence of triples", () => {
+		expect(lexDirective("value=42")).toEqual([
+			TOKEN_PATH, 0, 5,
+			TOKEN_EQUAL, 5, 6,
+			TOKEN_NUMBER, 6, 8,
+			TOKEN_EOF, 8, 8,
+		]);
+	});
+
 	it("should lex simple paths", () => {
 		const result = tokenize("user.firstName");
 		expect(result).toEqual([
