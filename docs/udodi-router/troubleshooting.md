@@ -14,8 +14,8 @@ This guide covers common configuration and runtime issues with Udodi Router. Eac
 **Symptoms**
 
 - Navigation returns an `error` result.
-- `router.route.error` indicates that no route matched.
-- Server-side `matchRoutes()` or `resolveHead()` returns `null`.
+- `router.route.error` contains the latest navigation failure.
+- Server-side `matchRoutes()` returns `null`, or `resolveHead()` returns a result whose `match` is `null`.
 
 **Common causes**
 
@@ -90,7 +90,7 @@ See [Nested Routes](./nested-routes.md).
 | --- | --- |
 | `cancelled` | A guard returned `false`, or a newer navigation superseded this one. |
 | `redirected` | A guard returned a string or `{ path }` target. |
-| `error` | Invalid target, no match, loader failure, lazy-load failure, or redirect loop. |
+| `error` | Invalid target, no match, guard/loader/metadata failure, lazy-load failure, history failure, or redirect loop. |
 
 Always inspect `result.type` and, for errors, `result.error`.
 

@@ -94,22 +94,22 @@ function evaluateCall(expr, context, evaluate, event) {
 
 	const args = expr.args;
 	const length = args.length;
-	const hasEvent = event !== undefined;
+	const noEvent = event === undefined;
 
 	switch (length) {
 		case 0:
-			return hasEvent ? fn(event) : fn();
+			return noEvent ? fn() : fn(event);
 
 		case 1: {
 			const a = evaluate(args[0], context);
-			return hasEvent ? fn(event, a) : fn(a);
+			return noEvent ? fn(a) : fn(event, a);
 		}
 
 		case 2: {
 			const a = evaluate(args[0], context);
 			const b = evaluate(args[1], context);
-
-			return hasEvent ? fn(event, a, b) : fn(a, b);
+			
+			return noEvent ? fn(a, b) : fn(event, a, b);
 		}
 
 		case 3: {
@@ -117,14 +117,14 @@ function evaluateCall(expr, context, evaluate, event) {
 			const b = evaluate(args[1], context);
 			const c = evaluate(args[2], context);
 
-			return hasEvent ? fn(event, a, b, c) : fn(a, b, c);
+			return noEvent ? fn(a, b, c) : fn(event, a, b, c);
 		}
 
 		default: {
-			const offset = hasEvent ? 1 : 0;
+			const offset = noEvent ? 0 : 1;
 			const evaluated = new Array(length + offset);
 
-			if (hasEvent) {
+			if (!noEvent) {
 				evaluated[0] = event;
 			}
 

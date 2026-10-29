@@ -103,9 +103,10 @@ When `runLoaders` is enabled, route loaders run before metadata resolution, allo
 
 | Option | Description |
 | --- | --- |
-| `routes` | Route-record array. Required. |
+| `routes` | Route-record array. Required unless `matcher` is supplied. |
+| `matcher` | Reusable matcher created with `createMatcher(routes, options)`. When supplied, `routes` and `base` are not used for matching. |
 | `pathname` | Request pathname only, without query string or hash. Required. |
-| `base` | Optional deployment base path, such as `/app`. Defaults to `""`. |
+| `base` | Optional deployment base path, such as `/app`. Used when `resolveHead()` creates a matcher from `routes`. Defaults to `""`. |
 | `defaults` | Static metadata or a metadata callback used as the default layer. |
 | `context` | Shared application context passed to loaders and metadata callbacks. |
 | `query` | Query-parameter object supplied to loaders and metadata callbacks. |
@@ -115,6 +116,21 @@ When `runLoaders` is enabled, route loaders run before metadata resolution, allo
 | `includeScripts` | Whether to emit configured metadata scripts in the generated head. Defaults to `false`. |
 
 The helper rejects invalid required arguments and propagates loader or metadata-resolution failures. Handle those failures at your server's request boundary.
+
+For repeated requests against the same route table, compile a matcher once and pass it to each call. This skips route compilation inside `resolveHead()` while retaining its loader, metadata, and head-rendering pipeline.
+
+```js
+import { createMatcher, resolveHead } from "udodi-router/server";
+
+const matcher = createMatcher(routes, { base: "/app" });
+
+export async function handleRequest(url) {
+  return resolveHead({
+    matcher,
+    pathname: url.pathname,
+  });
+}
+```
 
 ### Pathname, query, and hash
 
