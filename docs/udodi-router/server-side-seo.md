@@ -20,7 +20,6 @@ Import server-side helpers from `udodi-router/server`:
 ```js
 import {
   createMatcher,
-  matchRoutes,
   resolveMetadata,
   renderMetadata,
   resolveHead,
@@ -32,7 +31,6 @@ The server entry is separate from the browser navigation runtime. Its matching a
 | Export | Purpose |
 | --- | --- |
 | `createMatcher()` | Compile a reusable route matcher. |
-| `matchRoutes()` | Compile routes and match a pathname in one call. |
 | `resolveMetadata()` | Resolve semantic metadata for a matched route chain. |
 | `renderMetadata()` | Convert metadata into an HTML string. |
 | `resolveHead()` | Perform matching, optionally run loaders, resolve metadata, and render the head in one call. |
@@ -243,14 +241,15 @@ The example uses the Web `Request` and `Response` APIs, which are available in m
 
 Use the lower-level exports when your server needs to control matching, data loading, metadata resolution, or HTML generation independently.
 
-### Match a route
+### Match routes with a compiled matcher
 
-Use `matchRoutes()` when you need the match result without running loaders or resolving metadata.
+Use `createMatcher()` to compile a route table and get a function that matches pathnames. Reuse that function for each request against the same route table.
 
 ```js
-import { matchRoutes } from "udodi-router/server";
+import { createMatcher } from "udodi-router/server";
 
-const match = matchRoutes(routes, "/products/42");
+const matchRequestPath = createMatcher(routes);
+const match = matchRequestPath("/products/42");
 
 if (match) {
   console.log(match.path);
@@ -267,21 +266,7 @@ The match result contains:
 - `record`: the selected leaf route record.
 - `matched`: the complete matched chain from parent to child.
 
-The matcher is pure: it does not access the DOM or browser history, run guards, execute loaders, or resolve metadata.
-
-### Reuse a compiled matcher
-
-`matchRoutes()` creates a matcher for each call. For servers that repeatedly match requests against the same route table, compile it once with `createMatcher()`.
-
-```js
-import { createMatcher } from "udodi-router/server";
-
-const matchRequestPath = createMatcher(routes);
-
-export function findRoute(pathname) {
-  return matchRequestPath(pathname);
-}
-```
+The returned matcher is pure: it does not access the DOM or browser history, run guards, execute loaders, or resolve metadata.
 
 For an application deployed under a base path, provide it during compilation:
 
@@ -293,7 +278,7 @@ const matchRequestPath = createMatcher(routes, {
 const match = matchRequestPath("/app/products/42");
 ```
 
-A compiled matcher can then be reused for multiple requests. Recreate it if the route definitions or matcher configuration changes.
+Recreate the matcher if the route definitions or matcher configuration changes.
 
 ### Resolve metadata
 
@@ -301,11 +286,12 @@ Use `resolveMetadata()` when you already have a matched chain or when your own s
 
 ```js
 import {
-  matchRoutes,
+  createMatcher,
   resolveMetadata,
 } from "udodi-router/server";
 
-const match = matchRoutes(routes, "/products/42");
+const matchRequestPath = createMatcher(routes);
+const match = matchRequestPath("/products/42");
 
 if (match) {
   const metadata = await resolveMetadata({
