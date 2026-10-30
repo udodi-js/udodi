@@ -15,7 +15,7 @@ This guide covers common configuration and runtime issues with Udodi Router. Eac
 
 - Navigation returns an `error` result.
 - `router.route.error` contains the latest navigation failure.
-- Server-side `matchRoutes()` returns `null`, or `resolveHead()` returns a result whose `match` is `null`.
+- Server-side route matching returns `null`, or `resolveHead()` returns a result whose `match` is `null`.
 
 **Common causes**
 
