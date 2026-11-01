@@ -138,23 +138,20 @@ The initial implementation should prioritize **correct highlighting**, **languag
 
 These initiatives support adoption and long-term project health but are not immediate blockers for the v1.x core.
 
-### Udodi Router
+### Udodi Router: Shipped
 
 **Goal:** Provide production-oriented routing for Udodi applications without increasing the complexity or dependency footprint of the core runtime.
 
-**Planned direction**
+Udodi Router has been implemented and published to the npm registry as [`udodi-router`](https://www.npmjs.com/package/udodi-router). It is distributed independently from the core `udodi` package, keeping routing optional for applications that do not need it.
 
-- Distributed as a separate package, for example `udodi-router`
-- Not included in the `udodi` tarball
-- Declares `udodi` as a peer dependency
-- Uses a clear major-version compatibility policy
-- Designed around Udodi's component and reactivity model
-- Minimizes unnecessary DOM churn during navigation
-- Keeps routing optional so applications that do not need it do not pay the additional cost
+The router is designed around Udodi's component and reactivity model, with navigation behavior intended for real application requirements rather than feature parity with larger meta-framework routers.
 
-The router should be designed around requirements demonstrated by real Udodi applications rather than attempting to reproduce every feature of established meta-framework routers.
+**Ongoing direction**
 
-**Exit criteria:** A documented router package provides reliable navigation patterns for Udodi applications and integrates cleanly with Udodi components.
+- Maintain clear compatibility expectations between `udodi-router` and supported `udodi` versions
+- Keep router documentation and examples aligned with the published package
+- Preserve the separation between routing and the core runtime
+- Evolve navigation capabilities in response to real application requirements and developer feedback
 
 ### Udodi-Powered Website and Playground
 
@@ -164,8 +161,8 @@ The documentation site at [udodi.dev](https://udodi.dev) is already the canonica
 
 **Planned direction**
 
-- Rebuild the website shell with **Udodi** when the runtime and (optionally) router are ready for that use
-- Integrate the official router when it is mature enough for production use
+- Rebuild the website shell with **Udodi** when the runtime is ready for that use
+- Use the published Udodi Router package for client-side navigation where appropriate
 - Provide a public playground or online sandbox where practical
 
 This work is **not** a near-term blocker. Documentation and API reference quality take priority over dogfooding the site implementation.
@@ -313,7 +310,7 @@ The following remain out of scope unless strong evidence forces a deliberate cha
 | **Core runtime** | `udodi` on npm |
 | **Type declarations** | `index.d.ts` published with the package |
 | **Website** | Official site at [udodi.dev](https://udodi.dev) (docs today; Udodi-powered shell later) |
-| **Router** | Separate companion package |
+| **Router** | [`udodi-router`](https://www.npmjs.com/package/udodi-router) on npm as a separate companion package |
 | **Editor support** | VS Code extension |
 | **Diagnostics** | Optional development tooling |
 
@@ -338,6 +335,7 @@ The core runtime remains the primary product. Companion packages and developer t
 - Automated performance suite and public [performance page](https://udodi.dev/performance.html) with methodology, graphs, and result tables
 - Official website at [udodi.dev](https://udodi.dev) as the canonical documentation entry point
 - `udodi` published to the npm registry
+- Udodi Router implemented and published as the separate [`udodi-router`](https://www.npmjs.com/package/udodi-router) npm package
 
 ### Next
 
@@ -345,9 +343,8 @@ The core runtime remains the primary product. Companion packages and developer t
 2. Size and performance budgets in CI
 3. JSDoc and `@ts-check` / `tsc` contributor workflow
 4. VS Code extension for **html\`...\`** templates
-5. Separate Udodi Router package
-6. Udodi-powered website shell and optional playground (follow-on)
-7. Showcase applications and broader adoption work
+5. Udodi-powered website shell and optional playground (follow-on)
+6. Showcase applications and broader adoption work
 
 ## North Star
 
@@ -357,4 +354,4 @@ Udodi should grow capability around its core through **documentation, editor sup
 
 ---
 
-**Last updated:** September 17, 2026
+**Last updated:** November 1, 2026

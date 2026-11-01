@@ -22,7 +22,7 @@ const routes = [
 ];
 ```
 
-The `loadComponent` function must resolve to a Udodi component factory. For a standard ES module with a default export, the router unwraps the module's `default` export automatically.
+The `loadComponent` function must resolve to an Udodi component factory. For a standard ES module with a default export, the router unwraps the module's `default` export automatically.
 
 For example, `./pages/Reports.js` can export a component factory like this:
 
