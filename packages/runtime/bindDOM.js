@@ -3667,11 +3667,12 @@ function processForDirective(nodes, vm, context, scope) {
 			let nextOrdered = [];
 
 			/**
-			 * Tracks keys encountered during the current reconciliation.
+			 * Tracks records created during the current reconciliation until the
+			 * next rendered state has been committed.
 			 *
-			 * @type {Set<*>}
+			 * @type {Object[]}
 			 */
-			const nextKeySet = new Set();
+			const createdRecords = [];
 
 			/**
 			 * Tracks objects for which a missing stable-key warning has
@@ -3906,14 +3907,174 @@ function processForDirective(nodes, vm, context, scope) {
 			 * @returns {void}
 			 */
 			const unmountRecord = (record) => {
-				if (!record || record.destroyed) {
+				if (!record) {
 					return;
 				}
 
 				cleanupRecord(record);
 
-				if (record.el.isConnected) {
+				if (record.el.parentNode !== null) {
 					record.el.remove();
+				}
+			};
+
+			/**
+			 * Cleans up every row and detaches the repeated block in one DOM
+			 * operation. The per-record cleanup is still required to stop effects
+			 * and unregister roots, but individual element removals are avoided.
+			 *
+			 * @returns {void}
+			 */
+			const bulkUnmountAll = () => {
+				for (const record of rendered.values()) {
+					cleanupRecord(record);
+				}
+
+				if (
+					anchor.parentNode !== null &&
+					anchor.parentNode === endAnchor.parentNode
+				) {
+					const range = document.createRange();
+					range.setStartAfter(anchor);
+					range.setEndBefore(endAnchor);
+					range.deleteContents();
+
+				} else {
+					for (const record of rendered.values()) {
+						if (record.el.parentNode !== null) {
+							record.el.remove();
+						}
+					}
+				}
+
+				rendered.clear();
+				ordered.length = 0;
+			};
+
+			/**
+			 * Returns whether the desired records are the old records with zero
+			 * or more removals. In this case their DOM order is already correct,
+			 * so reconciliation only needs to refresh positional metadata.
+			 *
+			 * @param {Object[]} records - Desired record order.
+			 * @returns {boolean}
+			 */
+			const isRemovalOnly = (records) => {
+				const ordered_length = ordered.length;
+				const records_length = records.length;
+
+				if (records_length >= ordered_length) {
+					return false;
+				}
+
+				let nextPosition = 0;
+
+				for (let position = 0; position < ordered_length; position++) {
+					if (ordered[position] === records[nextPosition]) {
+						nextPosition++;
+					}
+				}
+
+				return nextPosition === records_length;
+			};
+
+			/**
+			 * Returns whether the desired order preserves every old row and only
+			 * adds rows at the end.
+			 *
+			 * @param {Object[]} records - Desired record order.
+			 * @returns {boolean}
+			 */
+			const isPureAppend = (records) => {
+				const ordered_length = ordered.length;
+
+				if (records.length <= ordered_length) {
+					return false;
+				}
+
+				for (let position = 0; position < ordered_length; position++) {
+					if (records[position] !== ordered[position]) {
+						return false;
+					}
+				}
+
+				return true;
+			};
+
+			/**
+			 * Removes an inclusive run of rows, using a range when they are
+			 * adjacent DOM siblings and individual removals otherwise.
+			 *
+			 * @param {number} start - First index in `ordered`, inclusive.
+			 * @param {number} end - Last index in `ordered`, inclusive.
+			 * @returns {void}
+			 */
+			const removeRun = (start, end) => {
+				const first = ordered[start].el;
+				const last = ordered[end].el;
+				let contiguous = start < end && first.parentNode === container;
+
+				for (let i = start; contiguous && i < end; i++) {
+					contiguous = ordered[i].el.nextSibling === ordered[i + 1].el;
+				}
+
+				if (contiguous) {
+					const range = document.createRange();
+					range.setStartBefore(first);
+					range.setEndAfter(last);
+					range.deleteContents();
+
+				} else {
+					for (let i = start; i <= end; i++) {
+						const el = ordered[i].el;
+						if (el.parentNode !== null) el.remove();
+					}
+				}
+			};
+
+			/**
+			 * Cleans up removed records and detaches contiguous runs with a Range
+			 * when possible. Falls back to individual removes for scattered rows.
+			 *
+			 * @param {Set<Object>} removedRecords
+			 * @returns {void}
+			 */
+			const removeRecordsInRuns = (removedRecords) => {
+				const count = removedRecords.size;
+				if (count === 0) return;
+
+				for (const record of removedRecords) cleanupRecord(record);
+
+				if (count === 1) {
+					const el = removedRecords.values().next().value.el;
+					if (el.parentNode !== null) el.remove();
+					return;
+				}
+
+				const length = ordered.length;
+				const suffixStart = length - count;
+				let trailing = suffixStart >= 0;
+
+				for (let i = suffixStart; trailing && i < length; i++) {
+					trailing = removedRecords.has(ordered[i]);
+				}
+
+				if (trailing) {
+					removeRun(suffixStart, length - 1);
+					return;
+				}
+
+				let i = 0;
+				while (i < length) {
+					if (!removedRecords.has(ordered[i])) {
+						i++;
+						continue;
+					}
+
+					const start = i;
+					while (i + 1 < length && removedRecords.has(ordered[i + 1])) i++;
+					removeRun(start, i);
+					i++;
 				}
 			};
 
@@ -3991,10 +4152,10 @@ function processForDirective(nodes, vm, context, scope) {
 			// Reactive reconciliation
 			//----------------------------
 
-			const dispose = effect(() => {
-				nextKeySet.clear();
+			const reconcile = () => {
 				nextRendered.clear();
 				nextOrdered.length = 0;
+				createdRecords.length = 0;
 
 				const array = vm.evaluate(iterableExpr, context);
 
@@ -4003,14 +4164,8 @@ function processForDirective(nodes, vm, context, scope) {
 				// array. Remove every rendered row.
 				//-----------------------------------
 
-				if (!Array.isArray(array)) {
-					for (const record of rendered.values()) {
-						unmountRecord(record);
-					}
-
-					rendered.clear();
-					ordered.length = 0;
-
+				if (!Array.isArray(array) || array.length === 0) {
+					bulkUnmountAll();
 					return;
 				}
 
@@ -4018,6 +4173,7 @@ function processForDirective(nodes, vm, context, scope) {
 				// Build the next keyed and ordered
 				// representations.
 				//-----------------------------------
+				let sameOrder = true;
 
 				for (
 					let index = 0, length = array.length;
@@ -4046,7 +4202,7 @@ function processForDirective(nodes, vm, context, scope) {
 						continue;
 					}
 
-					if (nextKeySet.has(key)) {
+					if (nextRendered.has(key)) {
 						console.warn(
 							directiveMessage(
 								context,
@@ -4057,8 +4213,6 @@ function processForDirective(nodes, vm, context, scope) {
 
 						continue;
 					}
-
-					nextKeySet.add(key);
 
 					//-------------------------------------
 					// Attempt to reuse existing record
@@ -4148,6 +4302,7 @@ function processForDirective(nodes, vm, context, scope) {
 								() => cleanupRecord(record),
 								() => unmountRecord(record),
 							);
+							createdRecords.push(record);
 
 						} catch (err) {
 							runScopeCleanup(itemScope, "[@for]");
@@ -4189,6 +4344,10 @@ function processForDirective(nodes, vm, context, scope) {
 					 * We push rather than assign by source index so that
 					 * skipped keys never create a sparse positional array.
 					 */
+					if (ordered[nextOrdered.length] !== record) {
+						sameOrder = false;
+					}
+
 					nextOrdered.push(record);
 				}
 
@@ -4196,17 +4355,62 @@ function processForDirective(nodes, vm, context, scope) {
 				// Remove records that disappeared.
 				//-----------------------------------
 
-				for (const [key, record] of rendered) {
-					if (!nextKeySet.has(key)) {
-						unmountRecord(record);
+				const sameOrderAndLength = sameOrder && nextOrdered.length === ordered.length;
+				const pureAppend = !sameOrderAndLength && isPureAppend(nextOrdered);
+				const removalOnly =
+					!sameOrderAndLength &&
+					!pureAppend &&
+					isRemovalOnly(nextOrdered);
+
+				let removedRecords = null;
+
+				if (!sameOrderAndLength && !pureAppend) {
+					for (const [key, record] of rendered) {
+						if (!nextRendered.has(key)) {
+							if (removedRecords === null) {
+								removedRecords = new Set();
+							}
+
+							removedRecords.add(record);
+						}
 					}
+				}
+
+				if (removedRecords !== null) {
+					removeRecordsInRuns(removedRecords);
 				}
 
 				//-----------------------------------
 				// Reconcile physical DOM order.
 				//-----------------------------------
 
-				reconcileDOMOrder(nextOrdered);
+				if (sameOrderAndLength) {
+					// Existing rows retain their positions and DOM order.
+					// Item and index signals have already been updated.
+
+				} else if (removalOnly) {
+					for (
+						let position = 0, length = nextOrdered.length;
+						position < length;
+						position++
+					) {
+						nextOrdered[position].position = position;
+					}
+
+				} else if (pureAppend) {
+					for (
+						let position = ordered.length, length = nextOrdered.length;
+						position < length;
+						position++
+					) {
+						const record = nextOrdered[position];
+						container.insertBefore(record.el, endAnchor);
+						record.position = position;
+					}
+
+				} else {
+					reconcileDOMOrder(nextOrdered);
+				}
 
 				//-----------------------------------
 				// Commit the new reconciliation state.
@@ -4226,6 +4430,24 @@ function processForDirective(nodes, vm, context, scope) {
 				ordered = nextOrdered;
 				nextOrdered = previousOrdered;
 				nextOrdered.length = 0;
+				createdRecords.length = 0;
+			};
+
+			const dispose = effect(() => {
+				try {
+					reconcile();
+
+				} catch (err) {
+					for (let i = 0; i < createdRecords.length; i++) {
+						unmountRecord(createdRecords[i]);
+					}
+
+					createdRecords.length = 0;
+					nextRendered.clear();
+					nextOrdered.length = 0;
+
+					throw err;
+				}
 
 			}, scope);
 
@@ -4245,11 +4467,11 @@ function processForDirective(nodes, vm, context, scope) {
 				nextRendered.clear();
 				nextOrdered.length = 0;
 
-				if (anchor.isConnected) {
+				if (anchor.parentNode !== null) {
 					anchor.remove();
 				}
 
-				if (endAnchor.isConnected) {
+				if (endAnchor.parentNode !== null) {
 					endAnchor.remove();
 				}
 			});
