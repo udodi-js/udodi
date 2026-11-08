@@ -49,25 +49,21 @@ export function runScopeCleanup(scope, label = "scope") {
 
     const effects = scope.effects;
 
-    if (Array.isArray(effects)) {
-        for (let i = 0, length = effects.length; i < length; i++) {
-            try {
-                effects[i](); // Execute reactive effect cleanup
-            } catch (err) {
-                console.warn(`[cleanup] effect error (${label}):`, err);
-            }
+    for (let i = 0, length = effects.length; i < length; i++) {
+        try {
+            effects[i](); // Execute reactive effect cleanup
+        } catch (err) {
+            console.warn(`[cleanup] effect error (${label}):`, err);
         }
     }
 
     const cleanups = scope.cleanups;
 
-    if (Array.isArray(cleanups)) {
-        for (let i = 0, length = cleanups.length; i < length; i++) {
-            try {
-                cleanups[i](); // Execute user-provided or registered cleanup
-            } catch (err) {
-                console.warn(`[cleanup] cleanup error (${label}):`, err);
-            }
+    for (let i = 0, length = cleanups.length; i < length; i++) {
+        try {
+            cleanups[i](); // Execute user-provided or registered cleanup
+        } catch (err) {
+            console.warn(`[cleanup] cleanup error (${label}):`, err);
         }
     }
 }

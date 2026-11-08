@@ -21,8 +21,6 @@ import { resolveContextValue } from "../runtime/context.js";
  * @returns {*} Evaluated value.
  */
 export function evaluate(expr, context = null, event) {
-	if (expr == null) return undefined;
-
 	switch (expr.type) {
 		case EXPR_LITERAL:
 			return expr.value;
