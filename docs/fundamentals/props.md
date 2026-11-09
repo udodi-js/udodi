@@ -202,7 +202,7 @@ const Parent = createComponent({
     },
   },
 
-  template: html`
+  template: (ctx) => html`
     <section>
       ${Child({
         userName: bindProp(() => ctx.userName),
