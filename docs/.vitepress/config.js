@@ -300,6 +300,10 @@ export default defineConfig({
 		nav: [
 			{ text: "Guide", link: "/" },
 			{ text: "Udodi Router", link: "/udodi-router/" },
+			{
+				text: "VS Code",
+				link: "https://marketplace.visualstudio.com/items?itemName=udodi-js.udodi",
+			},
 			{ text: "Performance", link: "/performance" },
 		],
 		sidebar: [
