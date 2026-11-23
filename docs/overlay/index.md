@@ -487,8 +487,6 @@ This CSS establishes the overlay's viewport positioning, backdrop coverage, cent
 
 It does not attempt to provide a complete modal design system. Applications can target the structural attributes directly or use the `className` option to attach application-specific styles.
 
----
-
 ## A Useful Mental Model
 
 An Overlay can be thought of as three cooperating layers:

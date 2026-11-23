@@ -632,6 +632,9 @@ const router = createRouter({
 				<a href="/udodi-router/">
 					Udodi Router <span class="new-indicator">New</span>
 				</a>
+				<a href="https://marketplace.visualstudio.com/items?itemName=udodi-js.udodi">
+					Udodi VS Code <span class="new-indicator">New</span>
+				</a>
 			</div>
 		</div>
 		<!-- Bottom -->
